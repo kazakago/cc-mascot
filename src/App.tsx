@@ -44,7 +44,7 @@ function App() {
   return (
     <div className="app">
       <Canvas
-        camera={{ position: [0, 0.3, 2.5], fov: 30 }}
+        camera={{ position: [0, 0.3, 3.5], fov: 30 }}
         style={{ width: '100vw', height: '100vh' }}
       >
         <Scene>

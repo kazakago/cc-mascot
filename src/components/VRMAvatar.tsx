@@ -45,7 +45,7 @@ export const VRMAvatar = forwardRef<VRMAvatarHandle, VRMAvatarProps>(
     return (
       <group
         ref={groupRef}
-        position={[0, -1.3, 0]}
+        position={[0, -0.8, 0]}
         rotation={[0, Math.PI, 0]}
       />
     );
