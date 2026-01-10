@@ -23,7 +23,7 @@ function App() {
     onMouthValueChange: handleMouthValueChange,
   });
 
-  const { speakText } = useSpeech({
+  const { speakText, isReady } = useSpeech({
     onStart: startLipSync,
     onEnd: stopLipSync,
   });
@@ -52,6 +52,12 @@ function App() {
           <VRMAvatar ref={avatarRef} url={VRM_URL} animationUrl={ANIMATION_URL} />
         </Scene>
       </Canvas>
+
+      {!isReady && (
+        <div className="audio-overlay">
+          Click to enable audio
+        </div>
+      )}
     </div>
   );
 }
