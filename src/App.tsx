@@ -9,6 +9,7 @@ import { useLipSync } from './hooks/useLipSync';
 import './App.css';
 
 const VRM_URL = '/models/yuzukiyukari.glb';
+const ANIMATION_URL = '/animations/idle_loop.vrma';
 const WS_URL = `ws://${window.location.host}/ws`;
 
 function App() {
@@ -48,7 +49,7 @@ function App() {
         style={{ width: '100vw', height: '100vh' }}
       >
         <Scene>
-          <VRMAvatar ref={avatarRef} url={VRM_URL} />
+          <VRMAvatar ref={avatarRef} url={VRM_URL} animationUrl={ANIMATION_URL} />
         </Scene>
       </Canvas>
     </div>
