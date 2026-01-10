@@ -9,12 +9,15 @@ interface UseSpeechOptions {
 export function useSpeech({ onStart, onEnd }: UseSpeechOptions) {
   const audioContextRef = useRef<AudioContext | null>(null);
   const isSpeakingRef = useRef(false);
+  const queueRef = useRef<string[]>([]);
 
-  const speakText = useCallback(async (text: string) => {
-    if (isSpeakingRef.current) {
-      console.warn('Already speaking, ignoring request');
+  const processQueue = useCallback(async () => {
+    if (isSpeakingRef.current || queueRef.current.length === 0) {
       return;
     }
+
+    const text = queueRef.current.shift();
+    if (!text) return;
 
     try {
       isSpeakingRef.current = true;
@@ -44,6 +47,8 @@ export function useSpeech({ onStart, onEnd }: UseSpeechOptions) {
       source.onended = () => {
         isSpeakingRef.current = false;
         onEnd();
+        // 次のキューを処理
+        processQueue();
       };
 
       source.start();
@@ -51,8 +56,16 @@ export function useSpeech({ onStart, onEnd }: UseSpeechOptions) {
       console.error('Speech failed:', error);
       isSpeakingRef.current = false;
       onEnd();
+      // エラーが起きても次のキューを処理
+      processQueue();
     }
   }, [onStart, onEnd]);
+
+  const speakText = useCallback((text: string) => {
+    console.log(`Queued: "${text}" (queue size: ${queueRef.current.length})`);
+    queueRef.current.push(text);
+    processQueue();
+  }, [processQueue]);
 
   return { speakText };
 }
