@@ -217,3 +217,44 @@
 .settings-button-secondary:hover {
   background-color: #e0e0e0;
 }
+
+.settings-button-danger {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  background-color: #d32f2f;
+  color: white;
+  width: 100%;
+}
+
+.settings-button-danger:hover {
+  background-color: #b71c1c;
+}
+
+.settings-file-button {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid #ddd;
+  background-color: white;
+  color: #333;
+}
+
+.settings-file-button:hover {
+  background-color: #f5f5f5;
+  border-color: #bbb;
+}
+
+.settings-file-name {
+  font-size: 12px;
+  color: #666;
+  margin: 8px 0 0 0;
+  font-style: italic;
+}

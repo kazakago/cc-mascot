@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -7,6 +7,9 @@ interface SettingsModalProps {
   onSpeakerIdChange: (id: number) => void;
   baseUrl: string;
   onBaseUrlChange: (url: string) => void;
+  onVRMFileChange: (file: File) => void;
+  currentVRMFileName?: string;
+  onReset: () => void;
 }
 
 export function SettingsModal({
@@ -15,16 +18,34 @@ export function SettingsModal({
   speakerId,
   onSpeakerIdChange,
   baseUrl,
-  onBaseUrlChange
+  onBaseUrlChange,
+  onVRMFileChange,
+  currentVRMFileName,
+  onReset,
 }: SettingsModalProps) {
   const [speakerIdInput, setSpeakerIdInput] = useState(String(speakerId));
   const [baseUrlInput, setBaseUrlInput] = useState(baseUrl);
   const [error, setError] = useState('');
+  const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setSpeakerIdInput(String(speakerId));
     setBaseUrlInput(baseUrl);
   }, [speakerId, baseUrl]);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.name.toLowerCase().endsWith('.glb') && !file.name.toLowerCase().endsWith('.vrm')) {
+        setError('Please select a VRM (.vrm or .glb) file');
+        return;
+      }
+      setSelectedFileName(file.name);
+      onVRMFileChange(file);
+      setError('');
+    }
+  };
 
   const handleSave = () => {
     // Validate Speaker ID
@@ -60,6 +81,12 @@ export function SettingsModal({
     }
   };
 
+  const handleReset = () => {
+    if (confirm('Are you sure you want to reset all settings to defaults? This will reload the page.')) {
+      onReset();
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -72,6 +99,31 @@ export function SettingsModal({
           </button>
         </div>
         <div className="settings-modal-content">
+          <div className="settings-section">
+            <h3>Avatar</h3>
+            <div className="settings-item">
+              <label htmlFor="vrm-file">VRM Model</label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                id="vrm-file"
+                accept=".vrm,.glb"
+                onChange={handleFileChange}
+                style={{ display: 'none' }}
+              />
+              <button
+                className="settings-file-button"
+                onClick={() => fileInputRef.current?.click()}
+                type="button"
+              >
+                Choose VRM File
+              </button>
+              <p className="settings-file-name">
+                {selectedFileName || currentVRMFileName || 'No file selected'}
+              </p>
+            </div>
+          </div>
+
           <div className="settings-section">
             <h3>Audio</h3>
             <div className="settings-item">
@@ -104,6 +156,13 @@ export function SettingsModal({
             <p className="settings-info">
               VRM Avatar Speech Application
             </p>
+          </div>
+
+          <div className="settings-section">
+            <h3>Reset</h3>
+            <button className="settings-button-danger" onClick={handleReset}>
+              Reset All Settings
+            </button>
           </div>
 
           <div className="settings-actions">

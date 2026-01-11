@@ -1,4 +1,4 @@
-import { useRef, useCallback, useState } from 'react';
+import { useRef, useCallback, useState, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Scene } from './components/Scene';
 import { VRMAvatar } from './components/VRMAvatar';
@@ -9,9 +9,10 @@ import { useWebSocket } from './hooks/useWebSocket';
 import { useSpeech } from './hooks/useSpeech';
 import { useLipSync } from './hooks/useLipSync';
 import { useLocalStorage } from './hooks/useLocalStorage';
+import { loadVRMFile, saveVRMFile, createBlobURL, deleteVRMFile } from './utils/vrmStorage';
 import './App.css';
 
-const VRM_URL = '/models/avatar.glb';
+const DEFAULT_VRM_URL = '/models/avatar.glb';
 const ANIMATION_URL = '/animations/idle_loop.vrma';
 const WS_URL = `ws://${window.location.host}/ws`;
 
@@ -20,6 +21,47 @@ function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [speakerId, setSpeakerId] = useLocalStorage('speakerId', 0);
   const [baseUrl, setBaseUrl] = useLocalStorage('baseUrl', 'http://localhost:50021');
+  const [vrmUrl, setVrmUrl] = useState<string>(DEFAULT_VRM_URL);
+  const [vrmFileName, setVrmFileName] = useState<string | undefined>(undefined);
+
+  // Load VRM from IndexedDB on mount
+  useEffect(() => {
+    loadVRMFile().then((file) => {
+      if (file) {
+        const url = createBlobURL(file);
+        setVrmUrl(url);
+        setVrmFileName(file.name);
+      }
+    }).catch((err) => {
+      console.error('Failed to load VRM file:', err);
+    });
+  }, []);
+
+  const handleVRMFileChange = useCallback((file: File) => {
+    saveVRMFile(file).then(() => {
+      const url = createBlobURL(file);
+      setVrmUrl(url);
+      setVrmFileName(file.name);
+    }).catch((err) => {
+      console.error('Failed to save VRM file:', err);
+    });
+  }, []);
+
+  const handleReset = useCallback(() => {
+    // Clear localStorage
+    localStorage.removeItem('speakerId');
+    localStorage.removeItem('baseUrl');
+
+    // Clear IndexedDB
+    deleteVRMFile().then(() => {
+      // Reload page to apply defaults
+      window.location.reload();
+    }).catch((err) => {
+      console.error('Failed to delete VRM file:', err);
+      // Reload anyway
+      window.location.reload();
+    });
+  }, []);
 
   const handleMouthValueChange = useCallback((value: number) => {
     avatarRef.current?.setMouthOpen(value);
@@ -59,7 +101,7 @@ function App() {
         style={{ width: '100vw', height: '100vh' }}
       >
         <Scene>
-          <VRMAvatar ref={avatarRef} url={VRM_URL} animationUrl={ANIMATION_URL} />
+          <VRMAvatar ref={avatarRef} url={vrmUrl} animationUrl={ANIMATION_URL} />
         </Scene>
       </Canvas>
 
@@ -76,6 +118,9 @@ function App() {
         onSpeakerIdChange={setSpeakerId}
         baseUrl={baseUrl}
         onBaseUrlChange={setBaseUrl}
+        onVRMFileChange={handleVRMFileChange}
+        currentVRMFileName={vrmFileName}
+        onReset={handleReset}
       />
     </div>
   );
