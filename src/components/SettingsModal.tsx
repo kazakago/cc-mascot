@@ -75,7 +75,7 @@ export function SettingsModal({
           <div className="settings-section">
             <h3>Audio</h3>
             <div className="settings-item">
-              <label htmlFor="base-url">AivisSpeech Engine URL</label>
+              <label htmlFor="base-url">VOICEVOX Engine URL</label>
               <input
                 type="text"
                 id="base-url"

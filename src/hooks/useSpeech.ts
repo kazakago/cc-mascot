@@ -1,5 +1,5 @@
 import { useRef, useCallback, useEffect, useState } from 'react';
-import { speak } from '../services/aivisSpeech';
+import { speak } from '../services/voicevox';
 
 interface UseSpeechOptions {
   onStart: (analyser: AnalyserNode) => void;
