@@ -30,9 +30,13 @@ export function SettingsModal({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setSpeakerIdInput(String(speakerId));
-    setBaseUrlInput(baseUrl);
-  }, [speakerId, baseUrl]);
+    if (isOpen) {
+      setSpeakerIdInput(String(speakerId));
+      setBaseUrlInput(baseUrl);
+      setSelectedFileName(null);
+      setError('');
+    }
+  }, [isOpen, speakerId, baseUrl]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
