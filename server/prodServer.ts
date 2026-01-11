@@ -3,7 +3,7 @@ import { readFileSync, existsSync } from 'fs';
 import { join, extname } from 'path';
 import { WebSocketServer, WebSocket } from 'ws';
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8563;
 const DIST_DIR = join(import.meta.dirname, '../dist');
 
 const MIME_TYPES: Record<string, string> = {

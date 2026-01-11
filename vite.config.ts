@@ -76,12 +76,15 @@ function webSocketPlugin(): Plugin {
         }
       });
 
-      console.log('WebSocket server integrated at ws://localhost:5173/ws');
-      console.log('HTTP endpoint: POST http://localhost:5173/speak');
+      console.log('WebSocket server integrated at ws://localhost:8563/ws');
+      console.log('HTTP endpoint: POST http://localhost:8563/speak');
     },
   };
 }
 
 export default defineConfig({
   plugins: [react(), webSocketPlugin()],
+  server: {
+    port: 8563,
+  },
 })
