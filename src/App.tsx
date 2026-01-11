@@ -13,7 +13,12 @@ import { loadVRMFile, saveVRMFile, createBlobURL, deleteVRMFile } from './utils/
 import './App.css';
 
 const DEFAULT_VRM_URL = '/models/avatar.glb';
-const ANIMATION_URL = '/animations/idle_loop.vrma';
+const IDLE_ANIMATION_URL = '/animations/idle_loop.vrma';
+const SPEAKING_ANIMATION_URLS = [
+  '/animations/voice_01.vrma',
+  '/animations/voice_02.vrma',
+  '/animations/voice_03.vrma',
+];
 const WS_URL = `ws://${window.location.host}/ws`;
 
 function App() {
@@ -24,6 +29,7 @@ function App() {
   const [volumeScale, setVolumeScale] = useLocalStorage('volumeScale', 1.0);
   const [vrmUrl, setVrmUrl] = useState<string>(DEFAULT_VRM_URL);
   const [vrmFileName, setVrmFileName] = useState<string | undefined>(undefined);
+  const [currentAnimationUrl, setCurrentAnimationUrl] = useState<string>(IDLE_ANIMATION_URL);
 
   // Load VRM from IndexedDB on mount
   useEffect(() => {
@@ -73,9 +79,25 @@ function App() {
     onMouthValueChange: handleMouthValueChange,
   });
 
+  const handleSpeechStart = useCallback((analyser: AnalyserNode) => {
+    const randomIndex = Math.floor(Math.random() * SPEAKING_ANIMATION_URLS.length);
+    const randomAnimationUrl = SPEAKING_ANIMATION_URLS[randomIndex];
+    setCurrentAnimationUrl(randomAnimationUrl);
+    startLipSync(analyser);
+  }, [startLipSync]);
+
+  const handleSpeechEnd = useCallback(() => {
+    stopLipSync();
+  }, [stopLipSync]);
+
+  const handleAnimationEnd = useCallback(() => {
+    // When speaking animation ends, return to idle
+    setCurrentAnimationUrl(IDLE_ANIMATION_URL);
+  }, []);
+
   const { speakText, isReady } = useSpeech({
-    onStart: startLipSync,
-    onEnd: stopLipSync,
+    onStart: handleSpeechStart,
+    onEnd: handleSpeechEnd,
     speakerId,
     baseUrl,
     volumeScale,
@@ -104,7 +126,13 @@ function App() {
         style={{ width: '100vw', height: '100vh' }}
       >
         <Scene>
-          <VRMAvatar ref={avatarRef} url={vrmUrl} animationUrl={ANIMATION_URL} />
+          <VRMAvatar
+            ref={avatarRef}
+            url={vrmUrl}
+            animationUrl={currentAnimationUrl}
+            animationLoop={currentAnimationUrl === IDLE_ANIMATION_URL}
+            onAnimationEnd={handleAnimationEnd}
+          />
         </Scene>
       </Canvas>
 

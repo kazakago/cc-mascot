@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { AnimationMixer } from 'three';
+import { AnimationMixer, AnimationAction, LoopOnce } from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import {
   VRMAnimationLoaderPlugin,
@@ -8,9 +8,20 @@ import {
 } from '@pixiv/three-vrm-animation';
 import type { VRM } from '@pixiv/three-vrm';
 
-export function useVRMAnimation(vrm: VRM | null, animationUrl: string) {
+interface UseVRMAnimationOptions {
+  loop?: boolean;
+  onAnimationEnd?: () => void;
+}
+
+export function useVRMAnimation(
+  vrm: VRM | null,
+  animationUrl: string,
+  options: UseVRMAnimationOptions = {}
+) {
+  const { loop = true, onAnimationEnd } = options;
   const [vrmAnimation, setVrmAnimation] = useState<VRMAnimation | null>(null);
   const mixerRef = useRef<AnimationMixer | null>(null);
+  const currentActionRef = useRef<AnimationAction | null>(null);
 
   // Load VRMA file
   useEffect(() => {
@@ -31,22 +42,68 @@ export function useVRMAnimation(vrm: VRM | null, animationUrl: string) {
       });
   }, [animationUrl]);
 
-  // Setup mixer and play animation
+  // Setup mixer on VRM load
   useEffect(() => {
-    if (!vrm || !vrmAnimation) return;
+    if (!vrm) return;
 
     const mixer = new AnimationMixer(vrm.scene);
     mixerRef.current = mixer;
 
-    const clip = createVRMAnimationClip(vrmAnimation, vrm);
-    const action = mixer.clipAction(clip);
-    action.play();
-
     return () => {
       mixer.stopAllAction();
       mixerRef.current = null;
+      currentActionRef.current = null;
     };
-  }, [vrm, vrmAnimation]);
+  }, [vrm]);
+
+  // Play animation with crossfade
+  useEffect(() => {
+    if (!vrm || !vrmAnimation || !mixerRef.current) return;
+
+    const mixer = mixerRef.current;
+    const clip = createVRMAnimationClip(vrmAnimation, vrm);
+    const newAction = mixer.clipAction(clip);
+
+    // Configure loop mode
+    if (!loop) {
+      newAction.setLoop(LoopOnce, 1);
+      newAction.clampWhenFinished = true;
+    }
+
+    // Crossfade from previous action to new action
+    const previousAction = currentActionRef.current;
+    const fadeDuration = 0.5; // 0.5 seconds for smooth transition
+
+    if (previousAction && previousAction !== newAction) {
+      // Fade out previous action
+      previousAction.fadeOut(fadeDuration);
+
+      // Fade in new action
+      newAction.reset();
+      newAction.fadeIn(fadeDuration);
+      newAction.play();
+    } else {
+      // First animation or same animation, just play
+      newAction.play();
+    }
+
+    currentActionRef.current = newAction;
+
+    // Set up animation end callback for non-looping animations
+    if (!loop && onAnimationEnd) {
+      const handleFinished = (event: any) => {
+        if (event.action === newAction) {
+          onAnimationEnd();
+          mixer.removeEventListener('finished', handleFinished);
+        }
+      };
+      mixer.addEventListener('finished', handleFinished);
+
+      return () => {
+        mixer.removeEventListener('finished', handleFinished);
+      };
+    }
+  }, [vrm, vrmAnimation, loop, onAnimationEnd]);
 
   const update = useCallback((delta: number) => {
     mixerRef.current?.update(delta);

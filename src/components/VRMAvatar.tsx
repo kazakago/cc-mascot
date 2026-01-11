@@ -11,12 +11,17 @@ export interface VRMAvatarHandle {
 interface VRMAvatarProps {
   url: string;
   animationUrl?: string;
+  animationLoop?: boolean;
+  onAnimationEnd?: () => void;
 }
 
 export const VRMAvatar = forwardRef<VRMAvatarHandle, VRMAvatarProps>(
-  function VRMAvatar({ url, animationUrl }, ref) {
+  function VRMAvatar({ url, animationUrl, animationLoop = true, onAnimationEnd }, ref) {
     const { vrm, loading, error, setMouthOpen, update: updateVRM } = useVRM(url);
-    const { update: updateAnimation } = useVRMAnimation(vrm, animationUrl || '');
+    const { update: updateAnimation } = useVRMAnimation(vrm, animationUrl || '', {
+      loop: animationLoop,
+      onAnimationEnd,
+    });
     const groupRef = useRef<Group>(null);
 
     useImperativeHandle(ref, () => ({
