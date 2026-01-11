@@ -4,9 +4,11 @@ import { speak } from '../services/aivisSpeech';
 interface UseSpeechOptions {
   onStart: (analyser: AnalyserNode) => void;
   onEnd: () => void;
+  speakerId: number;
+  baseUrl: string;
 }
 
-export function useSpeech({ onStart, onEnd }: UseSpeechOptions) {
+export function useSpeech({ onStart, onEnd, speakerId, baseUrl }: UseSpeechOptions) {
   const audioContextRef = useRef<AudioContext | null>(null);
   const [isReady, setIsReady] = useState(false);
   const isSpeakingRef = useRef(false);
@@ -71,7 +73,7 @@ export function useSpeech({ onStart, onEnd }: UseSpeechOptions) {
     try {
       isSpeakingRef.current = true;
 
-      const wavBuffer = await speak(text);
+      const wavBuffer = await speak(text, speakerId, baseUrl);
       const audioBuffer = await ctx.decodeAudioData(wavBuffer);
 
       const source = ctx.createBufferSource();
@@ -97,7 +99,7 @@ export function useSpeech({ onStart, onEnd }: UseSpeechOptions) {
       onEnd();
       processQueue();
     }
-  }, [onStart, onEnd, isReady]);
+  }, [onStart, onEnd, isReady, speakerId, baseUrl]);
 
   const speakText = useCallback((text: string) => {
     // AudioContextが準備できていない場合は無視

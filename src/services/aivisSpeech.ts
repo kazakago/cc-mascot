@@ -1,6 +1,3 @@
-const BASE_URL = 'http://localhost:10101';
-const SPEAKER_ID = 888753760;
-
 export interface AudioQuery {
   accent_phrases: unknown[];
   speedScale: number;
@@ -14,9 +11,13 @@ export interface AudioQuery {
   kana?: string;
 }
 
-export async function createAudioQuery(text: string): Promise<AudioQuery> {
+export async function createAudioQuery(
+  text: string,
+  speakerId: number,
+  baseUrl: string
+): Promise<AudioQuery> {
   const res = await fetch(
-    `${BASE_URL}/audio_query?text=${encodeURIComponent(text)}&speaker=${SPEAKER_ID}`,
+    `${baseUrl}/audio_query?text=${encodeURIComponent(text)}&speaker=${speakerId}`,
     { method: 'POST' }
   );
   if (!res.ok) {
@@ -25,9 +26,13 @@ export async function createAudioQuery(text: string): Promise<AudioQuery> {
   return res.json();
 }
 
-export async function synthesis(query: AudioQuery): Promise<ArrayBuffer> {
+export async function synthesis(
+  query: AudioQuery,
+  speakerId: number,
+  baseUrl: string
+): Promise<ArrayBuffer> {
   const res = await fetch(
-    `${BASE_URL}/synthesis?speaker=${SPEAKER_ID}`,
+    `${baseUrl}/synthesis?speaker=${speakerId}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -40,7 +45,11 @@ export async function synthesis(query: AudioQuery): Promise<ArrayBuffer> {
   return res.arrayBuffer();
 }
 
-export async function speak(text: string): Promise<ArrayBuffer> {
-  const query = await createAudioQuery(text);
-  return synthesis(query);
+export async function speak(
+  text: string,
+  speakerId: number,
+  baseUrl: string
+): Promise<ArrayBuffer> {
+  const query = await createAudioQuery(text, speakerId, baseUrl);
+  return synthesis(query, speakerId, baseUrl);
 }

@@ -8,6 +8,7 @@ import { SettingsModal } from './components/SettingsModal';
 import { useWebSocket } from './hooks/useWebSocket';
 import { useSpeech } from './hooks/useSpeech';
 import { useLipSync } from './hooks/useLipSync';
+import { useLocalStorage } from './hooks/useLocalStorage';
 import './App.css';
 
 const VRM_URL = '/models/avatar.glb';
@@ -17,6 +18,8 @@ const WS_URL = `ws://${window.location.host}/ws`;
 function App() {
   const avatarRef = useRef<VRMAvatarHandle>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [speakerId, setSpeakerId] = useLocalStorage('speakerId', 0);
+  const [baseUrl, setBaseUrl] = useLocalStorage('baseUrl', 'http://localhost:50021');
 
   const handleMouthValueChange = useCallback((value: number) => {
     avatarRef.current?.setMouthOpen(value);
@@ -29,6 +32,8 @@ function App() {
   const { speakText, isReady } = useSpeech({
     onStart: startLipSync,
     onEnd: stopLipSync,
+    speakerId,
+    baseUrl,
   });
 
   const handleWebSocketMessage = useCallback(
@@ -67,6 +72,10 @@ function App() {
       <SettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
+        speakerId={speakerId}
+        onSpeakerIdChange={setSpeakerId}
+        baseUrl={baseUrl}
+        onBaseUrlChange={setBaseUrl}
       />
     </div>
   );
