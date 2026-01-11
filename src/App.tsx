@@ -122,7 +122,7 @@ function App() {
       <SettingsButton onClick={() => setIsSettingsOpen(true)} />
 
       <Canvas
-        camera={{ position: [0, 0.3, 2.0], fov: 30 }}
+        camera={{ position: [0, 0.2, 2.0], fov: 30 }}
         style={{ width: '100vw', height: '100vh' }}
       >
         <Scene>
