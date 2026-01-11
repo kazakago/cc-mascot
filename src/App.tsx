@@ -21,6 +21,7 @@ function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [speakerId, setSpeakerId] = useLocalStorage('speakerId', 0);
   const [baseUrl, setBaseUrl] = useLocalStorage('baseUrl', 'http://localhost:50021');
+  const [volumeScale, setVolumeScale] = useLocalStorage('volumeScale', 1.0);
   const [vrmUrl, setVrmUrl] = useState<string>(DEFAULT_VRM_URL);
   const [vrmFileName, setVrmFileName] = useState<string | undefined>(undefined);
 
@@ -51,6 +52,7 @@ function App() {
     // Clear localStorage
     localStorage.removeItem('speakerId');
     localStorage.removeItem('baseUrl');
+    localStorage.removeItem('volumeScale');
 
     // Clear IndexedDB
     deleteVRMFile().then(() => {
@@ -76,6 +78,7 @@ function App() {
     onEnd: stopLipSync,
     speakerId,
     baseUrl,
+    volumeScale,
   });
 
   const handleWebSocketMessage = useCallback(
@@ -118,6 +121,8 @@ function App() {
         onSpeakerIdChange={setSpeakerId}
         baseUrl={baseUrl}
         onBaseUrlChange={setBaseUrl}
+        volumeScale={volumeScale}
+        onVolumeScaleChange={setVolumeScale}
         onVRMFileChange={handleVRMFileChange}
         currentVRMFileName={vrmFileName}
         onReset={handleReset}

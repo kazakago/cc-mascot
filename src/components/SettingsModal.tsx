@@ -7,6 +7,8 @@ interface SettingsModalProps {
   onSpeakerIdChange: (id: number) => void;
   baseUrl: string;
   onBaseUrlChange: (url: string) => void;
+  volumeScale: number;
+  onVolumeScaleChange: (scale: number) => void;
   onVRMFileChange: (file: File) => void;
   currentVRMFileName?: string;
   onReset: () => void;
@@ -19,12 +21,15 @@ export function SettingsModal({
   onSpeakerIdChange,
   baseUrl,
   onBaseUrlChange,
+  volumeScale,
+  onVolumeScaleChange,
   onVRMFileChange,
   currentVRMFileName,
   onReset,
 }: SettingsModalProps) {
   const [speakerIdInput, setSpeakerIdInput] = useState(String(speakerId));
   const [baseUrlInput, setBaseUrlInput] = useState(baseUrl);
+  const [volumeScaleInput, setVolumeScaleInput] = useState(volumeScale);
   const [error, setError] = useState('');
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -33,10 +38,11 @@ export function SettingsModal({
     if (isOpen) {
       setSpeakerIdInput(String(speakerId));
       setBaseUrlInput(baseUrl);
+      setVolumeScaleInput(volumeScale);
       setSelectedFileName(null);
       setError('');
     }
-  }, [isOpen, speakerId, baseUrl]);
+  }, [isOpen, speakerId, baseUrl, volumeScale]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -76,6 +82,7 @@ export function SettingsModal({
     setError('');
     onSpeakerIdChange(parsed);
     onBaseUrlChange(trimmedUrl);
+    onVolumeScaleChange(volumeScaleInput);
     onClose();
   };
 
@@ -150,6 +157,21 @@ export function SettingsModal({
                 onChange={(e) => setSpeakerIdInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 min="0"
+              />
+            </div>
+            <div className="settings-item">
+              <label htmlFor="volume-scale">
+                Volume Scale: {volumeScaleInput.toFixed(2)}
+              </label>
+              <input
+                type="range"
+                id="volume-scale"
+                min="0"
+                max="2"
+                step="0.01"
+                value={volumeScaleInput}
+                onChange={(e) => setVolumeScaleInput(parseFloat(e.target.value))}
+                className="settings-slider"
               />
             </div>
             {error && <p className="settings-error">{error}</p>}

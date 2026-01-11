@@ -6,9 +6,10 @@ interface UseSpeechOptions {
   onEnd: () => void;
   speakerId: number;
   baseUrl: string;
+  volumeScale: number;
 }
 
-export function useSpeech({ onStart, onEnd, speakerId, baseUrl }: UseSpeechOptions) {
+export function useSpeech({ onStart, onEnd, speakerId, baseUrl, volumeScale }: UseSpeechOptions) {
   const audioContextRef = useRef<AudioContext | null>(null);
   const [isReady, setIsReady] = useState(false);
   const isSpeakingRef = useRef(false);
@@ -78,11 +79,16 @@ export function useSpeech({ onStart, onEnd, speakerId, baseUrl }: UseSpeechOptio
 
       const source = ctx.createBufferSource();
       const analyser = ctx.createAnalyser();
+      const gainNode = ctx.createGain();
+
       analyser.fftSize = 256;
+      gainNode.gain.value = volumeScale;
 
       source.buffer = audioBuffer;
+      // Audio graph: source -> analyser -> gain -> destination
       source.connect(analyser);
-      analyser.connect(ctx.destination);
+      analyser.connect(gainNode);
+      gainNode.connect(ctx.destination);
 
       onStart(analyser);
 
@@ -99,7 +105,7 @@ export function useSpeech({ onStart, onEnd, speakerId, baseUrl }: UseSpeechOptio
       onEnd();
       processQueue();
     }
-  }, [onStart, onEnd, isReady, speakerId, baseUrl]);
+  }, [onStart, onEnd, isReady, speakerId, baseUrl, volumeScale]);
 
   const speakText = useCallback((text: string) => {
     // AudioContextが準備できていない場合は無視
