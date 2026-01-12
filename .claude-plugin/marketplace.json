@@ -1,0 +1,13 @@
+{
+    "name": "cc-avatar-marketplace",
+    "owner": {
+        "name": "kazakago"
+    },
+    "plugins": [
+        {
+            "name": "cc-avatar-plugin",
+            "source": "./cc-avatar-plugin",
+            "description": "Claude Code Avatar Plugin"
+        }
+    ]
+}
