@@ -43,7 +43,7 @@ export function useVRM(url: string) {
       .then((gltf) => {
         const loadedVrm = gltf.userData.vrm as VRM;
 
-        VRMUtils.removeUnnecessaryJoints(gltf.scene);
+        VRMUtils.combineSkeletons(gltf.scene);
 
         setVrm(loadedVrm);
         setLoading(false);
