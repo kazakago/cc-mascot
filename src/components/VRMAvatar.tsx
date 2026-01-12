@@ -3,9 +3,11 @@ import { useFrame } from '@react-three/fiber';
 import { Group } from 'three';
 import { useVRM } from '../hooks/useVRM';
 import { useVRMAnimation } from '../hooks/useVRMAnimation';
+import type { Emotion } from '../types/emotion';
 
 export interface VRMAvatarHandle {
   setMouthOpen: (value: number) => void;
+  setEmotion: (emotion: Emotion, value?: number) => void;
 }
 
 interface VRMAvatarProps {
@@ -17,7 +19,7 @@ interface VRMAvatarProps {
 
 export const VRMAvatar = forwardRef<VRMAvatarHandle, VRMAvatarProps>(
   function VRMAvatar({ url, animationUrl, animationLoop = true, onAnimationEnd }, ref) {
-    const { vrm, loading, error, setMouthOpen, update: updateVRM } = useVRM(url);
+    const { vrm, loading, error, setMouthOpen, setEmotion, update: updateVRM } = useVRM(url);
     const { update: updateAnimation } = useVRMAnimation(vrm, animationUrl || '', {
       loop: animationLoop,
       onAnimationEnd,
@@ -26,7 +28,8 @@ export const VRMAvatar = forwardRef<VRMAvatarHandle, VRMAvatarProps>(
 
     useImperativeHandle(ref, () => ({
       setMouthOpen,
-    }), [setMouthOpen]);
+      setEmotion,
+    }), [setMouthOpen, setEmotion]);
 
     useFrame((_, delta) => {
       updateAnimation(delta);

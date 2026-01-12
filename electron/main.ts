@@ -47,7 +47,12 @@ const createWebSocketServer = () => {
         try {
           const data = JSON.parse(body);
           if (data.text) {
-            broadcast(JSON.stringify({ type: 'speak', text: data.text }));
+            const message: any = { type: 'speak', text: data.text };
+            // Add emotion parameter if provided (neutral | happy | angry | sad | relaxed)
+            if (data.emotion) {
+              message.emotion = data.emotion;
+            }
+            broadcast(JSON.stringify(message));
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ success: true }));
           } else {
@@ -86,7 +91,12 @@ const createWebSocketServer = () => {
       try {
         const message = JSON.parse(data.toString());
         if (message.text) {
-          broadcast(JSON.stringify({ type: 'speak', text: message.text }));
+          const broadcastMessage: any = { type: 'speak', text: message.text };
+          // Add emotion parameter if provided (neutral | happy | angry | sad | relaxed)
+          if (message.emotion) {
+            broadcastMessage.emotion = message.emotion;
+          }
+          broadcast(JSON.stringify(broadcastMessage));
         }
       } catch {
         console.error('Invalid message received');

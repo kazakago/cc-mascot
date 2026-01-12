@@ -10,6 +10,7 @@ import { useSpeech } from './hooks/useSpeech';
 import { useLipSync } from './hooks/useLipSync';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { loadVRMFile, saveVRMFile, createBlobURL, deleteVRMFile } from './utils/vrmStorage';
+import type { Emotion } from './types/emotion';
 import './App.css';
 
 const DEFAULT_VRM_URL = '/models/avatar.glb';
@@ -31,6 +32,7 @@ function App() {
   const [vrmUrl, setVrmUrl] = useState<string>(DEFAULT_VRM_URL);
   const [vrmFileName, setVrmFileName] = useState<string | undefined>(undefined);
   const [currentAnimationUrl, setCurrentAnimationUrl] = useState<string>(IDLE_ANIMATION_URL);
+  const [currentEmotion, setCurrentEmotion] = useState<Emotion>('neutral');
 
   // Load VRM from IndexedDB on mount
   useEffect(() => {
@@ -89,6 +91,9 @@ function App() {
 
   const handleSpeechEnd = useCallback(() => {
     stopLipSync();
+    // Reset emotion to neutral after speaking
+    setCurrentEmotion('neutral');
+    avatarRef.current?.setEmotion('neutral');
   }, [stopLipSync]);
 
   const handleAnimationEnd = useCallback(() => {
@@ -105,13 +110,23 @@ function App() {
   });
 
   const handleWebSocketMessage = useCallback(
-    (data: { type: string; text: string }) => {
+    (data: { type: string; text: string; emotion?: Emotion }) => {
       if (data.type === 'speak' && data.text) {
+        const emotion = data.emotion || 'neutral';
+        setCurrentEmotion(emotion);
+        avatarRef.current?.setEmotion(emotion);
         speakText(data.text);
       }
     },
     [speakText]
   );
+
+  // Apply emotion when avatar ref changes
+  useEffect(() => {
+    if (avatarRef.current) {
+      avatarRef.current.setEmotion(currentEmotion);
+    }
+  }, [currentEmotion]);
 
   useWebSocket({
     url: WS_URL,
