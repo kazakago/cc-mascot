@@ -19,7 +19,8 @@ const SPEAKING_ANIMATION_URLS = [
   '/animations/voice_02.vrma',
   '/animations/voice_03.vrma',
 ];
-const WS_URL = `ws://${window.location.host}/ws`;
+// Electron app always uses localhost:8564 for WebSocket
+const WS_URL = 'ws://localhost:8564/ws';
 
 function App() {
   const avatarRef = useRef<VRMAvatarHandle>(null);
