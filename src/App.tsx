@@ -103,7 +103,7 @@ function App() {
     setCurrentAnimationUrl(IDLE_ANIMATION_URL);
   }, []);
 
-  const { speakText, isReady } = useSpeech({
+  const { speakText } = useSpeech({
     onStart: handleSpeechStart,
     onEnd: handleSpeechEnd,
     speakerId,
@@ -153,12 +153,6 @@ function App() {
           />
         </Scene>
       </Canvas>
-
-      {!isReady && (
-        <div className="audio-overlay">
-          Click to enable audio
-        </div>
-      )}
 
       <SettingsModal
         isOpen={isSettingsOpen}

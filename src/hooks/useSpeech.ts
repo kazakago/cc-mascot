@@ -21,36 +21,22 @@ export function useSpeech({ onStart, onEnd, speakerId, baseUrl, volumeScale }: U
   const isSpeakingRef = useRef(false);
   const queueRef = useRef<QueueItem[]>([]);
 
-  // ユーザーインタラクションでAudioContextを初期化
+  // アプリ起動時にAudioContextを初期化（Electron用）
   useEffect(() => {
-    const initAudioContext = () => {
-      if (audioContextRef.current) return;
+    if (audioContextRef.current) return;
 
-      const ctx = new AudioContext();
-      audioContextRef.current = ctx;
+    const ctx = new AudioContext();
+    audioContextRef.current = ctx;
 
-      if (ctx.state === 'running') {
+    if (ctx.state === 'running') {
+      setIsReady(true);
+      console.log('AudioContext initialized');
+    } else {
+      ctx.resume().then(() => {
         setIsReady(true);
-        console.log('AudioContext initialized');
-      } else {
-        ctx.resume().then(() => {
-          setIsReady(true);
-          console.log('AudioContext resumed');
-        });
-      }
-    };
-
-    // クリック・キー押下・タッチでAudioContextを初期化
-    const events = ['click', 'keydown', 'touchstart'];
-    events.forEach((event) => {
-      document.addEventListener(event, initAudioContext, { once: true });
-    });
-
-    return () => {
-      events.forEach((event) => {
-        document.removeEventListener(event, initAudioContext);
+        console.log('AudioContext resumed');
       });
-    };
+    }
   }, []);
 
   const processQueue = useCallback(async () => {
