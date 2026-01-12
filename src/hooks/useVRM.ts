@@ -5,7 +5,7 @@ import { MathUtils } from 'three';
 import type { Emotion } from '../types/emotion';
 import { getExpressionName } from '../types/emotion';
 
-const EMOTIONS: Emotion[] = ['neutral', 'happy', 'angry', 'sad', 'relaxed'];
+const EMOTIONS: Emotion[] = ['neutral', 'happy', 'angry', 'sad', 'relaxed', 'surprised'];
 const LERP_FACTOR = 0.1; // Lower = smoother but slower transition
 
 export function useVRM(url: string) {
@@ -20,6 +20,7 @@ export function useVRM(url: string) {
     angry: 0,
     sad: 0,
     relaxed: 0,
+    surprised: 0,
   });
 
   const targetEmotionValues = useRef<Record<Emotion, number>>({
@@ -28,6 +29,7 @@ export function useVRM(url: string) {
     angry: 0,
     sad: 0,
     relaxed: 0,
+    surprised: 0,
   });
 
   useEffect(() => {

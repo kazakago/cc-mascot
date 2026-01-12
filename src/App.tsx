@@ -15,11 +15,9 @@ import './App.css';
 
 const DEFAULT_VRM_URL = '/models/avatar.glb';
 const IDLE_ANIMATION_URL = '/animations/idle_loop.vrma';
-const SPEAKING_ANIMATION_URLS = [
-  '/animations/voice_01.vrma',
-  '/animations/voice_02.vrma',
-  '/animations/voice_03.vrma',
-];
+const EMOTION_ANIMATION_URLS: Partial<Record<Emotion, string>> = {
+  happy: '/animations/happy.vrma',
+};
 // Electron app always uses localhost:8564 for WebSocket
 const WS_URL = 'ws://localhost:8564/ws';
 
@@ -82,10 +80,14 @@ function App() {
     onMouthValueChange: handleMouthValueChange,
   });
 
-  const handleSpeechStart = useCallback((analyser: AnalyserNode) => {
-    const randomIndex = Math.floor(Math.random() * SPEAKING_ANIMATION_URLS.length);
-    const randomAnimationUrl = SPEAKING_ANIMATION_URLS[randomIndex];
-    setCurrentAnimationUrl(randomAnimationUrl);
+  const handleSpeechStart = useCallback((analyser: AnalyserNode, emotion: Emotion) => {
+    // Select animation based on emotion
+    const animationUrl = EMOTION_ANIMATION_URLS[emotion];
+    if (animationUrl) {
+      setCurrentAnimationUrl(animationUrl);
+    }
+    // If no animation for this emotion, keep current animation (idle)
+
     startLipSync(analyser);
   }, [startLipSync]);
 
@@ -115,7 +117,7 @@ function App() {
         const emotion = data.emotion || 'neutral';
         setCurrentEmotion(emotion);
         avatarRef.current?.setEmotion(emotion);
-        speakText(data.text);
+        speakText(data.text, emotion);
       }
     },
     [speakText]

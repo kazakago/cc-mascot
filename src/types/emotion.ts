@@ -1,5 +1,5 @@
 // Emotion types for VRM avatar expressions
-export type Emotion = 'neutral' | 'happy' | 'angry' | 'sad' | 'relaxed';
+export type Emotion = 'neutral' | 'happy' | 'angry' | 'sad' | 'relaxed' | 'surprised';
 
 /**
  * Maps user-facing emotion names to VRM expression names
@@ -8,6 +8,7 @@ export type Emotion = 'neutral' | 'happy' | 'angry' | 'sad' | 'relaxed';
  * - angry: 怒り
  * - sad: 悲しみ
  * - relaxed: 楽しみ
+ * - surprised: 驚き
  */
 export const EMOTION_TO_EXPRESSION: Record<Emotion, string> = {
   neutral: 'neutral',
@@ -15,6 +16,7 @@ export const EMOTION_TO_EXPRESSION: Record<Emotion, string> = {
   angry: 'angry',
   sad: 'sad',
   relaxed: 'relaxed',
+  surprised: 'surprised',
 };
 
 /**

@@ -1,19 +1,25 @@
 import { useRef, useCallback, useEffect, useState } from 'react';
 import { speak } from '../services/voicevox';
+import type { Emotion } from '../types/emotion';
 
 interface UseSpeechOptions {
-  onStart: (analyser: AnalyserNode) => void;
+  onStart: (analyser: AnalyserNode, emotion: Emotion) => void;
   onEnd: () => void;
   speakerId: number;
   baseUrl: string;
   volumeScale: number;
 }
 
+interface QueueItem {
+  text: string;
+  emotion: Emotion;
+}
+
 export function useSpeech({ onStart, onEnd, speakerId, baseUrl, volumeScale }: UseSpeechOptions) {
   const audioContextRef = useRef<AudioContext | null>(null);
   const [isReady, setIsReady] = useState(false);
   const isSpeakingRef = useRef(false);
-  const queueRef = useRef<string[]>([]);
+  const queueRef = useRef<QueueItem[]>([]);
 
   // ユーザーインタラクションでAudioContextを初期化
   useEffect(() => {
@@ -59,14 +65,14 @@ export function useSpeech({ onStart, onEnd, speakerId, baseUrl, volumeScale }: U
       return;
     }
 
-    const text = queueRef.current.shift();
-    if (!text) return;
+    const item = queueRef.current.shift();
+    if (!item) return;
 
     const ctx = audioContextRef.current;
 
     // suspended状態なら無視して次へ
     if (ctx.state === 'suspended') {
-      console.warn('AudioContext suspended, skipping:', text);
+      console.warn('AudioContext suspended, skipping:', item.text);
       processQueue();
       return;
     }
@@ -74,7 +80,7 @@ export function useSpeech({ onStart, onEnd, speakerId, baseUrl, volumeScale }: U
     try {
       isSpeakingRef.current = true;
 
-      const wavBuffer = await speak(text, speakerId, baseUrl);
+      const wavBuffer = await speak(item.text, speakerId, baseUrl);
       const audioBuffer = await ctx.decodeAudioData(wavBuffer);
 
       const source = ctx.createBufferSource();
@@ -90,7 +96,7 @@ export function useSpeech({ onStart, onEnd, speakerId, baseUrl, volumeScale }: U
       analyser.connect(gainNode);
       gainNode.connect(ctx.destination);
 
-      onStart(analyser);
+      onStart(analyser, item.emotion);
 
       source.onended = () => {
         isSpeakingRef.current = false;
@@ -107,15 +113,15 @@ export function useSpeech({ onStart, onEnd, speakerId, baseUrl, volumeScale }: U
     }
   }, [onStart, onEnd, isReady, speakerId, baseUrl, volumeScale]);
 
-  const speakText = useCallback((text: string) => {
+  const speakText = useCallback((text: string, emotion: Emotion = 'neutral') => {
     // AudioContextが準備できていない場合は無視
     if (!isReady) {
       console.warn('AudioContext not ready, ignoring:', text);
       return;
     }
 
-    console.log(`Queued: "${text}" (queue size: ${queueRef.current.length})`);
-    queueRef.current.push(text);
+    console.log(`Queued: "${text}" with emotion "${emotion}" (queue size: ${queueRef.current.length})`);
+    queueRef.current.push({ text, emotion });
     processQueue();
   }, [processQueue, isReady]);
 
