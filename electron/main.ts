@@ -1,67 +1,13 @@
 import { app, BrowserWindow } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { createServer } from 'http';
-import { WebSocketServer, WebSocket } from 'ws';
 import { createLogMonitor } from './logMonitor';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 let mainWindow: BrowserWindow | null = null;
-let httpServer: any = null;
-let wss: WebSocketServer | null = null;
 let logMonitor: { close: () => void } | null = null;
-
-const WS_PORT = 8564;
-
-const createWebSocketServer = () => {
-  const clients = new Set<WebSocket>();
-
-  const broadcast = (message: string) => {
-    clients.forEach((client) => {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(message);
-      }
-    });
-  };
-
-  // Create HTTP server for WebSocket upgrade only
-  httpServer = createServer((req, res) => {
-    res.writeHead(404);
-    res.end();
-  });
-
-  // Create WebSocket server
-  wss = new WebSocketServer({ noServer: true });
-
-  httpServer.on('upgrade', (request, socket, head) => {
-    if (request.url === '/ws') {
-      wss.handleUpgrade(request, socket, head, (ws) => {
-        wss.emit('connection', ws, request);
-      });
-    } else {
-      socket.destroy();
-    }
-  });
-
-  wss.on('connection', (ws) => {
-    console.log('WebSocket client connected');
-    clients.add(ws);
-
-    ws.on('close', () => {
-      console.log('WebSocket client disconnected');
-      clients.delete(ws);
-    });
-  });
-
-  httpServer.listen(WS_PORT, () => {
-    console.log(`WebSocket server running on ws://localhost:${WS_PORT}/ws`);
-  });
-
-  // Initialize log monitor with broadcast function
-  logMonitor = createLogMonitor(broadcast);
-};
 
 const createWindow = () => {
   // Create the browser window.
@@ -87,12 +33,23 @@ const createWindow = () => {
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
+
+  // Wait for the window to be ready before starting log monitor
+  mainWindow.webContents.on('did-finish-load', () => {
+    // Initialize log monitor with IPC broadcast function
+    const broadcast = (message: string) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('speak', message);
+      }
+    };
+
+    logMonitor = createLogMonitor(broadcast);
+  });
 };
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 app.whenReady().then(() => {
-  createWebSocketServer();
   createWindow();
 
   app.on('activate', () => {
@@ -111,15 +68,9 @@ app.on('window-all-closed', () => {
   }
 });
 
-// Clean up server and log monitor on quit
+// Clean up log monitor on quit
 app.on('before-quit', () => {
   if (logMonitor) {
     logMonitor.close();
-  }
-  if (wss) {
-    wss.close();
-  }
-  if (httpServer) {
-    httpServer.close();
   }
 });

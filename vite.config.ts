@@ -12,13 +12,24 @@ export default defineConfig({
         vite: {
           build: {
             rollupOptions: {
-              external: ['ws', 'bufferutil', 'utf-8-validate', 'chokidar', 'fsevents'],
+              external: ['chokidar', 'fsevents'],
             },
           },
         },
       },
       preload: {
         input: path.join(__dirname, 'electron/preload.ts'),
+        vite: {
+          build: {
+            outDir: 'dist-electron',
+            rollupOptions: {
+              output: {
+                format: 'cjs',
+                entryFileNames: 'preload.js',
+              },
+            },
+          },
+        },
       },
     }),
   ],

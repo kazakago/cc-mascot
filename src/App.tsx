@@ -5,7 +5,6 @@ import { VRMAvatar } from './components/VRMAvatar';
 import type { VRMAvatarHandle } from './components/VRMAvatar';
 import { SettingsButton } from './components/SettingsButton';
 import { SettingsModal } from './components/SettingsModal';
-import { useWebSocket } from './hooks/useWebSocket';
 import { useSpeech } from './hooks/useSpeech';
 import { useLipSync } from './hooks/useLipSync';
 import { useLocalStorage } from './hooks/useLocalStorage';
@@ -18,8 +17,6 @@ const IDLE_ANIMATION_URL = '/animations/idle_loop.vrma';
 const EMOTION_ANIMATION_URLS: Partial<Record<Emotion, string>> = {
   happy: '/animations/happy.vrma',
 };
-// Electron app always uses localhost:8564 for WebSocket
-const WS_URL = 'ws://localhost:8564/ws';
 
 function App() {
   const avatarRef = useRef<VRMAvatarHandle>(null);
@@ -111,18 +108,6 @@ function App() {
     volumeScale,
   });
 
-  const handleWebSocketMessage = useCallback(
-    (data: { type: string; text: string; emotion?: Emotion }) => {
-      if (data.type === 'speak' && data.text) {
-        const emotion = data.emotion || 'neutral';
-        setCurrentEmotion(emotion);
-        avatarRef.current?.setEmotion(emotion);
-        speakText(data.text, emotion);
-      }
-    },
-    [speakText]
-  );
-
   // Apply emotion when avatar ref changes
   useEffect(() => {
     if (avatarRef.current) {
@@ -130,10 +115,24 @@ function App() {
     }
   }, [currentEmotion]);
 
-  useWebSocket({
-    url: WS_URL,
-    onMessage: handleWebSocketMessage,
-  });
+  // Listen for IPC messages from Electron main process
+  useEffect(() => {
+    if (window.electron?.onSpeak) {
+      window.electron.onSpeak((message: string) => {
+        try {
+          const data = JSON.parse(message) as { type: string; text: string; emotion?: Emotion };
+          if (data.type === 'speak' && data.text) {
+            const emotion = data.emotion || 'neutral';
+            setCurrentEmotion(emotion);
+            avatarRef.current?.setEmotion(emotion);
+            speakText(data.text, emotion);
+          }
+        } catch (err) {
+          console.error('Failed to parse speak message:', err);
+        }
+      });
+    }
+  }, [speakText]);
 
   return (
     <div className="app">
