@@ -88,7 +88,7 @@ export function useVRM(url: string) {
 
           // Apply to VRM
           const expressionName = getExpressionName(emotion);
-          vrm.expressionManager.setValue(expressionName, newValue);
+          vrm.expressionManager?.setValue(expressionName, newValue);
         });
       }
 

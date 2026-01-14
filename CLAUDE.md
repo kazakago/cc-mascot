@@ -4,25 +4,26 @@
 
 **Claude Codeを擬人化するためのVRMアバターシステム**
 
-このアプリケーションは、Claude Codeの発言をリアルタイムで音声化し、3DのVRMアバターでビジュアル化するためのWebフロントエンドアプリケーションです。Claude Codeプラグインと連携して、AIとの対話を視覚的・聴覚的に体験できます。
+このアプリケーションは、Claude Codeの発言をリアルタイムで音声化し、3DのVRMアバターでビジュアル化するためのElectronアプリケーションです。Claude Codeのログファイルを監視して、AIの応答を自動的に検出・音声化します。
 
 **主な用途:**
-- Claude Codeの擬人化（プラグイン経由での利用が基本）
-- API経由での汎用的なVRM音声読み上げ（オプション）
+- Claude Codeの擬人化（ログ監視による自動検出）
 
 **技術スタック:**
 - React + TypeScript + Vite
+- Electron
 - Three.js + @react-three/fiber + @react-three/drei
 - @pixiv/three-vrm + @pixiv/three-vrm-animation
 - Web Audio API (AudioContext, AnalyserNode, GainNode)
 - WebSocket (ws)
+- chokidar（ログファイル監視）
 - localStorage + IndexedDB
 
 **ポート:**
 - Electronフロントエンド: 8563
-- APIサーバー: 8564
+- WebSocketサーバー: 8564
 
-**重要:** このアプリケーションはElectron専用アプリです。Webフロントエンドに加えて、プラグインからのAPIリクエストを受け付けるローカルサーバー（ポート8564）を同梱しています。
+**重要:** このアプリケーションはElectron専用アプリです。`~/.claude/projects/` 配下のログファイルを自動監視し、Claude Codeの応答を検出します。
 
 ## アーキテクチャ
 
@@ -33,24 +34,20 @@
 │  Claude Code    │
 │  (AI Assistant) │
 └────────┬────────┘
-         │ 発言を出力
+         │ ログ出力
          ↓
 ┌─────────────────────────┐
-│ cc-avatar-plugin        │
-│ ├─ hooks/               │
-│ │  └─ SessionStart      │ ← context.mdを注入
-│ └─ context/             │
-│    └─ context.md        │ ← 感情判定ルール
+│ ~/.claude/projects/     │
+│ └─ **/*.jsonl           │ ← セッションログ
 └────────┬────────────────┘
-         │ POST /speak
-         │ {text, emotion}
+         │ chokidar監視
          ↓
 ┌─────────────────────────┐
 │ Electron App            │
+│ ├─ LogMonitor           │ ← ログファイル監視
+│ │  └─ JSONL解析         │
+│ ├─ WebSocket Server     │
 │ ├─ Frontend (8563)      │
-│ ├─ API Server (8564)    │
-│ │  ├─ WebSocket /ws     │
-│ │  └─ HTTP /speak       │
 │ ├─ VOICEVOX Client      │
 │ ├─ Audio Engine         │
 │ └─ VRM Renderer         │
@@ -86,6 +83,10 @@ cc-avatar/
 │   ├── App.tsx                    # メインアプリケーション
 │   ├── App.css                    # スタイル
 │   └── main.tsx                   # エントリーポイント
+├── electron/
+│   ├── main.ts                    # Electronメインプロセス
+│   ├── preload.ts                 # プリロードスクリプト
+│   └── logMonitor.ts              # ★ ログファイル監視モジュール
 ├── public/
 │   ├── models/
 │   │   └── avatar.glb             # デフォルトVRMアバター
@@ -93,17 +94,7 @@ cc-avatar/
 │   │   └── idle_loop.vrma         # 待機モーション
 │   └── icons/
 │       └── settings.svg           # 設定アイコン
-├── cc-avatar-plugin/              # ★ Claude Codeプラグイン
-│   ├── .claude-plugin/
-│   │   └── plugin.json            # プラグイン基本情報
-│   ├── context/
-│   │   └── context.md             # 感情判定ルール（Claude Codeに注入）
-│   └── hooks/
-│       ├── hooks.json             # フック定義
-│       └── scripts/
-│           └── inject-context.sh  # コンテキスト注入スクリプト
-├── vite.config.ts                 # Vite設定（WebSocketプラグイン含む）
-├── prodServer.ts                  # 本番サーバー（WebSocket統合）
+├── vite.config.ts                 # Vite設定
 ├── package.json
 ├── README.md                      # 人間向けドキュメント
 └── CLAUDE.md                      # このファイル（AI向け技術ドキュメント）
@@ -125,37 +116,37 @@ App.tsx
 
 ## データフロー
 
-### Claude Codeプラグイン連携フロー
+### ログ監視フロー
 
 ```
-1. セッション開始
-   Claude Code起動
+1. アプリ起動
+   Electron App起動
    ↓
-   SessionStartフック発火
+   LogMonitor初期化
    ↓
-   inject-context.sh実行
+   chokidarで ~/.claude/projects/**/*.jsonl を監視開始
    ↓
-   context.mdの内容をClaude Codeに注入
+   既存ファイルの位置をEOFに初期化（既存ログは処理しない）
 
-2. 通常会話
-   ユーザー入力
+2. Claude Code応答検出
+   Claude Codeがユーザーに応答
    ↓
-   Claude Code応答生成
+   ~/.claude/projects/{project}/{session}.jsonl に追記
    ↓
-   セリフ出力時、context.mdのルールに従って処理
+   chokidarが変更を検出
    ↓
-   感情判定（neutral/happy/angry/sad/relaxed/surprised）
+   LogMonitorが差分を読み取り
    ↓
-   バックグラウンドでPOST http://localhost:8564/speak
-   {
-     "text": "セリフ内容",
-     "emotion": "happy"
-   }
+   JSONLパース＆フィルタリング
+   ├─ type === "assistant" をチェック
+   ├─ message.role === "assistant" をチェック
+   └─ message.content[].type === "text" を抽出
    ↓
-   アバターアプリがリクエスト受信
+   WebSocketでフロントエンドにブロードキャスト
+   {type: "speak", text: "...", emotion: "neutral"}
 
 3. 音声合成・再生
-   アバターアプリ (APIサーバー 8564)
+   フロントエンド (WebSocket受信)
    ↓
    useSpeech.speakText()
    ↓
@@ -180,38 +171,32 @@ App.tsx
    ↓
    RMS計算 → aa表情値更新
    ↓
-   VRMAvatar: 口が動く + 感情表情適用
+   VRMAvatar: 口が動く
 ```
 
-### 感情システムのデータフロー
+### JSONL構造
 
+Claude Codeのログファイル（JSONL形式）:
+```json
+{
+  "type": "assistant",
+  "message": {
+    "type": "message",
+    "role": "assistant",
+    "content": [
+      {"type": "text", "text": "喋らせる内容"},
+      {"type": "thinking", "thinking": "..."},
+      {"type": "tool_use", "name": "...", "input": {...}}
+    ]
+  }
+}
 ```
-Claude Codeのセリフ
-   ↓
-感情判定（context.mdのルール）
-   ↓
-APIリクエスト {text, emotion}
-   ↓
-App.tsx: handleWebSocketMessage
-   ↓
-useSpeech: speakText(text, emotion)
-   ↓
-キューに保存 [{text, emotion}, ...]
-   ↓
-順次処理開始
-   ↓
-VRMAvatar.applyEmotion(emotion)
-   ├─ neutral: すべての表情リセット
-   ├─ happy: happy/joy表情をアクティブ化
-   ├─ angry: angry表情をアクティブ化
-   ├─ sad: sad/sorrow表情をアクティブ化
-   ├─ relaxed: relaxed表情をアクティブ化
-   └─ surprised: surprised表情をアクティブ化
-   ↓
-音声再生と同時に表情適用
-   ↓
-リップシンクと感情表情の合成
-```
+
+**フィルタリングルール:**
+- トップレベルの `type === "assistant"` のみ処理
+- `message.role === "assistant"` を確認
+- `message.content[]` 内の `type === "text"` のみ抽出
+- `thinking`, `tool_use` などはスキップ
 
 ## 主要機能の実装詳細
 
@@ -362,22 +347,6 @@ const emotionMap = {
 - 表情: リップシンクと感情表情が上書き
 - 優先度: 表情 > VRMAの表情データ
 
-## Claude Codeプラグイン
-
-### プラグイン構造
-
-```
-cc-avatar-plugin/
-├── .claude-plugin/
-│   └── plugin.json         # プラグインメタデータ
-├── context/
-│   └── context.md          # セリフ出力時のルール定義
-└── hooks/
-    ├── hooks.json          # フック定義
-    └── scripts/
-        └── inject-context.sh  # コンテキスト注入スクリプト
-```
-
 ## API仕様
 
 ### WebSocket API
@@ -416,38 +385,6 @@ ws.onerror = (error) => {
 ws.onclose = () => {
   console.log('WebSocket closed');
 };
-```
-
-### HTTP API
-
-**エンドポイント:** `POST /speak`
-
-**リクエストボディ:**
-```typescript
-interface SpeakRequest {
-  text: string;
-  emotion?: 'neutral' | 'happy' | 'angry' | 'sad' | 'relaxed' | 'surprised';
-}
-```
-
-**レスポンス:**
-```typescript
-interface SpeakResponse {
-  status: 'ok';
-}
-```
-
-**サンプルコード:**
-```bash
-# 基本
-curl -X POST http://localhost:8564/speak \
-  -H "Content-Type: application/json" \
-  -d '{"text":"こんにちは"}'
-
-# 感情指定
-curl -X POST http://localhost:8564/speak \
-  -H "Content-Type: application/json" \
-  -d '{"text":"嬉しいです！", "emotion":"happy"}'
 ```
 
 ## VOICEVOX連携
@@ -668,11 +605,6 @@ console.log('Emotion:', emotion);
 # サーバーが起動しているか確認
 lsof -i :8564
 
-# APIエンドポイントをテスト
-curl -X POST http://localhost:8564/speak \
-  -H "Content-Type: application/json" \
-  -d '{"text":"テスト"}'
-
 # フロントエンドをテスト
 curl http://localhost:8563
 
@@ -682,49 +614,41 @@ wscat -c ws://localhost:8564/ws
 
 **解決方法:**
 ```bash
-# APIサーバーのプロセスを停止
+# プロセスを停止
 kill -9 $(lsof -t -i:8564)
-
-# フロントエンドのプロセスを停止
 kill -9 $(lsof -t -i:8563)
 
 # アプリを再起動
 npm run dev
 ```
 
-### 6. プラグインが動作しない
+### 6. ログ監視が動作しない
 
-**症状:** Claude Codeがアバターに連携しない
+**症状:** Claude Codeの応答がアバターに反映されない
 
 **原因:**
-- プラグインがインストールされていない
-- プラグインが無効化されている
-- context.mdのポート番号が間違っている
+- ログディレクトリが存在しない
+- ファイル権限の問題
+- chokidarが正しく動作していない
 
 **確認手順:**
 ```bash
-# プラグインディレクトリを確認
-ls -la ~/.claude/plugins/
+# ログディレクトリを確認
+ls -la ~/.claude/projects/
 
-# プラグインの内容を確認
-cat ~/.claude/plugins/cc-avatar-plugin/context/context.md
+# JSONLファイルを確認
+find ~/.claude/projects -name "*.jsonl" | head -5
+
+# アプリのコンソールログを確認（[LogMonitor]で始まるログ）
 ```
 
 **解決方法:**
 ```bash
-# プラグインを再インストール
-rm -rf ~/.claude/plugins/cc-avatar-plugin
-ln -s $(pwd)/cc-avatar-plugin ~/.claude/plugins/cc-avatar-plugin
+# アプリを再起動
+npm run dev
 
-# Claude Codeでプラグインを有効化
-# /plugin コマンドで確認
-```
-
-**context.mdのポート確認:**
-APIサーバーのポートは **8564** です。context.mdで正しく設定されていることを確認してください。
-```bash
-curl -X POST "http://localhost:8564/speak" \
-    -d "{\"text\":\"...\", \"emotion\":\"...\"}"
+# ファイル権限を確認
+chmod -R u+r ~/.claude/projects/
 ```
 
 ## パフォーマンス最適化
@@ -791,12 +715,6 @@ curl -X POST "http://localhost:8564/speak" \
 - サーバー側にユーザーデータを保存しない
 - ファイル読み込み前にバリデーション
 
-### プラグインセキュリティ
-
-- コンテキスト注入: シェルスクリプト実行に注意
-- APIエンドポイント: localhostのみ（本番環境では認証追加推奨）
-- 機密情報: プラグインファイルに含めない
-
 ## 今後の拡張アイデア
 
 - [ ] 背景カスタマイズ（色、画像、3D環境）
@@ -833,8 +751,6 @@ npm run lint
 
 2. **Node.js**: バージョン18以上
 
-3. **Claude Code**: プラグインシステム対応バージョン
-
 ### オプションツール
 
 - ブラウザ開発者ツール（デバッグ用）
@@ -852,12 +768,11 @@ npm run lint
 - [ ] 設定がページリロード後も保持される
 - [ ] カスタムVRMが正しく読み込まれる
 - [ ] 音量調整がリップシンクに影響しない
-- [ ] 感情パラメータが適切な表情を適用する
 - [ ] WebSocketメッセージが正しく処理される
-- [ ] HTTP APIエンドポイントが正しく応答する
+- [ ] ログ監視が正しく動作する
+- [ ] Claude Codeの応答がアバターで音声化される
 - [ ] エラー状態が適切に表示される
 - [ ] ブラウザコンソールに致命的エラーがない
-- [ ] Claude Codeプラグインが正しく連携する
 
 ## 主要依存関係
 
@@ -868,5 +783,6 @@ npm run lint
 - **@pixiv/three-vrm**: ^3.1.4
 - **@pixiv/three-vrm-animation**: ^0.1.1
 - **ws**: ^8.18.0
+- **chokidar**: ^3.6.0（ログファイル監視）
 
 完全な依存関係リストは `package.json` を参照してください。

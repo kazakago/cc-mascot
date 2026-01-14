@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { createServer } from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
+import { createLogMonitor } from './logMonitor';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -10,6 +11,7 @@ const __dirname = path.dirname(__filename);
 let mainWindow: BrowserWindow | null = null;
 let httpServer: any = null;
 let wss: WebSocketServer | null = null;
+let logMonitor: { close: () => void } | null = null;
 
 const WS_PORT = 8564;
 
@@ -24,50 +26,10 @@ const createWebSocketServer = () => {
     });
   };
 
-  // Create HTTP server for WebSocket upgrade and HTTP endpoints
+  // Create HTTP server for WebSocket upgrade only
   httpServer = createServer((req, res) => {
-    // Handle CORS
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-    if (req.method === 'OPTIONS') {
-      res.writeHead(200);
-      res.end();
-      return;
-    }
-
-    // HTTP POST endpoint for /speak
-    if (req.url === '/speak' && req.method === 'POST') {
-      let body = '';
-      req.on('data', (chunk) => {
-        body += chunk.toString();
-      });
-      req.on('end', () => {
-        try {
-          const data = JSON.parse(body);
-          if (data.text) {
-            const message: any = { type: 'speak', text: data.text };
-            // Add emotion parameter if provided (neutral | happy | angry | sad | relaxed)
-            if (data.emotion) {
-              message.emotion = data.emotion;
-            }
-            broadcast(JSON.stringify(message));
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ success: true }));
-          } else {
-            res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: 'text is required' }));
-          }
-        } catch {
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Invalid JSON' }));
-        }
-      });
-    } else {
-      res.writeHead(404);
-      res.end();
-    }
+    res.writeHead(404);
+    res.end();
   });
 
   // Create WebSocket server
@@ -87,22 +49,6 @@ const createWebSocketServer = () => {
     console.log('WebSocket client connected');
     clients.add(ws);
 
-    ws.on('message', (data) => {
-      try {
-        const message = JSON.parse(data.toString());
-        if (message.text) {
-          const broadcastMessage: any = { type: 'speak', text: message.text };
-          // Add emotion parameter if provided (neutral | happy | angry | sad | relaxed)
-          if (message.emotion) {
-            broadcastMessage.emotion = message.emotion;
-          }
-          broadcast(JSON.stringify(broadcastMessage));
-        }
-      } catch {
-        console.error('Invalid message received');
-      }
-    });
-
     ws.on('close', () => {
       console.log('WebSocket client disconnected');
       clients.delete(ws);
@@ -111,8 +57,10 @@ const createWebSocketServer = () => {
 
   httpServer.listen(WS_PORT, () => {
     console.log(`WebSocket server running on ws://localhost:${WS_PORT}/ws`);
-    console.log(`HTTP endpoint available at http://localhost:${WS_PORT}/speak`);
   });
+
+  // Initialize log monitor with broadcast function
+  logMonitor = createLogMonitor(broadcast);
 };
 
 const createWindow = () => {
@@ -163,8 +111,11 @@ app.on('window-all-closed', () => {
   }
 });
 
-// Clean up server on quit
+// Clean up server and log monitor on quit
 app.on('before-quit', () => {
+  if (logMonitor) {
+    logMonitor.close();
+  }
   if (wss) {
     wss.close();
   }
