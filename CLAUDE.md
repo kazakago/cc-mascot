@@ -11,17 +11,15 @@
 
 **技術スタック:**
 - React + TypeScript + Vite
-- Electron
+- Electron (IPC通信)
 - Three.js + @react-three/fiber + @react-three/drei
 - @pixiv/three-vrm + @pixiv/three-vrm-animation
 - Web Audio API (AudioContext, AnalyserNode, GainNode)
-- WebSocket (ws)
 - chokidar（ログファイル監視）
 - localStorage + IndexedDB
 
 **ポート:**
 - Electronフロントエンド: 8563
-- WebSocketサーバー: 8564
 
 **重要:** このアプリケーションはElectron専用アプリです。`~/.claude/projects/` 配下のログファイルを自動監視し、Claude Codeの応答を検出します。
 
@@ -44,13 +42,15 @@
          ↓
 ┌─────────────────────────┐
 │ Electron App            │
-│ ├─ LogMonitor           │ ← ログファイル監視
-│ │  └─ JSONL解析         │
-│ ├─ WebSocket Server     │
-│ ├─ Frontend (8563)      │
-│ ├─ VOICEVOX Client      │
-│ ├─ Audio Engine         │
-│ └─ VRM Renderer         │
+│ ├─ Main Process         │
+│ │  ├─ LogMonitor        │ ← ログファイル監視・JSONL解析
+│ │  └─ IPC送信           │
+│ ├─ Renderer Process     │
+│ │  ├─ IPC受信           │
+│ │  ├─ VOICEVOX Client   │
+│ │  ├─ Audio Engine      │
+│ │  └─ VRM Renderer      │
+│ └─ Frontend (8563)      │
 └────────┬────────────────┘
          │
          ↓
@@ -74,7 +74,6 @@ cc-avatar/
 │   │   ├── useVRMAnimation.ts     # VRMAアニメーションローダー
 │   │   ├── useSpeech.ts           # 音声再生・キュー管理
 │   │   ├── useLipSync.ts          # リップシンク（音声解析）
-│   │   ├── useWebSocket.ts        # WebSocket接続管理
 │   │   └── useLocalStorage.ts     # localStorage永続化
 │   ├── services/
 │   │   └── voicevox.ts            # VOICEVOX APIクライアント
@@ -142,11 +141,12 @@ App.tsx
    ├─ message.role === "assistant" をチェック
    └─ message.content[].type === "text" を抽出
    ↓
-   WebSocketでフロントエンドにブロードキャスト
+   Electron IPCでフロントエンドに送信
+   mainWindow.webContents.send('speak', message)
    {type: "speak", text: "...", emotion: "neutral"}
 
 3. 音声合成・再生
-   フロントエンド (WebSocket受信)
+   フロントエンド (IPC受信: window.electron.onSpeak)
    ↓
    useSpeech.speakText()
    ↓
@@ -349,42 +349,45 @@ const emotionMap = {
 
 ## API仕様
 
-### WebSocket API
+### Electron IPC API
 
-**エンドポイント:** `ws://localhost:8564/ws`
+**Main Process → Renderer Process:**
+
+Main Processからログ監視で検出したメッセージを送信：
+```typescript
+mainWindow.webContents.send('speak', message);
+```
+
+**Renderer Processで受信:**
+```typescript
+// preload.tsで公開
+window.electron.onSpeak((message: string) => {
+  const data = JSON.parse(message);
+  // { type: 'speak', text: '...', emotion: 'neutral' }
+});
+```
 
 **メッセージフォーマット:**
 ```typescript
-interface WebSocketMessage {
+interface SpeakMessage {
   type: 'speak';
   text: string;
   emotion?: 'neutral' | 'happy' | 'angry' | 'sad' | 'relaxed' | 'surprised';
 }
 ```
 
-**サンプルコード:**
-```javascript
-const ws = new WebSocket('ws://localhost:8564/ws');
-
-ws.onopen = () => {
-  ws.send(JSON.stringify({
-    type: 'speak',
-    text: 'こんにちは、世界！',
-    emotion: 'happy'
-  }));
-};
-
-ws.onmessage = (event) => {
-  console.log('Received:', event.data);
-};
-
-ws.onerror = (error) => {
-  console.error('WebSocket error:', error);
-};
-
-ws.onclose = () => {
-  console.log('WebSocket closed');
-};
+**実装例 (App.tsx):**
+```typescript
+useEffect(() => {
+  if (window.electron?.onSpeak) {
+    window.electron.onSpeak((message: string) => {
+      const data = JSON.parse(message);
+      if (data.type === 'speak' && data.text) {
+        speakText(data.text, data.emotion || 'neutral');
+      }
+    });
+  }
+}, [speakText]);
 ```
 
 ## VOICEVOX連携
@@ -473,7 +476,7 @@ const DEFAULT_VOLUME_SCALE = 1.0;
 
 **Electronアプリの構成:**
 - **フロントエンド**: 8563（Vite Dev Server / Electron Window）
-- **APIサーバー**: 8564（Express Server）
+- **IPC通信**: Electron内部通信（ポート不要）
 
 ```typescript
 // vite.config.ts（フロントエンド）
@@ -482,8 +485,6 @@ export default defineConfig({
     port: 8563,
   },
 });
-
-// APIサーバーは別途8564で起動
 ```
 
 ## トラブルシューティング
@@ -591,35 +592,33 @@ const emotionMap = {
 console.log('Emotion:', emotion);
 ```
 
-### 5. WebSocket接続失敗
+### 5. IPC通信が動作しない
 
-**症状:** WebSocketが接続できない
+**症状:** ログ監視は動作しているがアバターが喋らない
 
 **原因:**
-- サーバーが起動していない
-- ポートが使用中
-- ファイアウォールがブロック
+- preload.tsが正しく読み込まれていない
+- window.electronが未定義
+- IPCリスナーが登録されていない
 
 **確認手順:**
-```bash
-# サーバーが起動しているか確認
-lsof -i :8564
+```javascript
+// ブラウザのコンソールで確認
+console.log('window.electron:', window.electron);
 
-# フロントエンドをテスト
-curl http://localhost:8563
-
-# WebSocketをテスト
-wscat -c ws://localhost:8564/ws
+// IPCリスナーをテスト
+window.electron?.onSpeak((message) => {
+  console.log('IPC message:', message);
+});
 ```
 
 **解決方法:**
 ```bash
-# プロセスを停止
-kill -9 $(lsof -t -i:8564)
-kill -9 $(lsof -t -i:8563)
-
 # アプリを再起動
 npm run dev
+
+# preload.jsが正しくビルドされているか確認
+ls -la dist-electron/preload.js
 ```
 
 ### 6. ログ監視が動作しない
@@ -678,16 +677,17 @@ chmod -R u+r ~/.claude/projects/
 
 - **AudioBuffer**: 再生後に自動ガベージコレクション
 - **VRMモデル**: メモリキャッシュ（単一インスタンス）
-- **WebSocket**: コンポーネントアンマウント時にクリーンアップ
+- **IPC通信**: Electron内部で自動管理
 
 ### ブラウザ互換性
 
 **必須機能:**
 - AudioContext (Web Audio API)
-- WebSocket
 - IndexedDB
 - WebGL 2.0 (Three.js用)
 - ES6+ JavaScript
+
+**注意:** このアプリはElectron専用のため、通常のブラウザでは動作しません
 
 **テスト済みブラウザ:**
 - Chrome 90+
@@ -705,9 +705,9 @@ chmod -R u+r ~/.claude/projects/
 
 ### Content Security Policy
 
-- WebSocket接続: 同一オリジンのみ
+- IPC通信: Electron内部通信のみ（外部アクセス不可）
 - 外部VRMファイル: 信頼できるソースのみ
-- スクリプト実行: 制限付き
+- スクリプト実行: contextIsolationで保護
 
 ### ファイルアップロード
 
@@ -753,10 +753,9 @@ npm run lint
 
 ### オプションツール
 
-- ブラウザ開発者ツール（デバッグ用）
+- Electron開発者ツール（デバッグ用）
 - React DevTools拡張機能
 - VRMビューア（モデルテスト用）
-- wscat（WebSocketテスト用）
 
 ## テストチェックリスト
 
@@ -768,11 +767,11 @@ npm run lint
 - [ ] 設定がページリロード後も保持される
 - [ ] カスタムVRMが正しく読み込まれる
 - [ ] 音量調整がリップシンクに影響しない
-- [ ] WebSocketメッセージが正しく処理される
-- [ ] ログ監視が正しく動作する
+- [ ] IPC通信が正しく動作する（window.electronが定義されている）
+- [ ] ログ監視が正しく動作する（[LogMonitor]ログが出る）
 - [ ] Claude Codeの応答がアバターで音声化される
 - [ ] エラー状態が適切に表示される
-- [ ] ブラウザコンソールに致命的エラーがない
+- [ ] Electron開発者ツールに致命的エラーがない
 
 ## 主要依存関係
 
@@ -782,7 +781,7 @@ npm run lint
 - **@react-three/drei**: ^9.117.3
 - **@pixiv/three-vrm**: ^3.1.4
 - **@pixiv/three-vrm-animation**: ^0.1.1
-- **ws**: ^8.18.0
-- **chokidar**: ^3.6.0（ログファイル監視）
+- **electron**: Electron本体
+- **chokidar**: ^5.0.0（ログファイル監視）
 
 完全な依存関係リストは `package.json` を参照してください。

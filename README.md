@@ -6,14 +6,11 @@
 
 Claude Codeからの返答をVRMアバターが喋ってくれる擬人化アプリケーションです。
 
-- Claude Codeプラグインを通じて発言をリアルタイムで読み上げ
+- Claude Codeのログファイルを監視して自動的に発言を読み上げ
 - 音声はVOICEVOX ENGINEを利用
   - スタイルを指定することで好きな声色に変更可能
   - VOICEVOX API互換のAivisSpeech等も利用可能
 - 音声に同期したリップシンク
-- 感情に応じた表情変化
-  - 感情はClaude Code自身が分類
-  - 表情対応しているVRMモデルのみ
 - 好きなVRMモデルに変更可能
 
 ## デモ
@@ -32,21 +29,17 @@ https://voicevox.hiroshiba.jp/
 
 ### 2. cc-avatarアプリケーションのインストール
 
-下記から最新バイナリをインストール、起動してください。  
+下記から最新バイナリをインストール、起動してください。
 https://github.com/kazakago/cc-avatar/releases
 
-### 3. Claude Codeプラグインのインストール
+### 3. Claude Codeで会話を開始
 
-Claude Code上で下記手順でプラグインをインストール  
+cc-avatarアプリを起動した状態でClaude Codeで会話すると、自動的にアバターが喋ります。
 
-```bash
-/plugin marketplace add kazakago/cc-avatar
-/plugin install cc-avatar-plugin@cc-avatar-marketplace
-```
-
-### 4. Claude Codeを再起動してからなにか喋らせる
-
-cc-avatarに表示されてるアバターが喋ってくれるはず
+**仕組み:**
+- `~/.claude/projects/` 配下のログファイルを監視
+- Claude Codeの応答を自動検出して音声化
+- プラグイン不要でシンプルに動作
 
 ## 設定変更
 
@@ -57,46 +50,10 @@ cc-avatarの右上の歯車アイコンをクリックすると設定変更が�
 - **Speaker ID**: 声の種類（VOICEVOX）
 - **音量**: 音量調整
 
-## 感情表現について
+## リップシンクについて
 
-Claude Codeの返答内容に応じて、自動的に表情が変わります  
-ただしVRMファイルが対応している場合に限ります。
-
-- **通常**: neutral（無表情）
-- **喜び**: happy（笑顔）
-- **怒り**: angry（怒り顔）
-- **悲しみ**: sad（悲しい顔）
-- **楽しい**: relaxed（リラックス）
-- **驚き**: surprised（驚き顔）
-
-## API経由での直接利用
-
-プラグインを使わず、APIから直接呼び出すこともできます。
-
-### HTTP API
-
-```bash
-curl -X POST http://localhost:8564/speak \
-  -H "Content-Type: application/json" \
-  -d '{"text":"こんにちは", "emotion":"happy"}'
-```
-
-emotionはVRMの仕様で対応しているものを指定したときのみ動作します
-https://github.com/vrm-c/vrm-specification/blob/master/specification/VRMC_vrm-1.0/expressions.ja.md#%E6%84%9F%E6%83%85
-
-### WebSocket API
-
-```javascript
-const ws = new WebSocket('ws://localhost:8564/ws');
-
-ws.onopen = () => {
-  ws.send(JSON.stringify({
-    type: 'speak',
-    text: 'こんにちは、世界！',
-    emotion: 'happy'
-  }));
-};
-```
+音声に同期して自動的に口が動きます。
+VRMファイルに `aa` 表情が含まれている必要があります。
 
 ## 全体的な仕組み
 
