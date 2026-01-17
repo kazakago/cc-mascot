@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import { Group } from 'three';
 import { useVRM } from '../hooks/useVRM';
 import { useVRMAnimation } from '../hooks/useVRMAnimation';
+import { useBlink } from '../hooks/useBlink';
 import type { Emotion } from '../types/emotion';
 
 export interface VRMAvatarHandle {
@@ -25,6 +26,14 @@ export const VRMAvatar = forwardRef<VRMAvatarHandle, VRMAvatarProps>(
       onAnimationEnd,
     });
     const groupRef = useRef<Group>(null);
+
+    // まばたき機能を有効化
+    useBlink(vrm, {
+      minInterval: 2000,  // 2秒
+      maxInterval: 6000,  // 6秒
+      blinkDuration: 150, // 0.15秒
+      enabled: true,
+    });
 
     useImperativeHandle(ref, () => ({
       setMouthOpen,
