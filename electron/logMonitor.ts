@@ -143,6 +143,47 @@ async function readNewLines(
   });
 }
 
+function cleanTextForSpeech(text: string): string {
+  let cleaned = text;
+
+  // 1. Remove code blocks (```...```)
+  cleaned = cleaned.replace(/```[\s\S]*?```/g, '');
+
+  // 2. Remove XML/HTML tags (<example>, </example>, etc.)
+  cleaned = cleaned.replace(/<[^>]+>/g, '');
+
+  // 3. Remove markdown headings (##, ###, etc.)
+  cleaned = cleaned.replace(/^#{1,6}\s+/gm, '');
+
+  // 4. Remove horizontal rules (---, ***)
+  cleaned = cleaned.replace(/^[-*]{3,}$/gm, '');
+
+  // 5. Remove table syntax (|...|)
+  cleaned = cleaned.replace(/^\|.*\|$/gm, '');
+
+  // 6. Remove blockquote markers (>)
+  cleaned = cleaned.replace(/^>\s*/gm, '');
+
+  // 7. Remove list markers (-, *) but keep numbered lists (1., 2., etc.)
+  cleaned = cleaned.replace(/^[-*]\s+/gm, '');
+
+  // 8. Replace URLs with "URL"
+  cleaned = cleaned.replace(/https?:\/\/[^\s]+/g, 'URL');
+
+  // 9. Replace file paths with "ファイルパス"
+  // Match both absolute paths (/..., C:\...) and relative paths (src/..., ./...)
+  cleaned = cleaned.replace(/(?:\/|[A-Z]:\\|\.\/|\.\.\/)[^\s:,)]+\.\w+/g, 'ファイルパス');
+  cleaned = cleaned.replace(/(?:\/|[A-Z]:\\)[^\s:,)]+/g, 'ファイルパス');
+
+  // 10. Remove inline code backticks but keep the content
+  cleaned = cleaned.replace(/`([^`]+)`/g, '$1');
+
+  // 11. Remove colons
+  cleaned = cleaned.replace(/:/g, '');
+
+  return cleaned;
+}
+
 function processLogLine(line: string, broadcast: BroadcastFn) {
   try {
     const entry: LogEntry = JSON.parse(line);
@@ -165,18 +206,21 @@ function processLogLine(line: string, broadcast: BroadcastFn) {
     // Extract text content items only
     for (const item of entry.message.content) {
       if (item.type === 'text' && item.text) {
-        const text = item.text.trim();
-        if (text) {
-          console.log(
-            `[LogMonitor] Extracted text: ${text.substring(0, 50)}...`
-          );
-          broadcast(
-            JSON.stringify({
-              type: 'speak',
-              text: text,
-              emotion: 'neutral',
-            })
-          );
+        const originalText = item.text.trim();
+        if (originalText) {
+          const cleanedText = cleanTextForSpeech(originalText);
+          if (cleanedText) {
+            console.log(
+              `[LogMonitor] Extracted text: ${cleanedText.substring(0, 50)}...`
+            );
+            broadcast(
+              JSON.stringify({
+                type: 'speak',
+                text: cleanedText,
+                emotion: 'neutral',
+              })
+            );
+          }
         }
       }
     }
