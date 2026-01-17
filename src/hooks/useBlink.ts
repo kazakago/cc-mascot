@@ -11,6 +11,7 @@ interface UseBlinkOptions {
 const DEFAULT_MIN_INTERVAL = 2000; // 2秒
 const DEFAULT_MAX_INTERVAL = 6000; // 6秒
 const DEFAULT_BLINK_DURATION = 150; // 0.15秒
+const ANIMATION_FPS = 60; // アニメーションのフレームレート
 
 export function useBlink(vrm: VRM | null, options: UseBlinkOptions = {}) {
   const {
@@ -22,29 +23,46 @@ export function useBlink(vrm: VRM | null, options: UseBlinkOptions = {}) {
 
   const [isBlinking, setIsBlinking] = useState(false);
   const blinkTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const blinkAnimationRef = useRef<NodeJS.Timeout | null>(null);
+  const blinkAnimationRef = useRef<number | null>(null);
 
   // ランダムな間隔を計算
   const getRandomInterval = useCallback(() => {
     return Math.random() * (maxInterval - minInterval) + minInterval;
   }, [minInterval, maxInterval]);
 
-  // まばたきアニメーション
+  // なめらかなまばたきアニメーション
   const performBlink = useCallback(() => {
     if (!vrm?.expressionManager || !enabled) return;
 
     setIsBlinking(true);
 
-    // 目を閉じる
-    vrm.expressionManager.setValue('blink', 1.0);
+    const startTime = performance.now();
+    const halfDuration = blinkDuration / 2;
 
-    // 指定時間後に目を開く
-    blinkAnimationRef.current = setTimeout(() => {
-      if (vrm?.expressionManager) {
-        vrm.expressionManager.setValue('blink', 0.0);
+    const animate = () => {
+      const elapsed = performance.now() - startTime;
+
+      if (elapsed < halfDuration) {
+        // 目を閉じる（0 → 1）
+        const progress = elapsed / halfDuration;
+        const value = progress; // linear interpolation
+        vrm.expressionManager?.setValue('blink', value);
+        blinkAnimationRef.current = requestAnimationFrame(animate);
+      } else if (elapsed < blinkDuration) {
+        // 目を開く（1 → 0）
+        const progress = (elapsed - halfDuration) / halfDuration;
+        const value = 1.0 - progress; // linear interpolation
+        vrm.expressionManager?.setValue('blink', value);
+        blinkAnimationRef.current = requestAnimationFrame(animate);
+      } else {
+        // アニメーション終了
+        vrm.expressionManager?.setValue('blink', 0.0);
         setIsBlinking(false);
+        blinkAnimationRef.current = null;
       }
-    }, blinkDuration);
+    };
+
+    blinkAnimationRef.current = requestAnimationFrame(animate);
   }, [vrm, blinkDuration, enabled]);
 
   // 次のまばたきをスケジュール
@@ -69,7 +87,7 @@ export function useBlink(vrm: VRM | null, options: UseBlinkOptions = {}) {
         clearTimeout(blinkTimeoutRef.current);
       }
       if (blinkAnimationRef.current) {
-        clearTimeout(blinkAnimationRef.current);
+        cancelAnimationFrame(blinkAnimationRef.current);
       }
     };
   }, [vrm, enabled, scheduleNextBlink]);
