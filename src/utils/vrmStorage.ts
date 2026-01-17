@@ -1,4 +1,4 @@
-const DB_NAME = 'cc-avatar-db';
+const DB_NAME = 'cc-mascot-db';
 const STORE_NAME = 'vrm-models';
 const DB_VERSION = 1;
 

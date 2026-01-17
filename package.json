@@ -1,5 +1,5 @@
 {
-  "name": "cc-avatar",
+  "name": "cc-mascot",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -41,8 +41,8 @@
     "vite-plugin-electron-renderer": "^0.14.6"
   },
   "build": {
-    "appId": "com.kazakago.cc-avatar",
-    "productName": "CC Avatar",
+    "appId": "com.kazakago.cc-mascot",
+    "productName": "CC Mascot",
     "directories": {
       "output": "release"
     },

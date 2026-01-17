@@ -1,4 +1,4 @@
-# cc-avatar
+# cc-mascot
 
 ![VRM Avatar](https://img.shields.io/badge/VRM-3D_Avatar-blue)
 ![Claude Code](https://img.shields.io/badge/Claude-Code-green)
@@ -27,14 +27,14 @@ https://voicevox.hiroshiba.jp/
 - VOICEVOXエンジンが起動していればVOICEVOXアプリケーション自体は立ち上がっていなくても問題ありません
 - VOICEVOX API互換の[AivisSpeech](https://aivis-project.com/)も設定変更すれば利用可能です
 
-### 2. cc-avatarアプリケーションのインストール
+### 2. cc-mascotアプリケーションのインストール
 
 下記から最新バイナリをインストール、起動してください。
-https://github.com/kazakago/cc-avatar/releases
+https://github.com/kazakago/cc-mascot/releases
 
 ### 3. Claude Codeで会話を開始
 
-cc-avatarアプリを起動した状態でClaude Codeで会話すると、自動的にアバターが喋ります。
+cc-mascotアプリを起動した状態でClaude Codeで会話すると、自動的にアバターが喋ります。
 
 **仕組み:**
 - `~/.claude/projects/` 配下のログファイルを監視
@@ -43,7 +43,7 @@ cc-avatarアプリを起動した状態でClaude Codeで会話すると、自動
 
 ## 設定変更
 
-cc-avatarの右上の歯車アイコンをクリックすると設定変更が可能です
+cc-mascotの右上の歯車アイコンをクリックすると設定変更が可能です
 
 - **"Choose VRM File"**: VRMファイルを指定
 - **VOICEVOX URL**: VOICEVOXエンジンのURL
@@ -60,7 +60,7 @@ VRMファイルに `aa` 表情が含まれている必要があります。
 ```
 Claude Code
     ↓ セリフを出力
-プラグイン (cc-avatar-plugin)
+プラグイン (cc-mascot-plugin)
     ↓ 感情判定 & API送信
 アバターアプリ
     ↓ VOICEVOX API呼び出し

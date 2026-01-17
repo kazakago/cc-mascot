@@ -64,7 +64,7 @@
 ### ディレクトリ構造
 
 ```
-cc-avatar/
+cc-mascot/
 ├── src/
 │   ├── components/
 │   │   ├── VRMAvatar.tsx          # VRMアバター表示コンポーネント
