@@ -66,6 +66,7 @@ export function useSpeech({ onStart, onEnd, speakerId, baseUrl, volumeScale }: U
     try {
       isSpeakingRef.current = true;
 
+      console.log(`[useSpeech] Synthesizing with Speaker ID: ${speakerId}`);
       const wavBuffer = await speak(item.text, speakerId, baseUrl);
       const audioBuffer = await ctx.decodeAudioData(wavBuffer);
 

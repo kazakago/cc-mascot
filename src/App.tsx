@@ -22,7 +22,7 @@ const VOICEVOX_BASE_URL = 'http://localhost:8564';
 function App() {
   const avatarRef = useRef<VRMAvatarHandle>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [speakerId, setSpeakerId] = useLocalStorage('speakerId', 0);
+  const [speakerId, setSpeakerId] = useLocalStorage('speakerId', 888753760);
   const [volumeScale, setVolumeScale] = useLocalStorage('volumeScale', 1.0);
   const [vrmUrl, setVrmUrl] = useState<string>(DEFAULT_VRM_URL);
   const [vrmFileName, setVrmFileName] = useState<string | undefined>(undefined);
@@ -52,10 +52,19 @@ function App() {
     });
   }, []);
 
-  const handleReset = useCallback(() => {
+  const handleReset = useCallback(async () => {
     // Clear localStorage
     localStorage.removeItem('speakerId');
     localStorage.removeItem('volumeScale');
+
+    // Clear engine settings in Electron store
+    if (window.electron?.resetEngineSettings) {
+      try {
+        await window.electron.resetEngineSettings();
+      } catch (err) {
+        console.error('Failed to reset engine settings:', err);
+      }
+    }
 
     // Clear IndexedDB
     deleteVRMFile().then(() => {
@@ -107,6 +116,11 @@ function App() {
     volumeScale,
   });
 
+  // Debug: Log when speakerId changes
+  useEffect(() => {
+    console.log(`[App] Speaker ID changed to: ${speakerId}`);
+  }, [speakerId]);
+
   // Apply emotion when avatar ref changes
   useEffect(() => {
     if (avatarRef.current) {
@@ -117,7 +131,7 @@ function App() {
   // Listen for IPC messages from Electron main process
   useEffect(() => {
     if (window.electron?.onSpeak) {
-      window.electron.onSpeak((message: string) => {
+      const cleanup = window.electron.onSpeak((message: string) => {
         try {
           const data = JSON.parse(message) as { type: string; text: string; emotion?: Emotion };
           if (data.type === 'speak' && data.text) {
@@ -130,6 +144,9 @@ function App() {
           console.error('Failed to parse speak message:', err);
         }
       });
+
+      // Cleanup: remove listener when speakText changes
+      return cleanup;
     }
   }, [speakText]);
 

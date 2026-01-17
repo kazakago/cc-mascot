@@ -11,6 +11,25 @@ export interface AudioQuery {
   kana?: string;
 }
 
+export interface SpeakerStyle {
+  id: number;
+  name: string;
+}
+
+export interface Speaker {
+  name: string;
+  speaker_uuid: string;
+  styles: SpeakerStyle[];
+}
+
+export async function getSpeakers(baseUrl: string): Promise<Speaker[]> {
+  const res = await fetch(`${baseUrl}/speakers`);
+  if (!res.ok) {
+    throw new Error(`speakers failed: ${res.status}`);
+  }
+  return res.json();
+}
+
 export async function createAudioQuery(
   text: string,
   speakerId: number,

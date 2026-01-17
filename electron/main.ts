@@ -25,14 +25,16 @@ const ENGINE_PATHS: Record<Exclude<EngineType, 'custom'>, string> = {
 
 // Get the actual engine path based on engine type
 function getEnginePath(): string | undefined {
-  const engineType = store.get('engineType') as EngineType | undefined;
-  if (!engineType) {
-    return undefined;
-  }
+  const engineType = (store.get('engineType') as EngineType | undefined) || 'aivis'; // Default to AivisSpeech
+  console.log(`[getEnginePath] Engine type: ${engineType}`);
   if (engineType === 'custom') {
-    return store.get('voicevoxEnginePath') as string | undefined;
+    const customPath = store.get('voicevoxEnginePath') as string | undefined;
+    console.log(`[getEnginePath] Custom path: ${customPath}`);
+    return customPath;
   }
-  return ENGINE_PATHS[engineType];
+  const path = ENGINE_PATHS[engineType];
+  console.log(`[getEnginePath] Predefined path for ${engineType}: ${path}`);
+  return path;
 }
 
 // Check if port is in use
@@ -195,15 +197,27 @@ ipcMain.handle('set-voicevox-path', async (_event, path: string) => {
 });
 
 ipcMain.handle('get-engine-type', () => {
-  return store.get('engineType') as EngineType | undefined;
+  return (store.get('engineType') as EngineType | undefined) || 'aivis';
 });
 
 ipcMain.handle('set-engine-settings', async (_event, engineType: EngineType, customPath?: string) => {
+  console.log(`[IPC] set-engine-settings called: engineType=${engineType}, customPath=${customPath}`);
   store.set('engineType', engineType);
   if (engineType === 'custom' && customPath) {
     store.set('voicevoxEnginePath', customPath);
   }
+  console.log(`[IPC] Stored engineType: ${store.get('engineType')}`);
   // Restart engine
+  await stopVoicevoxEngine();
+  await startVoicevoxEngine();
+  return true;
+});
+
+ipcMain.handle('reset-engine-settings', async () => {
+  console.log('[IPC] reset-engine-settings called');
+  store.delete('engineType');
+  store.delete('voicevoxEnginePath');
+  // Stop engine and restart with default settings (AivisSpeech)
   await stopVoicevoxEngine();
   await startVoicevoxEngine();
   return true;

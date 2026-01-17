@@ -6,9 +6,15 @@ export type EngineType = 'aivis' | 'voicevox' | 'custom';
 
 contextBridge.exposeInMainWorld('electron', {
   onSpeak: (callback: (message: string) => void) => {
-    ipcRenderer.on('speak', (_event, message: string) => {
+    const listener = (_event: unknown, message: string) => {
       callback(message);
-    });
+    };
+    ipcRenderer.on('speak', listener);
+
+    // Return cleanup function
+    return () => {
+      ipcRenderer.removeListener('speak', listener);
+    };
   },
   getVoicevoxPath: (): Promise<string | undefined> => {
     return ipcRenderer.invoke('get-voicevox-path');
@@ -21,5 +27,8 @@ contextBridge.exposeInMainWorld('electron', {
   },
   setEngineSettings: (engineType: EngineType, customPath?: string): Promise<boolean> => {
     return ipcRenderer.invoke('set-engine-settings', engineType, customPath);
+  },
+  resetEngineSettings: (): Promise<boolean> => {
+    return ipcRenderer.invoke('reset-engine-settings');
   },
 });
