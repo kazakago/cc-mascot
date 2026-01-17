@@ -148,6 +148,17 @@ export function SettingsModal({
   // Handle engine type change - fetch new speakers and reset selection
   const handleEngineTypeChange = async (newEngineType: EngineType) => {
     setEngineType(newEngineType);
+
+    // For custom engine type, only restart if path is not empty
+    if (newEngineType === 'custom') {
+      if (!customPath.trim()) {
+        console.log('[SettingsModal] Custom engine selected but path is empty, skipping restart');
+        setSpeakers([]);
+        setLoadingSpeakers(false);
+        return;
+      }
+    }
+
     await restartEngine(newEngineType);
   };
 
