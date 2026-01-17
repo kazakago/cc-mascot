@@ -11,7 +11,6 @@ interface UseBlinkOptions {
 const DEFAULT_MIN_INTERVAL = 2000; // 2秒
 const DEFAULT_MAX_INTERVAL = 6000; // 6秒
 const DEFAULT_BLINK_DURATION = 150; // 0.15秒
-const ANIMATION_FPS = 60; // アニメーションのフレームレート
 
 export function useBlink(vrm: VRM | null, options: UseBlinkOptions = {}) {
   const {
@@ -22,7 +21,7 @@ export function useBlink(vrm: VRM | null, options: UseBlinkOptions = {}) {
   } = options;
 
   const [isBlinking, setIsBlinking] = useState(false);
-  const blinkTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const blinkTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const blinkAnimationRef = useRef<number | null>(null);
 
   // ランダムな間隔を計算

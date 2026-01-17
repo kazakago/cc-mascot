@@ -41,7 +41,6 @@ export function createLogMonitor(broadcast: BroadcastFn) {
   });
 
   watcher.on('add', (filePath: string) => {
-    console.log(`[LogMonitor] File detected: ${filePath}`);
     initializeFilePosition(filePath);
   });
 
@@ -71,7 +70,6 @@ function initializeFilePosition(filePath: string) {
   try {
     const stats = fs.statSync(filePath);
     filePositions.set(filePath, stats.size);
-    console.log(`[LogMonitor] Initialized position for ${path.basename(filePath)}: ${stats.size}`);
   } catch {
     filePositions.set(filePath, 0);
   }

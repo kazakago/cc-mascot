@@ -17,12 +17,12 @@ const IDLE_ANIMATION_URL = '/animations/idle_loop.vrma';
 const EMOTION_ANIMATION_URLS: Partial<Record<Emotion, string>> = {
   happy: '/animations/happy.vrma',
 };
+const VOICEVOX_BASE_URL = 'http://localhost:8564';
 
 function App() {
   const avatarRef = useRef<VRMAvatarHandle>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [speakerId, setSpeakerId] = useLocalStorage('speakerId', 0);
-  const [baseUrl, setBaseUrl] = useLocalStorage('baseUrl', 'http://localhost:50021');
   const [volumeScale, setVolumeScale] = useLocalStorage('volumeScale', 1.0);
   const [vrmUrl, setVrmUrl] = useState<string>(DEFAULT_VRM_URL);
   const [vrmFileName, setVrmFileName] = useState<string | undefined>(undefined);
@@ -55,7 +55,6 @@ function App() {
   const handleReset = useCallback(() => {
     // Clear localStorage
     localStorage.removeItem('speakerId');
-    localStorage.removeItem('baseUrl');
     localStorage.removeItem('volumeScale');
 
     // Clear IndexedDB
@@ -104,7 +103,7 @@ function App() {
     onStart: handleSpeechStart,
     onEnd: handleSpeechEnd,
     speakerId,
-    baseUrl,
+    baseUrl: VOICEVOX_BASE_URL,
     volumeScale,
   });
 
@@ -158,8 +157,6 @@ function App() {
         onClose={() => setIsSettingsOpen(false)}
         speakerId={speakerId}
         onSpeakerIdChange={setSpeakerId}
-        baseUrl={baseUrl}
-        onBaseUrlChange={setBaseUrl}
         volumeScale={volumeScale}
         onVolumeScaleChange={setVolumeScale}
         onVRMFileChange={handleVRMFileChange}

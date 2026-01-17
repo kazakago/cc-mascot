@@ -1,12 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
+import type { EngineType } from '../global';
+
+const ENGINE_PATHS = {
+  aivis: '/Applications/AivisSpeech.app/Contents/Resources/AivisSpeech-Engine/run',
+  voicevox: '/Applications/VOICEVOX.app/Contents/Resources/vv-engine/run',
+} as const;
 
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   speakerId: number;
   onSpeakerIdChange: (id: number) => void;
-  baseUrl: string;
-  onBaseUrlChange: (url: string) => void;
   volumeScale: number;
   onVolumeScaleChange: (scale: number) => void;
   onVRMFileChange: (file: File) => void;
@@ -19,8 +23,6 @@ export function SettingsModal({
   onClose,
   speakerId,
   onSpeakerIdChange,
-  baseUrl,
-  onBaseUrlChange,
   volumeScale,
   onVolumeScaleChange,
   onVRMFileChange,
@@ -28,8 +30,9 @@ export function SettingsModal({
   onReset,
 }: SettingsModalProps) {
   const [speakerIdInput, setSpeakerIdInput] = useState(String(speakerId));
-  const [baseUrlInput, setBaseUrlInput] = useState(baseUrl);
   const [volumeScaleInput, setVolumeScaleInput] = useState(volumeScale);
+  const [engineType, setEngineType] = useState<EngineType>('voicevox');
+  const [customPath, setCustomPath] = useState('');
   const [error, setError] = useState('');
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -37,12 +40,22 @@ export function SettingsModal({
   useEffect(() => {
     if (isOpen) {
       setSpeakerIdInput(String(speakerId));
-      setBaseUrlInput(baseUrl);
       setVolumeScaleInput(volumeScale);
       setSelectedFileName(null);
       setError('');
+
+      // Load engine settings from Electron store
+      if (window.electron?.getEngineType && window.electron?.getVoicevoxPath) {
+        Promise.all([
+          window.electron.getEngineType(),
+          window.electron.getVoicevoxPath(),
+        ]).then(([savedEngineType, savedCustomPath]) => {
+          setEngineType(savedEngineType || 'voicevox');
+          setCustomPath(savedCustomPath || '');
+        });
+      }
     }
-  }, [isOpen, speakerId, baseUrl, volumeScale]);
+  }, [isOpen, speakerId, volumeScale]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -57,7 +70,7 @@ export function SettingsModal({
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     // Validate Speaker ID
     const parsed = parseInt(speakerIdInput, 10);
     if (isNaN(parsed) || parsed < 0) {
@@ -65,24 +78,30 @@ export function SettingsModal({
       return;
     }
 
-    // Validate Base URL
-    const trimmedUrl = baseUrlInput.trim();
-    if (!trimmedUrl) {
-      setError('Base URL cannot be empty');
-      return;
-    }
-
-    try {
-      new URL(trimmedUrl);
-    } catch {
-      setError('Please enter a valid URL (e.g., http://localhost:50021)');
+    // Validate custom path if custom engine is selected
+    if (engineType === 'custom' && !customPath.trim()) {
+      setError('Please enter a custom engine path');
       return;
     }
 
     setError('');
     onSpeakerIdChange(parsed);
-    onBaseUrlChange(trimmedUrl);
     onVolumeScaleChange(volumeScaleInput);
+
+    // Save engine settings to Electron store
+    if (window.electron?.setEngineSettings) {
+      try {
+        await window.electron.setEngineSettings(
+          engineType,
+          engineType === 'custom' ? customPath.trim() : undefined
+        );
+      } catch (err) {
+        console.error('Failed to save engine settings:', err);
+        setError('Failed to save engine settings');
+        return;
+      }
+    }
+
     onClose();
   };
 
@@ -136,18 +155,58 @@ export function SettingsModal({
           </div>
 
           <div className="settings-section">
-            <h3>Audio</h3>
+            <h3>Speech Engine</h3>
             <div className="settings-item">
-              <label htmlFor="base-url">VOICEVOX Engine URL</label>
+              <label>Engine Type</label>
+              <div className="settings-radio-group">
+                <label className="settings-radio-label">
+                  <input
+                    type="radio"
+                    name="engineType"
+                    value="aivis"
+                    checked={engineType === 'aivis'}
+                    onChange={() => setEngineType('aivis')}
+                  />
+                  <span>AivisSpeech</span>
+                </label>
+                <label className="settings-radio-label">
+                  <input
+                    type="radio"
+                    name="engineType"
+                    value="voicevox"
+                    checked={engineType === 'voicevox'}
+                    onChange={() => setEngineType('voicevox')}
+                  />
+                  <span>VOICEVOX</span>
+                </label>
+                <label className="settings-radio-label">
+                  <input
+                    type="radio"
+                    name="engineType"
+                    value="custom"
+                    checked={engineType === 'custom'}
+                    onChange={() => setEngineType('custom')}
+                  />
+                  <span>Custom</span>
+                </label>
+              </div>
+            </div>
+            <div className="settings-item">
+              <label htmlFor="engine-path">Engine Path</label>
               <input
                 type="text"
-                id="base-url"
-                value={baseUrlInput}
-                onChange={(e) => setBaseUrlInput(e.target.value)}
+                id="engine-path"
+                value={engineType === 'custom' ? customPath : ENGINE_PATHS[engineType]}
+                onChange={(e) => setCustomPath(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="http://localhost:50021"
+                disabled={engineType !== 'custom'}
+                placeholder={engineType === 'custom' ? 'Enter custom engine path' : ''}
               />
             </div>
+          </div>
+
+          <div className="settings-section">
+            <h3>Audio</h3>
             <div className="settings-item">
               <label htmlFor="speaker-id">Speaker ID</label>
               <input
