@@ -91,7 +91,7 @@ export function useVRMAnimation(
 
     // Set up animation end callback for non-looping animations
     if (!loop && onAnimationEnd) {
-      const handleFinished = (event: any) => {
+      const handleFinished = (event: { action: AnimationAction }) => {
         if (event.action === newAction) {
           onAnimationEnd();
           mixer.removeEventListener('finished', handleFinished);

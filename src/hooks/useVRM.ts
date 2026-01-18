@@ -13,6 +13,7 @@ export function useVRM(url: string) {
   const [vrm, setVrm] = useState<VRM | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const vrmRef = useRef<VRM | null>(null);
 
   // Track current and target emotion values for smooth transitions
   const currentEmotionValues = useRef<Record<Emotion, number>>({
@@ -37,9 +38,6 @@ export function useVRM(url: string) {
     const loader = new GLTFLoader();
     loader.register((parser) => new VRMLoaderPlugin(parser));
 
-    setLoading(true);
-    setError(null);
-
     loader.loadAsync(url)
       .then((gltf) => {
         const loadedVrm = gltf.userData.vrm as VRM;
@@ -53,8 +51,10 @@ export function useVRM(url: string) {
           loadedVrm.scene.add(lookAtProxy);
         }
 
+        vrmRef.current = loadedVrm;
         setVrm(loadedVrm);
         setLoading(false);
+        setError(null);
       })
       .catch((err) => {
         console.error('Failed to load VRM:', err);
@@ -63,8 +63,9 @@ export function useVRM(url: string) {
       });
 
     return () => {
-      if (vrm) {
-        VRMUtils.deepDispose(vrm.scene);
+      if (vrmRef.current) {
+        VRMUtils.deepDispose(vrmRef.current.scene);
+        vrmRef.current = null;
       }
     };
   }, [url]);

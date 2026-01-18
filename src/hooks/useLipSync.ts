@@ -8,6 +8,7 @@ export function useLipSync({ onMouthValueChange }: UseLipSyncOptions) {
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationIdRef = useRef<number>(0);
   const isActiveRef = useRef(false);
+  const updateLipSyncRef = useRef<(() => void) | undefined>(undefined);
 
   const calculateMouthValue = useCallback((analyser: AnalyserNode): number => {
     const dataArray = new Uint8Array(analyser.fftSize);
@@ -29,14 +30,20 @@ export function useLipSync({ onMouthValueChange }: UseLipSyncOptions) {
     const mouthValue = calculateMouthValue(analyserRef.current);
     onMouthValueChange(mouthValue);
 
-    animationIdRef.current = requestAnimationFrame(updateLipSync);
+    animationIdRef.current = requestAnimationFrame(() => {
+      updateLipSyncRef.current?.();
+    });
   }, [calculateMouthValue, onMouthValueChange]);
+
+  useEffect(() => {
+    updateLipSyncRef.current = updateLipSync;
+  }, [updateLipSync]);
 
   const startLipSync = useCallback((analyser: AnalyserNode) => {
     analyserRef.current = analyser;
     isActiveRef.current = true;
-    updateLipSync();
-  }, [updateLipSync]);
+    updateLipSyncRef.current?.();
+  }, []);
 
   const stopLipSync = useCallback(() => {
     isActiveRef.current = false;

@@ -20,6 +20,7 @@ export function useSpeech({ onStart, onEnd, speakerId, baseUrl, volumeScale }: U
   const [isReady, setIsReady] = useState(false);
   const isSpeakingRef = useRef(false);
   const queueRef = useRef<QueueItem[]>([]);
+  const processQueueRef = useRef<(() => Promise<void>) | undefined>(undefined);
 
   // アプリ起動時にAudioContextを初期化（Electron用）
   useEffect(() => {
@@ -28,15 +29,17 @@ export function useSpeech({ onStart, onEnd, speakerId, baseUrl, volumeScale }: U
     const ctx = new AudioContext();
     audioContextRef.current = ctx;
 
-    if (ctx.state === 'running') {
-      setIsReady(true);
-      console.log('AudioContext initialized');
-    } else {
-      ctx.resume().then(() => {
-        setIsReady(true);
+    const initialize = async () => {
+      if (ctx.state !== 'running') {
+        await ctx.resume();
         console.log('AudioContext resumed');
-      });
-    }
+      } else {
+        console.log('AudioContext initialized');
+      }
+      setIsReady(true);
+    };
+
+    initialize();
   }, []);
 
   const processQueue = useCallback(async () => {
@@ -59,7 +62,7 @@ export function useSpeech({ onStart, onEnd, speakerId, baseUrl, volumeScale }: U
     // suspended状態なら無視して次へ
     if (ctx.state === 'suspended') {
       console.warn('AudioContext suspended, skipping:', item.text);
-      processQueue();
+      processQueueRef.current?.();
       return;
     }
 
@@ -88,7 +91,7 @@ export function useSpeech({ onStart, onEnd, speakerId, baseUrl, volumeScale }: U
       source.onended = () => {
         isSpeakingRef.current = false;
         onEnd();
-        processQueue();
+        processQueueRef.current?.();
       };
 
       source.start();
@@ -96,9 +99,13 @@ export function useSpeech({ onStart, onEnd, speakerId, baseUrl, volumeScale }: U
       console.error('Speech failed:', error);
       isSpeakingRef.current = false;
       onEnd();
-      processQueue();
+      processQueueRef.current?.();
     }
   }, [onStart, onEnd, isReady, speakerId, baseUrl, volumeScale]);
+
+  useEffect(() => {
+    processQueueRef.current = processQueue;
+  }, [processQueue]);
 
   const speakText = useCallback((text: string, emotion: Emotion = 'neutral') => {
     // AudioContextが準備できていない場合は無視
@@ -109,8 +116,8 @@ export function useSpeech({ onStart, onEnd, speakerId, baseUrl, volumeScale }: U
 
     console.log(`Queued: "${text}" with emotion "${emotion}" (queue size: ${queueRef.current.length})`);
     queueRef.current.push({ text, emotion });
-    processQueue();
-  }, [processQueue, isReady]);
+    processQueueRef.current?.();
+  }, [isReady]);
 
   return { speakText, isReady };
 }

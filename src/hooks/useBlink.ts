@@ -23,6 +23,7 @@ export function useBlink(vrm: VRM | null, options: UseBlinkOptions = {}) {
   const [isBlinking, setIsBlinking] = useState(false);
   const blinkTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const blinkAnimationRef = useRef<number | null>(null);
+  const scheduleNextBlinkRef = useRef<(() => void) | undefined>(undefined);
 
   // ランダムな間隔を計算
   const getRandomInterval = useCallback(() => {
@@ -71,9 +72,13 @@ export function useBlink(vrm: VRM | null, options: UseBlinkOptions = {}) {
     const interval = getRandomInterval();
     blinkTimeoutRef.current = setTimeout(() => {
       performBlink();
-      scheduleNextBlink(); // 次のまばたきをスケジュール
+      scheduleNextBlinkRef.current?.(); // 次のまばたきをスケジュール
     }, interval);
   }, [enabled, getRandomInterval, performBlink]);
+
+  useEffect(() => {
+    scheduleNextBlinkRef.current = scheduleNextBlink;
+  }, [scheduleNextBlink]);
 
   // まばたきループを開始
   useEffect(() => {

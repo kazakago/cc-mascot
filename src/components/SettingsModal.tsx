@@ -49,46 +49,52 @@ export function SettingsModal({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch speakers from engine with retry logic
-  const fetchSpeakers = useCallback(async (retryCount = 0, maxRetries = 10) => {
+  const fetchSpeakers = useCallback(async (maxRetries = 10) => {
     setLoadingSpeakers(true);
     setError('');
-    try {
-      const speakerList = await getSpeakers(VOICEVOX_BASE_URL);
-      const options: SpeakerOption[] = [];
-      for (const speaker of speakerList) {
-        for (const style of speaker.styles) {
-          options.push({
-            id: style.id,
-            name: style.name,
-            speakerName: speaker.name,
-          });
+
+    for (let retryCount = 0; retryCount <= maxRetries; retryCount++) {
+      try {
+        const speakerList = await getSpeakers(VOICEVOX_BASE_URL);
+        const options: SpeakerOption[] = [];
+        for (const speaker of speakerList) {
+          for (const style of speaker.styles) {
+            options.push({
+              id: style.id,
+              name: style.name,
+              speakerName: speaker.name,
+            });
+          }
+        }
+        setSpeakers(options);
+        setLoadingSpeakers(false);
+        return options;
+      } catch (err) {
+        // Retry if engine is not ready yet
+        if (retryCount < maxRetries) {
+          console.log(`[SettingsModal] Engine not ready, retrying (${retryCount + 1}/${maxRetries})...`);
+          await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second between retries
+        } else {
+          console.error('Failed to fetch speakers after retries:', err);
+          setError('Failed to fetch speakers. Is the engine running?');
+          setSpeakers([]);
+          setLoadingSpeakers(false);
+          return [];
         }
       }
-      setSpeakers(options);
-      setLoadingSpeakers(false);
-      return options;
-    } catch (err) {
-      // Retry if engine is not ready yet
-      if (retryCount < maxRetries) {
-        console.log(`[SettingsModal] Engine not ready, retrying (${retryCount + 1}/${maxRetries})...`);
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second between retries
-        return fetchSpeakers(retryCount + 1, maxRetries);
-      } else {
-        console.error('Failed to fetch speakers after retries:', err);
-        setError('Failed to fetch speakers. Is the engine running?');
-        setSpeakers([]);
-        setLoadingSpeakers(false);
-        return [];
-      }
     }
+    return [];
   }, []);
 
   useEffect(() => {
     if (isOpen) {
-      setSelectedSpeakerId(speakerId);
-      setVolumeScaleInput(volumeScale);
-      setSelectedFileName(null);
-      setError('');
+      // Use queueMicrotask to avoid setState during render
+      queueMicrotask(() => {
+        setSelectedSpeakerId(speakerId);
+        setVolumeScaleInput(volumeScale);
+        setSelectedFileName(null);
+        setError('');
+      });
 
       // Load engine settings from Electron store
       if (window.electron?.getEngineType && window.electron?.getVoicevoxPath) {
@@ -102,7 +108,9 @@ export function SettingsModal({
       }
 
       // Fetch speakers when modal opens
-      fetchSpeakers();
+      queueMicrotask(() => {
+        fetchSpeakers();
+      });
     }
   }, [isOpen, speakerId, volumeScale, fetchSpeakers]);
 

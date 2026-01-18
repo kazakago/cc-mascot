@@ -47,9 +47,10 @@ export const VRMAvatar = forwardRef<VRMAvatarHandle, VRMAvatarProps>(
 
     useEffect(() => {
       if (vrm && groupRef.current) {
-        groupRef.current.add(vrm.scene);
+        const group = groupRef.current;
+        group.add(vrm.scene);
         return () => {
-          groupRef.current?.remove(vrm.scene);
+          group.remove(vrm.scene);
         };
       }
     }, [vrm]);
