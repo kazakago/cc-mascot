@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { VRM, VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
+import { VRMLookAtQuaternionProxy } from '@pixiv/three-vrm-animation';
 import { MathUtils } from 'three';
 import type { Emotion } from '../types/emotion';
 import { getExpressionName } from '../types/emotion';
@@ -44,6 +45,13 @@ export function useVRM(url: string) {
         const loadedVrm = gltf.userData.vrm as VRM;
 
         VRMUtils.combineSkeletons(gltf.scene);
+
+        // Create VRMLookAtQuaternionProxy to suppress animation warnings
+        if (loadedVrm.lookAt) {
+          const lookAtProxy = new VRMLookAtQuaternionProxy(loadedVrm.lookAt);
+          lookAtProxy.name = 'VRMLookAtQuaternionProxy';
+          loadedVrm.scene.add(lookAtProxy);
+        }
 
         setVrm(loadedVrm);
         setLoading(false);
