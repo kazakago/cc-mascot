@@ -3,6 +3,11 @@
  * Parses Claude Code session logs and extracts assistant messages
  */
 
+import { RuleBasedEmotionClassifier } from '../services/ruleBasedEmotionClassifier';
+
+// グローバル感情分類器インスタンス
+const emotionClassifier = new RuleBasedEmotionClassifier();
+
 export interface SpeakMessage {
   type: 'speak';
   text: string;
@@ -55,10 +60,12 @@ export function parseClaudeCodeLog(line: string): SpeakMessage[] {
       if (item.type === 'text' && item.text) {
         const text = item.text.trim();
         if (text) {
+          // 感情分類器でテキストから感情を自動判定
+          const emotion = emotionClassifier.classify(text);
           messages.push({
             type: 'speak',
             text: text,
-            emotion: 'neutral',
+            emotion: emotion,
           });
         }
       }
