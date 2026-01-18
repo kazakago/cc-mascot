@@ -34,15 +34,10 @@ export function cleanTextForSpeech(text: string): string {
   // 8. Replace URLs with "URL"
   cleaned = cleaned.replace(/https?:\/\/[^\s]+/g, 'URL');
 
-  // 9. Replace file paths with "ファイルパス"
-  // Match both absolute paths (/..., C:\...) and relative paths (src/..., ./...)
-  cleaned = cleaned.replace(/(?:\/|[A-Z]:\\|\.\/|\.\.\/)[^\s:,)]+\.\w+/g, 'ファイルパス');
-  cleaned = cleaned.replace(/(?:\/|[A-Z]:\\)[^\s:,)]+/g, 'ファイルパス');
-
-  // 10. Remove inline code backticks but keep the content
+  // 9. Remove inline code backticks but keep the content
   cleaned = cleaned.replace(/`([^`]+)`/g, '$1');
 
-  // 11. Remove colons
+  // 10. Remove colons
   cleaned = cleaned.replace(/:/g, '');
 
   return cleaned;
