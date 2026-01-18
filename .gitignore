@@ -23,3 +23,6 @@ release
 *.njsproj
 *.sln
 *.sw?
+
+# Claude
+.claude/plans
