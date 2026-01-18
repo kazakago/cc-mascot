@@ -206,19 +206,36 @@ export function SettingsModal({
   if (!isOpen) return null;
 
   return (
-    <div className="settings-modal-overlay" onClick={onClose}>
-      <div className="settings-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="settings-modal-header">
-          <h2>Settings</h2>
-          <button className="settings-modal-close" onClick={onClose}>
-            ×
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[2000]" onClick={onClose}>
+      <div className="bg-white rounded-xl w-[90%] max-w-[500px] max-h-[80vh] overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex justify-between items-center px-6 py-5 border-b border-gray-200">
+          <h2 className="m-0 text-xl font-semibold text-gray-800">Settings</h2>
+          <button
+            className="bg-transparent border-0 text-gray-600 cursor-pointer w-8 h-8 flex items-center justify-center rounded transition-all duration-200 hover:bg-gray-100 hover:text-gray-800"
+            onClick={onClose}
+            aria-label="Close"
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 20 20"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              className="stroke-current"
+            >
+              <path
+                d="M15 5L5 15M5 5L15 15"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+            </svg>
           </button>
         </div>
-        <div className="settings-modal-content">
-          <div className="settings-section">
-            <h3>Avatar</h3>
-            <div className="settings-item">
-              <label htmlFor="vrm-file">VRM Model</label>
+        <div className="p-6 overflow-y-auto max-h-[calc(80vh-80px)] space-y-6">
+          <div>
+            <h3 className="m-0 mb-4 text-base font-semibold text-gray-800">Avatar</h3>
+            <div className="flex flex-col gap-3">
+              <label htmlFor="vrm-file" className="text-sm font-medium text-gray-600">VRM Model</label>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -228,58 +245,62 @@ export function SettingsModal({
                 style={{ display: 'none' }}
               />
               <button
-                className="settings-file-button"
+                className="px-4 py-2 rounded-md text-sm font-medium cursor-pointer transition-all duration-200 border border-gray-300 bg-white text-gray-800 hover:bg-gray-100 hover:border-gray-400"
                 onClick={() => fileInputRef.current?.click()}
                 type="button"
               >
                 Choose VRM File
               </button>
-              <p className="settings-file-name">
+              <p className="text-xs text-gray-600 mb-0 italic">
                 {selectedFileName || currentVRMFileName || 'No file selected'}
               </p>
             </div>
           </div>
 
-          <div className="settings-section">
-            <h3>Speech Engine</h3>
-            <div className="settings-item">
-              <label>Engine Type</label>
-              <div className="settings-radio-group">
-                <label className="settings-radio-label">
+          <div>
+            <h3 className="m-0 mb-4 text-base font-semibold text-gray-800">Speech Engine</h3>
+            <div className="space-y-4">
+              <div className="flex flex-col gap-3">
+                <label className="text-sm font-medium text-gray-600">Engine Type</label>
+                <div className="flex flex-col gap-2.5">
+                <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-800">
                   <input
                     type="radio"
                     name="engineType"
                     value="aivis"
                     checked={engineType === 'aivis'}
                     onChange={() => handleEngineTypeChange('aivis')}
+                    className="w-4 h-4 m-0 cursor-pointer accent-primary"
                   />
-                  <span>AivisSpeech</span>
+                  <span className="font-normal">AivisSpeech</span>
                 </label>
-                <label className="settings-radio-label">
+                <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-800">
                   <input
                     type="radio"
                     name="engineType"
                     value="voicevox"
                     checked={engineType === 'voicevox'}
                     onChange={() => handleEngineTypeChange('voicevox')}
+                    className="w-4 h-4 m-0 cursor-pointer accent-primary"
                   />
-                  <span>VOICEVOX</span>
+                  <span className="font-normal">VOICEVOX</span>
                 </label>
-                <label className="settings-radio-label">
+                <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-800">
                   <input
                     type="radio"
                     name="engineType"
                     value="custom"
                     checked={engineType === 'custom'}
                     onChange={() => handleEngineTypeChange('custom')}
+                    className="w-4 h-4 m-0 cursor-pointer accent-primary"
                   />
-                  <span>Custom</span>
+                  <span className="font-normal">Custom</span>
                 </label>
               </div>
-            </div>
-            <div className="settings-item">
-              <label htmlFor="engine-path">Engine Path</label>
-              <div className="settings-input-with-button">
+              </div>
+              <div className="flex flex-col gap-3">
+                <label htmlFor="engine-path" className="text-sm font-medium text-gray-600">Engine Path</label>
+              <div className="flex gap-2 items-center">
                 <input
                   type="text"
                   id="engine-path"
@@ -287,43 +308,45 @@ export function SettingsModal({
                   onChange={(e) => setCustomPath(e.target.value)}
                   disabled={engineType !== 'custom'}
                   placeholder={engineType === 'custom' ? 'Enter custom engine path' : ''}
-                  className="settings-input-flex"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm font-mono text-gray-800 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
                 />
                 {engineType === 'custom' && (
                   <button
                     type="button"
                     onClick={handleApplyCustomPath}
-                    className="settings-button-apply"
+                    className="px-4 py-2 rounded-md text-sm font-medium cursor-pointer transition-all duration-200 border-0 bg-primary text-white whitespace-nowrap min-w-[60px] hover:bg-primary-dark disabled:bg-gray-400 disabled:cursor-not-allowed"
                     disabled={loadingSpeakers}
                   >
                     確定
                   </button>
                 )}
               </div>
+              </div>
             </div>
           </div>
 
-          <div className="settings-section">
-            <h3>Audio</h3>
-            <div className="settings-item">
-              <label htmlFor="speaker-select">Speaker</label>
+          <div>
+            <h3 className="m-0 mb-4 text-base font-semibold text-gray-800">Audio</h3>
+            <div className="space-y-4">
+              <div className="flex flex-col gap-3">
+              <label htmlFor="speaker-select" className="text-sm font-medium text-gray-600">Speaker</label>
               {loadingSpeakers ? (
                 <>
                   <select
                     id="speaker-select"
                     disabled
-                    className="settings-select"
+                    className="px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-800 bg-white cursor-pointer w-full focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
                   >
                     <option>Loading speakers...</option>
                   </select>
-                  <p className="settings-info-small">Waiting for engine to start...</p>
+                  <p className="text-xs text-gray-400 mt-1 mb-0">Waiting for engine to start...</p>
                 </>
               ) : speakers.length > 0 ? (
                 <select
                   id="speaker-select"
                   value={selectedSpeakerId}
                   onChange={(e) => handleSpeakerChange(Number(e.target.value))}
-                  className="settings-select"
+                  className="px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-800 bg-white cursor-pointer w-full focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
                 >
                   {speakers.map((speaker) => (
                     <option key={speaker.id} value={speaker.id}>
@@ -336,16 +359,16 @@ export function SettingsModal({
                   <select
                     id="speaker-select"
                     disabled
-                    className="settings-select"
+                    className="px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-800 bg-white cursor-pointer w-full focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
                   >
                     <option>No speakers available</option>
                   </select>
-                  <p className="settings-info-small">Is the engine running?</p>
+                  <p className="text-xs text-gray-400 mt-1 mb-0">Is the engine running?</p>
                 </>
               )}
-            </div>
-            <div className="settings-item">
-              <label htmlFor="volume-scale">
+              </div>
+              <div className="flex flex-col gap-3">
+                <label htmlFor="volume-scale" className="text-sm font-medium text-gray-600">
                 Volume Scale: {volumeScaleInput.toFixed(2)}
               </label>
               <input
@@ -358,15 +381,18 @@ export function SettingsModal({
                 onChange={(e) => setVolumeScaleInput(parseFloat(e.target.value))}
                 onMouseUp={handleVolumeChangeComplete}
                 onTouchEnd={handleVolumeChangeComplete}
-                className="settings-slider"
               />
+              </div>
+              {error && <p className="text-xs text-danger mt-1 mb-0">{error}</p>}
             </div>
-            {error && <p className="settings-error">{error}</p>}
           </div>
 
-          <div className="settings-section">
-            <h3>Reset</h3>
-            <button className="settings-button-danger" onClick={handleReset}>
+          <div>
+            <h3 className="m-0 mb-4 text-base font-semibold text-gray-800">Reset</h3>
+            <button
+              className="px-4 py-2 rounded-md text-sm font-medium cursor-pointer transition-all duration-200 border-0 bg-danger text-white w-full hover:bg-danger-dark"
+              onClick={handleReset}
+            >
               Reset All Settings
             </button>
           </div>

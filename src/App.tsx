@@ -10,7 +10,6 @@ import { useLipSync } from './hooks/useLipSync';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { loadVRMFile, saveVRMFile, createBlobURL, deleteVRMFile } from './utils/vrmStorage';
 import type { Emotion } from './types/emotion';
-import './App.css';
 
 const DEFAULT_VRM_URL = '/models/avatar.glb';
 const IDLE_ANIMATION_URL = '/animations/idle_loop.vrma';
@@ -151,7 +150,7 @@ function App() {
   }, [speakText]);
 
   return (
-    <div className="app">
+    <div className="w-screen h-screen overflow-hidden">
       <SettingsButton onClick={() => setIsSettingsOpen(true)} />
 
       <Canvas
