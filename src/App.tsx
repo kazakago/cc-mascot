@@ -85,6 +85,10 @@ function App() {
   });
 
   const handleSpeechStart = useCallback((analyser: AnalyserNode, emotion: Emotion) => {
+    // Set emotion when speech actually starts (after VOICEVOX API processing)
+    setCurrentEmotion(emotion);
+    avatarRef.current?.setEmotion(emotion);
+
     // Select animation based on emotion
     const animationUrl = EMOTION_ANIMATION_URLS[emotion];
     if (animationUrl) {
@@ -135,8 +139,7 @@ function App() {
           const data = JSON.parse(message) as { type: string; text: string; emotion?: Emotion };
           if (data.type === 'speak' && data.text) {
             const emotion = data.emotion || 'neutral';
-            setCurrentEmotion(emotion);
-            avatarRef.current?.setEmotion(emotion);
+            // Emotion will be set in handleSpeechStart (when speech actually starts)
             speakText(data.text, emotion);
           }
         } catch (err) {
