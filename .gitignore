@@ -12,6 +12,7 @@ dist
 dist-electron
 dist-ssr
 release
+coverage
 *.local
 
 # Editor directories and files

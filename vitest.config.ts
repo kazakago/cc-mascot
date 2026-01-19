@@ -3,8 +3,8 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     globals: true,
-    environment: 'node',
-    include: ['**/*.test.ts', '**/*.spec.ts'],
+    environment: 'jsdom',
+    include: ['**/*.test.ts', '**/*.test.tsx', '**/*.spec.ts', '**/*.spec.tsx'],
     coverage: {
       reporter: ['text', 'json', 'html'],
       exclude: [
@@ -15,5 +15,6 @@ export default defineConfig({
         '**/*.d.ts',
       ],
     },
+    setupFiles: ['./vitest.setup.ts'],
   },
 });
