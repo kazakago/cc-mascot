@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseClaudeCodeLog, SpeakMessage } from './claudeCodeParser';
+import { parseClaudeCodeLog } from './claudeCodeParser';
 
 describe('parseClaudeCodeLog', () => {
   describe('正常なJSONLログの解析', () => {

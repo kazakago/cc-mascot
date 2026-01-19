@@ -63,7 +63,7 @@ describe('useLipSync', () => {
       );
 
       act(() => {
-        result.current.startLipSync(mockAnalyser as any);
+        result.current.startLipSync(mockAnalyser as unknown as AnalyserNode);
       });
 
       // onMouthValueChangeが呼ばれるまで待つ
@@ -82,7 +82,7 @@ describe('useLipSync', () => {
       );
 
       act(() => {
-        result.current.startLipSync(mockAnalyser as any);
+        result.current.startLipSync(mockAnalyser as unknown as AnalyserNode);
       });
 
       await new Promise((resolve) => setTimeout(resolve, 10));
@@ -108,7 +108,7 @@ describe('useLipSync', () => {
       );
 
       act(() => {
-        result.current.startLipSync(mockAnalyser as any);
+        result.current.startLipSync(mockAnalyser as unknown as AnalyserNode);
       });
 
       await new Promise((resolve) => setTimeout(resolve, 10));
@@ -134,7 +134,7 @@ describe('useLipSync', () => {
       );
 
       act(() => {
-        result.current.startLipSync(mockAnalyser as any);
+        result.current.startLipSync(mockAnalyser as unknown as AnalyserNode);
       });
 
       await new Promise((resolve) => setTimeout(resolve, 10));
@@ -155,7 +155,7 @@ describe('useLipSync', () => {
       );
 
       act(() => {
-        result.current.startLipSync(mockAnalyser as any);
+        result.current.startLipSync(mockAnalyser as unknown as AnalyserNode);
       });
 
       await new Promise((resolve) => setTimeout(resolve, 10));
@@ -179,7 +179,7 @@ describe('useLipSync', () => {
       );
 
       act(() => {
-        result.current.startLipSync(mockAnalyser as any);
+        result.current.startLipSync(mockAnalyser as unknown as AnalyserNode);
       });
 
       mockOnMouthValueChange.mockClear();
@@ -197,7 +197,7 @@ describe('useLipSync', () => {
       );
 
       act(() => {
-        result.current.startLipSync(mockAnalyser as any);
+        result.current.startLipSync(mockAnalyser as unknown as AnalyserNode);
       });
 
       act(() => {
@@ -217,7 +217,7 @@ describe('useLipSync', () => {
       );
 
       act(() => {
-        result.current.startLipSync(mockAnalyser as any);
+        result.current.startLipSync(mockAnalyser as unknown as AnalyserNode);
       });
 
       await new Promise((resolve) => setTimeout(resolve, 50));
@@ -232,7 +232,7 @@ describe('useLipSync', () => {
       );
 
       act(() => {
-        result.current.startLipSync(mockAnalyser as any);
+        result.current.startLipSync(mockAnalyser as unknown as AnalyserNode);
       });
 
       await new Promise((resolve) => setTimeout(resolve, 10));
@@ -270,7 +270,7 @@ describe('useLipSync', () => {
       );
 
       act(() => {
-        result.current.startLipSync(mockAnalyser as any);
+        result.current.startLipSync(mockAnalyser as unknown as AnalyserNode);
       });
 
       await new Promise((resolve) => setTimeout(resolve, 10));
@@ -296,7 +296,7 @@ describe('useLipSync', () => {
       );
 
       act(() => {
-        result2.current.startLipSync(mockAnalyser as any);
+        result2.current.startLipSync(mockAnalyser as unknown as AnalyserNode);
       });
 
       await new Promise((resolve) => setTimeout(resolve, 10));
@@ -326,7 +326,7 @@ describe('useLipSync', () => {
       );
 
       act(() => {
-        result.current.startLipSync(mockAnalyser as any);
+        result.current.startLipSync(mockAnalyser as unknown as AnalyserNode);
       });
 
       await new Promise((resolve) => setTimeout(resolve, 50));
@@ -348,7 +348,7 @@ describe('useLipSync', () => {
       );
 
       act(() => {
-        result.current.startLipSync(mockAnalyser as any);
+        result.current.startLipSync(mockAnalyser as unknown as AnalyserNode);
       });
 
       unmount();
@@ -363,7 +363,7 @@ describe('useLipSync', () => {
 
       // サイクル1
       act(() => {
-        result.current.startLipSync(mockAnalyser as any);
+        result.current.startLipSync(mockAnalyser as unknown as AnalyserNode);
       });
 
       await new Promise((resolve) => setTimeout(resolve, 10));
@@ -376,7 +376,7 @@ describe('useLipSync', () => {
 
       // サイクル2
       act(() => {
-        result.current.startLipSync(mockAnalyser as any);
+        result.current.startLipSync(mockAnalyser as unknown as AnalyserNode);
       });
 
       await new Promise((resolve) => setTimeout(resolve, 10));
@@ -418,7 +418,7 @@ describe('useLipSync', () => {
       );
 
       act(() => {
-        result.current.startLipSync(mockAnalyser as any);
+        result.current.startLipSync(mockAnalyser as unknown as AnalyserNode);
       });
 
       await new Promise((resolve) => setTimeout(resolve, 10));
@@ -438,7 +438,7 @@ describe('useLipSync', () => {
       );
 
       act(() => {
-        result.current.startLipSync(mockAnalyser as any);
+        result.current.startLipSync(mockAnalyser as unknown as AnalyserNode);
       });
 
       await new Promise((resolve) => setTimeout(resolve, 10));

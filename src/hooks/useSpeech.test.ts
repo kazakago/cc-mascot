@@ -19,18 +19,25 @@ class MockAudioContext {
     this.state = 'running';
   }
 
-  async decodeAudioData(arrayBuffer: ArrayBuffer) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async decodeAudioData(_arrayBuffer: ArrayBuffer) {
     // ダミーのAudioBufferを返す
     return { duration: 1.0, length: 44100 } as AudioBuffer;
   }
 
   createBufferSource() {
     this.createBufferSourceCallCount++;
-    const source = {
+    type MockBufferSource = {
+      buffer: AudioBuffer | null;
+      onended: (() => void) | null;
+      connect: ReturnType<typeof vi.fn>;
+      start: ReturnType<typeof vi.fn>;
+    };
+    const source: MockBufferSource = {
       buffer: null,
-      onended: null as (() => void) | null,
+      onended: null,
       connect: vi.fn().mockReturnThis(),
-      start: vi.fn(function (this: any) {
+      start: vi.fn(function (this: MockBufferSource) {
         // startが呼ばれたら少し後にonendedを呼ぶ
         setTimeout(() => {
           if (this.onended) {
@@ -52,14 +59,15 @@ class MockAudioContext {
 
   createGain() {
     this.createGainCallCount++;
-    const self = this;
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const context = this;
     return {
       gain: {
         get value() {
-          return self.lastGainValue;
+          return context.lastGainValue;
         },
         set value(val: number) {
-          self.lastGainValue = val;
+          context.lastGainValue = val;
         }
       },
       connect: vi.fn().mockReturnThis(),
@@ -81,7 +89,7 @@ describe('useSpeech', () => {
     originalAudioContext = globalThis.AudioContext;
     globalThis.AudioContext = function() {
       return mockAudioContext;
-    } as any;
+    } as unknown as typeof AudioContext;
 
     // コールバックのモック
     mockOnStart = vi.fn();
@@ -390,7 +398,8 @@ describe('useSpeech', () => {
     it('AudioContextがsuspended状態の場合はスキップする', async () => {
       // speak呼び出しをインターセプトして、その前にsuspendedにする
       let isFirstCall = true;
-      vi.spyOn(voicevoxModule, 'speak').mockImplementation(async (text) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      vi.spyOn(voicevoxModule, 'speak').mockImplementation(async (_text) => {
         if (isFirstCall) {
           isFirstCall = false;
           // processQueue内でチェックされる前にsuspendedにする

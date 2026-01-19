@@ -276,8 +276,6 @@ describe('useVRM', () => {
         expect(result.current.loading).toBe(false);
       });
 
-      const firstVrm = result.current.vrm;
-
       // URLを変更
       rerender({ url: '/test2.vrm' });
 
