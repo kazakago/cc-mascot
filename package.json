@@ -8,7 +8,11 @@
     "dev": "vite --mode electron",
     "build": "tsc -b && vite build --mode electron",
     "package": "npm run build && electron-builder",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@pixiv/three-vrm": "^3.4.4",
@@ -31,6 +35,7 @@
     "@types/three": "^0.182.0",
     "@types/ws": "^8.18.1",
     "@vitejs/plugin-react": "^5.1.1",
+    "@vitest/ui": "^4.0.17",
     "autoprefixer": "^10.4.23",
     "electron": "^39.2.7",
     "electron-builder": "^26.4.0",
@@ -44,7 +49,8 @@
     "typescript-eslint": "^8.46.4",
     "vite": "^7.2.4",
     "vite-plugin-electron": "^0.29.0",
-    "vite-plugin-electron-renderer": "^0.14.6"
+    "vite-plugin-electron-renderer": "^0.14.6",
+    "vitest": "^4.0.17"
   },
   "build": {
     "appId": "com.kazakago.cc-mascot",
