@@ -3,13 +3,20 @@ import { Canvas } from '@react-three/fiber';
 import { Scene } from './components/Scene';
 import { VRMAvatar } from './components/VRMAvatar';
 import type { VRMAvatarHandle } from './components/VRMAvatar';
-import { SettingsButton } from './components/SettingsButton';
 import { SettingsModal } from './components/SettingsModal';
 import { useSpeech } from './hooks/useSpeech';
 import { useLipSync } from './hooks/useLipSync';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { loadVRMFile, saveVRMFile, createBlobURL, deleteVRMFile } from './utils/vrmStorage';
 import type { Emotion } from './types/emotion';
+
+// Helper function to check if point is inside ellipse
+function isInsideEllipse(x: number, y: number, centerX: number, centerY: number, radiusX: number, radiusY: number): boolean {
+  const dx = x - centerX;
+  const dy = y - centerY;
+  // Ellipse equation: (x/a)^2 + (y/b)^2 <= 1
+  return (dx * dx) / (radiusX * radiusX) + (dy * dy) / (radiusY * radiusY) <= 1;
+}
 
 const DEFAULT_VRM_URL = '/models/avatar.glb';
 const IDLE_ANIMATION_URL = '/animations/idle_loop.vrma';
@@ -152,13 +159,103 @@ function App() {
     }
   }, [speakText]);
 
-  return (
-    <div className="w-screen h-screen overflow-hidden">
-      <SettingsButton onClick={() => setIsSettingsOpen(true)} />
+  // Custom window drag implementation
+  useEffect(() => {
+    const electron = window.electron;
+    if (!electron?.setIgnoreMouseEvents || !electron?.getWindowPosition || !electron?.setWindowPosition) {
+      return;
+    }
 
+    let isDragging = false;
+    let dragStartX = 0;
+    let dragStartY = 0;
+    let windowStartX = 0;
+    let windowStartY = 0;
+    let lastInsideState: boolean | null = null;
+
+    const getCharacterRadii = () => {
+      // Vertical ellipse: narrow horizontally, tall vertically
+      const radiusX = window.innerWidth * 0.15;  // 30% width of window
+      const radiusY = window.innerHeight * 0.45; // 90% height of window
+      return { radiusX, radiusY };
+    };
+
+    const isInsideCharacterArea = (clientX: number, clientY: number) => {
+      const centerX = window.innerWidth / 2;
+      const centerY = window.innerHeight / 2;
+      const { radiusX, radiusY } = getCharacterRadii();
+      return isInsideEllipse(clientX, clientY, centerX, centerY, radiusX, radiusY);
+    };
+
+    const handleMouseDown = async (e: MouseEvent) => {
+      // Only start drag if inside character area and left mouse button
+      if (e.button !== 0) return;
+      if (!isInsideCharacterArea(e.clientX, e.clientY)) return;
+
+      isDragging = true;
+      dragStartX = e.screenX;
+      dragStartY = e.screenY;
+
+      const pos = await electron.getWindowPosition();
+      windowStartX = pos.x;
+      windowStartY = pos.y;
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      // When settings modal is open, always accept mouse events
+      if (isSettingsOpen) {
+        if (lastInsideState !== true) {
+          lastInsideState = true;
+          electron.setIgnoreMouseEvents(false);
+        }
+        return;
+      }
+
+      const isInside = isInsideCharacterArea(e.clientX, e.clientY);
+
+      // Update ignore mouse events state (for click-through outside character area)
+      if (isInside !== lastInsideState) {
+        lastInsideState = isInside;
+        electron.setIgnoreMouseEvents(!isInside);
+      }
+
+      // Handle dragging
+      if (isDragging) {
+        const deltaX = e.screenX - dragStartX;
+        const deltaY = e.screenY - dragStartY;
+        electron.setWindowPosition(windowStartX + deltaX, windowStartY + deltaY);
+      }
+    };
+
+    const handleMouseUp = () => {
+      if (isDragging) {
+        isDragging = false;
+      }
+    };
+
+    // Set initial state based on settings modal state
+    electron.setIgnoreMouseEvents(!isSettingsOpen);
+
+    window.addEventListener('mousedown', handleMouseDown);
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      window.removeEventListener('mousedown', handleMouseDown);
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isSettingsOpen]);
+
+  return (
+    <div className="w-screen h-screen overflow-hidden relative">
       <Canvas
-        camera={{ position: [0, 0.2, 2.0], fov: 30 }}
+        camera={{ position: [0, 0.2, 3.2], fov: 30 }}
         style={{ width: '100vw', height: '100vh' }}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          setIsSettingsOpen(true);
+        }}
       >
         <Scene>
           <VRMAvatar
