@@ -31,4 +31,13 @@ contextBridge.exposeInMainWorld('electron', {
   resetEngineSettings: (): Promise<boolean> => {
     return ipcRenderer.invoke('reset-engine-settings');
   },
+  setIgnoreMouseEvents: (ignore: boolean): void => {
+    ipcRenderer.send('set-ignore-mouse-events', ignore);
+  },
+  getWindowPosition: (): Promise<{ x: number; y: number }> => {
+    return ipcRenderer.invoke('get-window-position');
+  },
+  setWindowPosition: (x: number, y: number): void => {
+    ipcRenderer.send('set-window-position', x, y);
+  },
 });

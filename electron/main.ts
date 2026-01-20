@@ -148,8 +148,17 @@ async function stopVoicevoxEngine(): Promise<void> {
 const createWindow = () => {
   // Create the browser window.
   mainWindow = new BrowserWindow({
-    width: 1200,
+    width: 800,
     height: 800,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    fullscreenable: false,
+    minimizable: false,
+    maximizable: false,
+    hasShadow: false,
+    resizable: false,
+    // hiddenInMissionControl: true,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -158,10 +167,15 @@ const createWindow = () => {
     },
   });
 
+  // 初期状態ではマウスイベントを受け取る（ドラッグ可能にするため）
+  // forward: trueを指定してマウス移動イベントを常に受信
+  mainWindow.setIgnoreMouseEvents(false, { forward: true });
+
+  mainWindow.setAspectRatio(1)
+
   // Load the app
   if (process.env.VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
-    mainWindow.webContents.openDevTools();
   } else {
     mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
   }
@@ -221,6 +235,28 @@ ipcMain.handle('reset-engine-settings', async () => {
   await stopVoicevoxEngine();
   await startVoicevoxEngine();
   return true;
+});
+
+ipcMain.on('set-ignore-mouse-events', (_event, ignore: boolean) => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    // Always use forward: true to keep receiving mouse move events even when ignoring clicks
+    mainWindow.setIgnoreMouseEvents(ignore, { forward: true });
+    console.log('[IPC] setIgnoreMouseEvents:', ignore, 'forward: true');
+  }
+});
+
+ipcMain.handle('get-window-position', () => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    const [x, y] = mainWindow.getPosition();
+    return { x, y };
+  }
+  return { x: 0, y: 0 };
+});
+
+ipcMain.on('set-window-position', (_event, x: number, y: number) => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.setPosition(Math.round(x), Math.round(y));
+  }
 });
 
 // This method will be called when Electron has finished

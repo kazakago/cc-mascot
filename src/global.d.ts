@@ -11,6 +11,9 @@ declare global {
       getEngineType: () => Promise<EngineType | undefined>;
       setEngineSettings: (engineType: EngineType, customPath?: string) => Promise<boolean>;
       resetEngineSettings: () => Promise<boolean>;
+      setIgnoreMouseEvents: (ignore: boolean) => void;
+      getWindowPosition: () => Promise<{ x: number; y: number }>;
+      setWindowPosition: (x: number, y: number) => void;
     };
   }
 }

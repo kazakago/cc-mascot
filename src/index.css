@@ -13,10 +13,6 @@ html, body, #root {
   overflow: hidden;
 }
 
-body {
-  background-color: #1a1a2e;
-}
-
 /* Custom slider styles */
 input[type='range'] {
   width: 100%;
