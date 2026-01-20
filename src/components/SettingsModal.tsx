@@ -214,8 +214,8 @@ export function SettingsModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[2000]" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties} onClick={onClose}>
-      <div className="bg-white rounded-xl w-[90%] max-w-[500px] max-h-[80vh] overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 flex items-center justify-center z-[2000]" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+      <div className="bg-white rounded-xl w-[90%] max-w-[500px] max-h-[80vh] overflow-hidden shadow-2xl">
         <div className="flex justify-between items-center px-6 py-5 border-b border-gray-200">
           <h2 className="m-0 text-xl font-semibold text-gray-800">Settings</h2>
           <button
