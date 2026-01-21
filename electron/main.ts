@@ -11,6 +11,7 @@ const __dirname = path.dirname(__filename);
 
 const store = new Store();
 let mainWindow: BrowserWindow | null = null;
+let settingsWindow: BrowserWindow | null = null;
 let logMonitor: { close: () => void } | null = null;
 let voicevoxProcess: ChildProcess | null = null;
 
@@ -146,10 +147,14 @@ async function stopVoicevoxEngine(): Promise<void> {
 }
 
 const createWindow = () => {
+  // Load window size from store (default: 800)
+  const windowSize = (store.get('windowSize') as number) || 800;
+  const clampedSize = Math.max(400, Math.min(1200, windowSize));
+
   // Create the browser window.
   mainWindow = new BrowserWindow({
-    width: 800,
-    height: 800,
+    width: clampedSize,
+    height: clampedSize,
     frame: false,
     transparent: true,
     alwaysOnTop: true,
@@ -197,6 +202,54 @@ const createWindow = () => {
   });
 };
 
+// Create settings window
+const createSettingsWindow = () => {
+  if (settingsWindow && !settingsWindow.isDestroyed()) {
+    // If settings window already exists, focus it
+    settingsWindow.focus();
+    return;
+  }
+
+  settingsWindow = new BrowserWindow({
+    width: 600,
+    height: 700,
+    frame: true,
+    transparent: false,
+    alwaysOnTop: true,
+    fullscreenable: false,
+    minimizable: false,
+    maximizable: false,
+    hasShadow: true,
+    resizable: true,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      preload: path.join(__dirname, 'preload.js'),
+      autoplayPolicy: 'no-user-gesture-required',
+    },
+  });
+
+  // Load the settings app
+  if (process.env.VITE_DEV_SERVER_URL) {
+    // In development, load the settings.html from the dev server
+    const url = process.env.VITE_DEV_SERVER_URL.replace(/\/$/, '');
+    settingsWindow.loadURL(`${url}/settings.html`);
+  } else {
+    // In production, load the built settings.html
+    settingsWindow.loadFile(path.join(__dirname, '../dist/settings.html'));
+  }
+
+  settingsWindow.on('closed', () => {
+    settingsWindow = null;
+  });
+
+  // Open DevTools in development
+  if (process.env.VITE_DEV_SERVER_URL) {
+    // mainWindow?.webContents.openDevTools();
+    // settingsWindow.webContents.openDevTools();
+  }
+};
+
 // IPC handlers
 ipcMain.handle('get-voicevox-path', () => {
   return store.get('voicevoxEnginePath') as string | undefined;
@@ -235,6 +288,88 @@ ipcMain.handle('reset-engine-settings', async () => {
   await stopVoicevoxEngine();
   await startVoicevoxEngine();
   return true;
+});
+
+// Get current window size from Electron Store
+ipcMain.handle('get-window-size', () => {
+  return (store.get('windowSize') as number) || 800;
+});
+
+// Set window size with validation and window resize
+ipcMain.handle('set-window-size', (_event, size: number) => {
+  // Validate and clamp size (400-1200)
+  const clampedSize = Math.max(400, Math.min(1200, Math.round(size)));
+  console.log(`[IPC] set-window-size: ${size} -> ${clampedSize}`);
+
+  // Save to Electron Store
+  store.set('windowSize', clampedSize);
+
+  // Resize window (maintains 1:1 aspect ratio automatically)
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.setSize(clampedSize, clampedSize);
+    console.log(`[IPC] Window resized to ${clampedSize}x${clampedSize}`);
+  }
+
+  return clampedSize;
+});
+
+// Reset window size to default
+ipcMain.handle('reset-window-size', () => {
+  const defaultSize = 800;
+  store.delete('windowSize');
+
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.setSize(defaultSize, defaultSize);
+  }
+
+  return defaultSize;
+});
+
+// Reset all settings (including window size)
+ipcMain.handle('reset-all-settings', async () => {
+  // Clear engine settings
+  store.delete('engineType');
+  store.delete('voicevoxEnginePath');
+  store.delete('windowSize');
+
+  // Restart engine
+  await stopVoicevoxEngine();
+  await startVoicevoxEngine();
+
+  // Reset window size
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.setSize(800, 800);
+  }
+
+  return true;
+});
+
+// Open settings window
+ipcMain.on('open-settings-window', () => {
+  createSettingsWindow();
+});
+
+// Close settings window
+ipcMain.on('close-settings-window', () => {
+  if (settingsWindow && !settingsWindow.isDestroyed()) {
+    settingsWindow.close();
+  }
+});
+
+// Notify main window that VRM file has changed
+ipcMain.on('notify-vrm-changed', () => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    console.log('[IPC] Notifying main window of VRM change');
+    mainWindow.webContents.send('vrm-changed');
+  }
+});
+
+// Notify main window that speaker has changed
+ipcMain.on('notify-speaker-changed', (_event, speakerId: number) => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    console.log('[IPC] Notifying main window of speaker change:', speakerId);
+    mainWindow.webContents.send('speaker-changed', speakerId);
+  }
 });
 
 ipcMain.on('set-ignore-mouse-events', (_event, ignore: boolean) => {
