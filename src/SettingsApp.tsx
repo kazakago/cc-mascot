@@ -28,6 +28,8 @@ export default function SettingsApp() {
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
   const [speakers, setSpeakers] = useState<SpeakerOption[]>([]);
   const [loadingSpeakers, setLoadingSpeakers] = useState(false);
+  const [isPlayingTest, setIsPlayingTest] = useState(false);
+  const [testAudioError, setTestAudioError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch speakers from engine with retry logic
@@ -230,6 +232,30 @@ export default function SettingsApp() {
     }
   };
 
+  const handleTestSpeech = () => {
+    if (isPlayingTest || speakers.length === 0) {
+      return;
+    }
+
+    setIsPlayingTest(true);
+    setTestAudioError('');
+    setError('');
+
+    // Send IPC message to main window to play test speech with lip sync
+    if (window.electron?.playTestSpeech) {
+      window.electron.playTestSpeech();
+      console.log('[SettingsApp] Test speech requested');
+
+      // Reset playing state after a delay (speech is handled by main window)
+      setTimeout(() => {
+        setIsPlayingTest(false);
+      }, 3000);
+    } else {
+      setTestAudioError('IPC通信エラー: メインウィンドウに接続できません');
+      setIsPlayingTest(false);
+    }
+  };
+
   const handleReset = async () => {
     if (confirm('Are you sure you want to reset all settings to defaults? This will close the settings window.')) {
       localStorage.clear();
@@ -400,6 +426,18 @@ export default function SettingsApp() {
                 onTouchEnd={handleVolumeChangeComplete}
                 className="w-full cursor-pointer"
               />
+            </div>
+            <div className="flex flex-col gap-3">
+              <label className="text-sm font-medium text-gray-600">Test Speech</label>
+              <button
+                type="button"
+                onClick={handleTestSpeech}
+                disabled={isPlayingTest || speakers.length === 0}
+                className="px-4 py-2 rounded-md text-sm font-medium cursor-pointer transition-all duration-200 border-0 bg-primary text-white w-fit hover:bg-primary-dark disabled:bg-gray-400 disabled:cursor-not-allowed"
+              >
+                {isPlayingTest ? '再生中...' : 'テスト音声を再生'}
+              </button>
+              {testAudioError && <p className="text-sm text-danger mt-1 mb-0">{testAudioError}</p>}
             </div>
             {error && <p className="text-sm text-danger mt-1 mb-0">{error}</p>}
           </div>
