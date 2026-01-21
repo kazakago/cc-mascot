@@ -37,4 +37,12 @@ export default defineConfig({
     port: 8563,
   },
   base: './',
+  build: {
+    rollupOptions: {
+      input: {
+        index: path.resolve(__dirname, 'index.html'),
+        settings: path.resolve(__dirname, 'settings.html'),
+      },
+    },
+  },
 })
