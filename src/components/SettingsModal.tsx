@@ -111,8 +111,17 @@ export function SettingsModal({
       queueMicrotask(() => {
         fetchSpeakers();
       });
+
+      // Handle Escape key to close modal
+      const handleEscape = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          onClose();
+        }
+      };
+      window.addEventListener('keydown', handleEscape);
+      return () => window.removeEventListener('keydown', handleEscape);
     }
-  }, [isOpen, speakerId, volumeScale, fetchSpeakers]);
+  }, [isOpen, speakerId, volumeScale, fetchSpeakers, onClose]);
 
   // Restart engine with current settings
   const restartEngine = async (engineTypeOverride?: EngineType, pathOverride?: string) => {
