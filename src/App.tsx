@@ -3,11 +3,10 @@ import { Canvas } from '@react-three/fiber';
 import { Scene } from './components/Scene';
 import { VRMAvatar } from './components/VRMAvatar';
 import type { VRMAvatarHandle } from './components/VRMAvatar';
-import { SettingsModal } from './components/SettingsModal';
 import { useSpeech } from './hooks/useSpeech';
 import { useLipSync } from './hooks/useLipSync';
 import { useLocalStorage } from './hooks/useLocalStorage';
-import { loadVRMFile, saveVRMFile, createBlobURL, deleteVRMFile } from './utils/vrmStorage';
+import { loadVRMFile, createBlobURL } from './utils/vrmStorage';
 import type { Emotion } from './types/emotion';
 
 // Helper function to check if point is inside ellipse
@@ -27,11 +26,9 @@ const VOICEVOX_BASE_URL = 'http://localhost:8564';
 
 function App() {
   const avatarRef = useRef<VRMAvatarHandle>(null);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [speakerId, setSpeakerId] = useLocalStorage('speakerId', 888753760);
-  const [volumeScale, setVolumeScale] = useLocalStorage('volumeScale', 1.0);
+  const [volumeScale] = useLocalStorage('volumeScale', 1.0);
   const [vrmUrl, setVrmUrl] = useState<string>(DEFAULT_VRM_URL);
-  const [vrmFileName, setVrmFileName] = useState<string | undefined>(undefined);
   const [currentAnimationUrl, setCurrentAnimationUrl] = useState<string>(IDLE_ANIMATION_URL);
   const [currentEmotion, setCurrentEmotion] = useState<Emotion>('neutral');
 
@@ -41,47 +38,43 @@ function App() {
       if (file) {
         const url = createBlobURL(file);
         setVrmUrl(url);
-        setVrmFileName(file.name);
       }
     }).catch((err) => {
       console.error('Failed to load VRM file:', err);
     });
   }, []);
 
-  const handleVRMFileChange = useCallback((file: File) => {
-    saveVRMFile(file).then(() => {
-      const url = createBlobURL(file);
-      setVrmUrl(url);
-      setVrmFileName(file.name);
-    }).catch((err) => {
-      console.error('Failed to save VRM file:', err);
-    });
-  }, []);
+  // Listen for VRM change notifications from settings window
+  useEffect(() => {
+    if (window.electron?.onVRMChanged) {
+      const cleanup = window.electron.onVRMChanged(() => {
+        console.log('[App] VRM file changed, reloading...');
+        loadVRMFile().then((file) => {
+          if (file) {
+            const url = createBlobURL(file);
+            setVrmUrl(url);
+            console.log('[App] VRM reloaded:', file.name);
+          }
+        }).catch((err) => {
+          console.error('Failed to reload VRM file:', err);
+        });
+      });
 
-  const handleReset = useCallback(async () => {
-    // Clear localStorage
-    localStorage.removeItem('speakerId');
-    localStorage.removeItem('volumeScale');
-
-    // Clear engine settings in Electron store
-    if (window.electron?.resetEngineSettings) {
-      try {
-        await window.electron.resetEngineSettings();
-      } catch (err) {
-        console.error('Failed to reset engine settings:', err);
-      }
+      return cleanup;
     }
-
-    // Clear IndexedDB
-    deleteVRMFile().then(() => {
-      // Reload page to apply defaults
-      window.location.reload();
-    }).catch((err) => {
-      console.error('Failed to delete VRM file:', err);
-      // Reload anyway
-      window.location.reload();
-    });
   }, []);
+
+  // Listen for speaker change notifications from settings window
+  useEffect(() => {
+    if (window.electron?.onSpeakerChanged) {
+      const cleanup = window.electron.onSpeakerChanged((speakerId: number) => {
+        console.log('[App] Speaker changed to:', speakerId);
+        setSpeakerId(speakerId);
+      });
+
+      return cleanup;
+    }
+  }, [setSpeakerId]);
 
   const handleMouthValueChange = useCallback((value: number) => {
     avatarRef.current?.setMouthOpen(value);
@@ -202,15 +195,6 @@ function App() {
     };
 
     const handleMouseMove = (e: MouseEvent) => {
-      // When settings modal is open, always accept mouse events
-      if (isSettingsOpen) {
-        if (lastInsideState !== true) {
-          lastInsideState = true;
-          electron.setIgnoreMouseEvents(false);
-        }
-        return;
-      }
-
       const isInside = isInsideCharacterArea(e.clientX, e.clientY);
 
       // Update ignore mouse events state (for click-through outside character area)
@@ -233,8 +217,8 @@ function App() {
       }
     };
 
-    // Set initial state based on settings modal state
-    electron.setIgnoreMouseEvents(!isSettingsOpen);
+    // Set initial state
+    electron.setIgnoreMouseEvents(false);
 
     window.addEventListener('mousedown', handleMouseDown);
     window.addEventListener('mousemove', handleMouseMove);
@@ -245,7 +229,7 @@ function App() {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isSettingsOpen]);
+  }, []);
 
   return (
     <div className="w-screen h-screen overflow-hidden relative">
@@ -254,7 +238,10 @@ function App() {
         style={{ width: '100vw', height: '100vh' }}
         onContextMenu={(e) => {
           e.preventDefault();
-          setIsSettingsOpen(true);
+          // Open settings window
+          if (window.electron?.openSettingsWindow) {
+            window.electron.openSettingsWindow();
+          }
         }}
       >
         <Scene>
@@ -267,18 +254,6 @@ function App() {
           />
         </Scene>
       </Canvas>
-
-      <SettingsModal
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-        speakerId={speakerId}
-        onSpeakerIdChange={setSpeakerId}
-        volumeScale={volumeScale}
-        onVolumeScaleChange={setVolumeScale}
-        onVRMFileChange={handleVRMFileChange}
-        currentVRMFileName={vrmFileName}
-        onReset={handleReset}
-      />
     </div>
   );
 }
