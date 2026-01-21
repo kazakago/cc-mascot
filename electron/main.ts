@@ -304,10 +304,20 @@ ipcMain.handle('set-window-size', (_event, size: number) => {
   // Save to Electron Store
   store.set('windowSize', clampedSize);
 
-  // Resize window (maintains 1:1 aspect ratio automatically)
+  // Resize window from center (not top-left)
   if (mainWindow && !mainWindow.isDestroyed()) {
+    const [currentWidth, currentHeight] = mainWindow.getSize();
+    const [currentX, currentY] = mainWindow.getPosition();
+
+    // Calculate position adjustment to resize from center
+    const widthDelta = clampedSize - currentWidth;
+    const heightDelta = clampedSize - currentHeight;
+    const newX = currentX - Math.round(widthDelta / 2);
+    const newY = currentY - Math.round(heightDelta / 2);
+
     mainWindow.setSize(clampedSize, clampedSize);
-    console.log(`[IPC] Window resized to ${clampedSize}x${clampedSize}`);
+    mainWindow.setPosition(newX, newY);
+    console.log(`[IPC] Window resized to ${clampedSize}x${clampedSize} at (${newX}, ${newY})`);
   }
 
   return clampedSize;
@@ -319,7 +329,17 @@ ipcMain.handle('reset-window-size', () => {
   store.delete('windowSize');
 
   if (mainWindow && !mainWindow.isDestroyed()) {
+    const [currentWidth, currentHeight] = mainWindow.getSize();
+    const [currentX, currentY] = mainWindow.getPosition();
+
+    const widthDelta = defaultSize - currentWidth;
+    const heightDelta = defaultSize - currentHeight;
+    const newX = currentX - Math.round(widthDelta / 2);
+    const newY = currentY - Math.round(heightDelta / 2);
+
     mainWindow.setSize(defaultSize, defaultSize);
+    mainWindow.setPosition(newX, newY);
+    console.log(`[IPC] Window reset to ${defaultSize}x${defaultSize} at (${newX}, ${newY})`);
   }
 
   return defaultSize;
