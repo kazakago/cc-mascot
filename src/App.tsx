@@ -152,6 +152,18 @@ function App() {
     }
   }, [speakText]);
 
+  // Listen for test speech requests from settings window
+  useEffect(() => {
+    if (window.electron?.onPlayTestSpeech) {
+      const cleanup = window.electron.onPlayTestSpeech(() => {
+        console.log('[App] Playing test speech');
+        speakText('こんにちは。お役に立てることはありますか', 'happy');
+      });
+
+      return cleanup;
+    }
+  }, [speakText]);
+
   // Custom window drag implementation
   useEffect(() => {
     const electron = window.electron;
