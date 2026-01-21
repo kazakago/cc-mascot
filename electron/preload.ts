@@ -16,6 +16,28 @@ contextBridge.exposeInMainWorld('electron', {
       ipcRenderer.removeListener('speak', listener);
     };
   },
+  onVRMChanged: (callback: () => void) => {
+    const listener = () => {
+      callback();
+    };
+    ipcRenderer.on('vrm-changed', listener);
+
+    // Return cleanup function
+    return () => {
+      ipcRenderer.removeListener('vrm-changed', listener);
+    };
+  },
+  onSpeakerChanged: (callback: (speakerId: number) => void) => {
+    const listener = (_event: unknown, speakerId: number) => {
+      callback(speakerId);
+    };
+    ipcRenderer.on('speaker-changed', listener);
+
+    // Return cleanup function
+    return () => {
+      ipcRenderer.removeListener('speaker-changed', listener);
+    };
+  },
   getVoicevoxPath: (): Promise<string | undefined> => {
     return ipcRenderer.invoke('get-voicevox-path');
   },
@@ -39,5 +61,29 @@ contextBridge.exposeInMainWorld('electron', {
   },
   setWindowPosition: (x: number, y: number): void => {
     ipcRenderer.send('set-window-position', x, y);
+  },
+  getWindowSize: (): Promise<number> => {
+    return ipcRenderer.invoke('get-window-size');
+  },
+  setWindowSize: (size: number): Promise<number> => {
+    return ipcRenderer.invoke('set-window-size', size);
+  },
+  resetWindowSize: (): Promise<number> => {
+    return ipcRenderer.invoke('reset-window-size');
+  },
+  resetAllSettings: (): Promise<boolean> => {
+    return ipcRenderer.invoke('reset-all-settings');
+  },
+  openSettingsWindow: (): void => {
+    ipcRenderer.send('open-settings-window');
+  },
+  closeSettingsWindow: (): void => {
+    ipcRenderer.send('close-settings-window');
+  },
+  notifyVRMChanged: (): void => {
+    ipcRenderer.send('notify-vrm-changed');
+  },
+  notifySpeakerChanged: (speakerId: number): void => {
+    ipcRenderer.send('notify-speaker-changed', speakerId);
   },
 });
