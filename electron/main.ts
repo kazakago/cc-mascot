@@ -392,6 +392,14 @@ ipcMain.on('notify-speaker-changed', (_event, speakerId: number) => {
   }
 });
 
+// Play test speech on main window
+ipcMain.on('play-test-speech', () => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    console.log('[IPC] Playing test speech on main window');
+    mainWindow.webContents.send('play-test-speech');
+  }
+});
+
 ipcMain.on('set-ignore-mouse-events', (_event, ignore: boolean) => {
   if (mainWindow && !mainWindow.isDestroyed()) {
     // Always use forward: true to keep receiving mouse move events even when ignoring clicks

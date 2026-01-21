@@ -86,4 +86,18 @@ contextBridge.exposeInMainWorld('electron', {
   notifySpeakerChanged: (speakerId: number): void => {
     ipcRenderer.send('notify-speaker-changed', speakerId);
   },
+  playTestSpeech: (): void => {
+    ipcRenderer.send('play-test-speech');
+  },
+  onPlayTestSpeech: (callback: () => void) => {
+    const listener = () => {
+      callback();
+    };
+    ipcRenderer.on('play-test-speech', listener);
+
+    // Return cleanup function
+    return () => {
+      ipcRenderer.removeListener('play-test-speech', listener);
+    };
+  },
 });

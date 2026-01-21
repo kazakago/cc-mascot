@@ -24,6 +24,8 @@ declare global {
       closeSettingsWindow: () => void;
       notifyVRMChanged: () => void;
       notifySpeakerChanged: (speakerId: number) => void;
+      playTestSpeech: () => void;
+      onPlayTestSpeech: (callback: () => void) => (() => void);
     };
   }
 }
