@@ -9,6 +9,7 @@
       "Skill"
     ],
     "deny": [
+      "Read(**/coverage/**)",
       "Read(**/dist/**)",
       "Read(**/dist-electron/**)",
       "Read(**/node_modules/**)",

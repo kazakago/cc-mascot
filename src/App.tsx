@@ -27,7 +27,7 @@ const VOICEVOX_BASE_URL = 'http://localhost:8564';
 function App() {
   const avatarRef = useRef<VRMAvatarHandle>(null);
   const [speakerId, setSpeakerId] = useLocalStorage('speakerId', 888753760);
-  const [volumeScale] = useLocalStorage('volumeScale', 1.0);
+  const [volumeScale, setVolumeScale] = useLocalStorage('volumeScale', 1.0);
   const [vrmUrl, setVrmUrl] = useState<string>(DEFAULT_VRM_URL);
   const [currentAnimationUrl, setCurrentAnimationUrl] = useState<string>(IDLE_ANIMATION_URL);
   const [currentEmotion, setCurrentEmotion] = useState<Emotion>('neutral');
@@ -75,6 +75,18 @@ function App() {
       return cleanup;
     }
   }, [setSpeakerId]);
+
+  // Listen for volume change notifications from settings window
+  useEffect(() => {
+    if (window.electron?.onVolumeChanged) {
+      const cleanup = window.electron.onVolumeChanged((volumeScale: number) => {
+        console.log('[App] Volume changed to:', volumeScale);
+        setVolumeScale(volumeScale);
+      });
+
+      return cleanup;
+    }
+  }, [setVolumeScale]);
 
   const handleMouthValueChange = useCallback((value: number) => {
     avatarRef.current?.setMouthOpen(value);

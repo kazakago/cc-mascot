@@ -38,6 +38,17 @@ contextBridge.exposeInMainWorld('electron', {
       ipcRenderer.removeListener('speaker-changed', listener);
     };
   },
+  onVolumeChanged: (callback: (volumeScale: number) => void) => {
+    const listener = (_event: unknown, volumeScale: number) => {
+      callback(volumeScale);
+    };
+    ipcRenderer.on('volume-changed', listener);
+
+    // Return cleanup function
+    return () => {
+      ipcRenderer.removeListener('volume-changed', listener);
+    };
+  },
   getVoicevoxPath: (): Promise<string | undefined> => {
     return ipcRenderer.invoke('get-voicevox-path');
   },
@@ -85,6 +96,9 @@ contextBridge.exposeInMainWorld('electron', {
   },
   notifySpeakerChanged: (speakerId: number): void => {
     ipcRenderer.send('notify-speaker-changed', speakerId);
+  },
+  notifyVolumeChanged: (volumeScale: number): void => {
+    ipcRenderer.send('notify-volume-changed', volumeScale);
   },
   playTestSpeech: (): void => {
     ipcRenderer.send('play-test-speech');
