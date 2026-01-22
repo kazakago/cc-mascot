@@ -392,6 +392,14 @@ ipcMain.on('notify-speaker-changed', (_event, speakerId: number) => {
   }
 });
 
+// Notify main window that volume has changed
+ipcMain.on('notify-volume-changed', (_event, volumeScale: number) => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    console.log('[IPC] Notifying main window of volume change:', volumeScale);
+    mainWindow.webContents.send('volume-changed', volumeScale);
+  }
+});
+
 // Play test speech on main window
 ipcMain.on('play-test-speech', () => {
   if (mainWindow && !mainWindow.isDestroyed()) {
