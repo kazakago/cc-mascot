@@ -21,6 +21,7 @@ export function useSpeech({ onStart, onEnd, speakerId, baseUrl, volumeScale }: U
   const isSpeakingRef = useRef(false);
   const queueRef = useRef<QueueItem[]>([]);
   const processQueueRef = useRef<(() => Promise<void>) | undefined>(undefined);
+  const currentGainNodeRef = useRef<GainNode | null>(null);
 
   // アプリ起動時にAudioContextを初期化（Electron用）
   useEffect(() => {
@@ -86,10 +87,14 @@ export function useSpeech({ onStart, onEnd, speakerId, baseUrl, volumeScale }: U
       analyser.connect(gainNode);
       gainNode.connect(ctx.destination);
 
+      // Store current gain node for real-time volume updates
+      currentGainNodeRef.current = gainNode;
+
       onStart(analyser, item.emotion);
 
       source.onended = () => {
         isSpeakingRef.current = false;
+        currentGainNodeRef.current = null;
         onEnd();
         processQueueRef.current?.();
       };
@@ -106,6 +111,16 @@ export function useSpeech({ onStart, onEnd, speakerId, baseUrl, volumeScale }: U
   useEffect(() => {
     processQueueRef.current = processQueue;
   }, [processQueue]);
+
+  // Real-time volume update: update current gain node when volumeScale changes
+  useEffect(() => {
+    if (currentGainNodeRef.current) {
+      currentGainNodeRef.current.gain.setValueAtTime(
+        volumeScale,
+        currentGainNodeRef.current.context.currentTime
+      );
+    }
+  }, [volumeScale]);
 
   const speakText = useCallback((text: string, emotion: Emotion = 'neutral') => {
     // AudioContextが準備できていない場合は無視
