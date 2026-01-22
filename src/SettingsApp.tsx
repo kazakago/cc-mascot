@@ -214,6 +214,10 @@ export default function SettingsApp() {
   const handleVolumeChangeComplete = () => {
     localStorage.setItem('volumeScale', String(volumeScaleInput));
     console.log(`[SettingsApp] Volume changed to: ${volumeScaleInput}`);
+    // Notify main window of volume change
+    if (window.electron?.notifyVolumeChanged) {
+      window.electron.notifyVolumeChanged(volumeScaleInput);
+    }
   };
 
   const handleWindowSizeChange = async (newSize: number) => {
@@ -272,38 +276,59 @@ export default function SettingsApp() {
   return (
     <div className="h-screen bg-gray-50 p-6 overflow-y-auto">
       <div className="max-w-2xl mx-auto space-y-6">
-        {/* Avatar Section */}
+        {/* Character Section */}
         <div>
-          <h2 className="m-0 mb-4 text-lg font-semibold text-gray-800">Avatar</h2>
-          <div className="flex flex-col gap-3">
-            <label htmlFor="vrm-file" className="text-sm font-medium text-gray-600">VRM Model</label>
-            <input
-              ref={fileInputRef}
-              type="file"
-              id="vrm-file"
-              accept=".vrm,.glb"
-              onChange={handleFileChange}
-              style={{ display: 'none' }}
-            />
-            <button
-              className="px-4 py-2 rounded-md text-sm font-medium cursor-pointer transition-all duration-200 border border-gray-300 bg-white text-gray-800 hover:bg-gray-100 hover:border-gray-400 w-fit"
-              onClick={() => fileInputRef.current?.click()}
-              type="button"
-            >
-              Choose VRM File
-            </button>
-            <p className="text-sm text-gray-600 mb-0 italic">
-              {selectedFileName || vrmFileName || 'No file selected'}
-            </p>
+          <h2 className="m-0 mb-4 text-lg font-semibold text-gray-800">キャラクター</h2>
+          <div className="space-y-4">
+            <div className="flex flex-col gap-3">
+              <label htmlFor="vrm-file" className="text-sm font-medium text-gray-600">VRMモデル変更</label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                id="vrm-file"
+                accept=".vrm,.glb"
+                onChange={handleFileChange}
+                style={{ display: 'none' }}
+              />
+              <button
+                className="px-4 py-2 rounded-md text-sm font-medium cursor-pointer transition-all duration-200 border border-gray-300 bg-white text-gray-800 hover:bg-gray-100 hover:border-gray-400 w-fit"
+                onClick={() => fileInputRef.current?.click()}
+                type="button"
+              >
+                VRMファイルを選択
+              </button>
+              <p className="text-sm text-gray-600 mb-0 italic">
+                {selectedFileName || vrmFileName || 'ファイルが選択されていません'}
+              </p>
+            </div>
+            <div className="flex flex-col gap-3">
+              <label htmlFor="window-size" className="text-sm font-medium text-gray-600">
+                キャラクターサイズ: {windowSizeInput}px
+              </label>
+              <input
+                type="range"
+                id="window-size"
+                min="400"
+                max="1200"
+                step="10"
+                value={windowSizeInput}
+                onChange={(e) => handleWindowSizeChange(Number(e.target.value))}
+                className="w-full cursor-pointer"
+              />
+              <div className="flex justify-between text-sm text-gray-400">
+                <span>400px (小)</span>
+                <span>1200px (大)</span>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Speech Engine Section */}
+        {/* Audio Section */}
         <div>
-          <h2 className="m-0 mb-4 text-lg font-semibold text-gray-800">Speech Engine</h2>
+          <h2 className="m-0 mb-4 text-lg font-semibold text-gray-800">オーディオ</h2>
           <div className="space-y-4">
             <div className="flex flex-col gap-3">
-              <label className="text-sm font-medium text-gray-600">Engine Type</label>
+              <label className="text-sm font-medium text-gray-600">音声合成エンジン</label>
               <div className="flex flex-col gap-2.5">
                 <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-800">
                   <input
@@ -336,12 +361,12 @@ export default function SettingsApp() {
                     onChange={() => handleEngineTypeChange('custom')}
                     className="w-4 h-4 m-0 cursor-pointer accent-primary"
                   />
-                  <span className="font-normal">Custom</span>
+                  <span className="font-normal">カスタム</span>
                 </label>
               </div>
             </div>
             <div className="flex flex-col gap-3">
-              <label htmlFor="engine-path" className="text-sm font-medium text-gray-600">Engine Path</label>
+              <label htmlFor="engine-path" className="text-sm font-medium text-gray-600">エンジンパス</label>
               <div className="flex gap-2 items-center">
                 <input
                   type="text"
@@ -349,7 +374,7 @@ export default function SettingsApp() {
                   value={engineType === 'custom' ? customPath : ENGINE_PATHS[engineType]}
                   onChange={(e) => setCustomPath(e.target.value)}
                   disabled={engineType !== 'custom'}
-                  placeholder={engineType === 'custom' ? 'Enter custom engine path' : ''}
+                  placeholder={engineType === 'custom' ? 'カスタムエンジンパスを入力' : ''}
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm font-mono text-gray-800 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
                 />
                 {engineType === 'custom' && (
@@ -364,15 +389,8 @@ export default function SettingsApp() {
                 )}
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Audio Section */}
-        <div>
-          <h2 className="m-0 mb-4 text-lg font-semibold text-gray-800">Audio</h2>
-          <div className="space-y-4">
             <div className="flex flex-col gap-3">
-              <label htmlFor="speaker-select" className="text-sm font-medium text-gray-600">Speaker</label>
+              <label htmlFor="speaker-select" className="text-sm font-medium text-gray-600">音声スタイル</label>
               {loadingSpeakers ? (
                 <>
                   <select
@@ -380,9 +398,9 @@ export default function SettingsApp() {
                     disabled
                     className="px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-800 bg-white cursor-pointer w-full focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
                   >
-                    <option>Loading speakers...</option>
+                    <option>読み込み中...</option>
                   </select>
-                  <p className="text-sm text-gray-400 mt-1 mb-0">Waiting for engine to start...</p>
+                  <p className="text-sm text-gray-400 mt-1 mb-0">エンジンの起動を待っています...</p>
                 </>
               ) : speakers.length > 0 ? (
                 <select
@@ -404,15 +422,15 @@ export default function SettingsApp() {
                     disabled
                     className="px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-800 bg-white cursor-pointer w-full focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
                   >
-                    <option>No speakers available</option>
+                    <option>利用可能なスタイルがありません</option>
                   </select>
-                  <p className="text-sm text-gray-400 mt-1 mb-0">Is the engine running?</p>
+                  <p className="text-sm text-gray-400 mt-1 mb-0">エンジンが実行されていますか?</p>
                 </>
               )}
             </div>
             <div className="flex flex-col gap-3">
               <label htmlFor="volume-scale" className="text-sm font-medium text-gray-600">
-                Volume Scale: {volumeScaleInput.toFixed(2)}
+                音量: {volumeScaleInput.toFixed(2)}
               </label>
               <input
                 type="range"
@@ -428,7 +446,7 @@ export default function SettingsApp() {
               />
             </div>
             <div className="flex flex-col gap-3">
-              <label className="text-sm font-medium text-gray-600">Test Speech</label>
+              <label className="text-sm font-medium text-gray-600">テスト音声</label>
               <button
                 type="button"
                 onClick={handleTestSpeech}
@@ -443,40 +461,14 @@ export default function SettingsApp() {
           </div>
         </div>
 
-        {/* Window Section */}
-        <div>
-          <h2 className="m-0 mb-4 text-lg font-semibold text-gray-800">Window</h2>
-          <div className="space-y-4">
-            <div className="flex flex-col gap-3">
-              <label htmlFor="window-size" className="text-sm font-medium text-gray-600">
-                Window Size: {windowSizeInput}px
-              </label>
-              <input
-                type="range"
-                id="window-size"
-                min="400"
-                max="1200"
-                step="10"
-                value={windowSizeInput}
-                onChange={(e) => handleWindowSizeChange(Number(e.target.value))}
-                className="w-full cursor-pointer"
-              />
-              <div className="flex justify-between text-sm text-gray-400">
-                <span>400px (small)</span>
-                <span>1200px (large)</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* Reset Section */}
         <div>
-          <h2 className="m-0 mb-4 text-lg font-semibold text-gray-800">Reset</h2>
+          <h2 className="m-0 mb-4 text-lg font-semibold text-gray-800">リセット</h2>
           <button
             className="px-4 py-2 rounded-md text-sm font-medium cursor-pointer transition-all duration-200 border-0 bg-danger text-white w-fit hover:bg-danger-dark"
             onClick={handleReset}
           >
-            Reset All Settings
+            全ての設定をリセット
           </button>
         </div>
       </div>
