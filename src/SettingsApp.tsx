@@ -211,13 +211,17 @@ export default function SettingsApp() {
     }
   };
 
+  const handleVolumeChange = (newVolume: number) => {
+    setVolumeScaleInput(newVolume);
+    // Notify main window immediately for real-time volume update
+    if (window.electron?.notifyVolumeChanged) {
+      window.electron.notifyVolumeChanged(newVolume);
+    }
+  };
+
   const handleVolumeChangeComplete = () => {
     localStorage.setItem('volumeScale', String(volumeScaleInput));
-    console.log(`[SettingsApp] Volume changed to: ${volumeScaleInput}`);
-    // Notify main window of volume change
-    if (window.electron?.notifyVolumeChanged) {
-      window.electron.notifyVolumeChanged(volumeScaleInput);
-    }
+    console.log(`[SettingsApp] Volume saved to localStorage: ${volumeScaleInput}`);
   };
 
   const handleWindowSizeChange = async (newSize: number) => {
@@ -439,7 +443,7 @@ export default function SettingsApp() {
                 max="2"
                 step="0.01"
                 value={volumeScaleInput}
-                onChange={(e) => setVolumeScaleInput(parseFloat(e.target.value))}
+                onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
                 onMouseUp={handleVolumeChangeComplete}
                 onTouchEnd={handleVolumeChangeComplete}
                 className="w-full cursor-pointer"
