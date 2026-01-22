@@ -35,11 +35,14 @@ mode: agent
 現在のブランチとベースブランチを確認します。
 
 1. 現在のブランチ名を取得:
+
 ```bash
 git branch --show-current
 ```
 
 2. 保護されたブランチ一覧を取得:
+
+下記コマンドの:ownerと:repoには現在のgit URLから取得した情報をそれぞれ入れてください
 
 ```bash
 gh api repos/:owner/:repo/branches --paginate --jq '.[] | select(.protected) | .name'
@@ -159,16 +162,10 @@ git diff <ベースブランチ>...HEAD --stat
 ## 12. ghコマンドでPR作成
 
 ```bash
-# 通常PRの場合（ラベルあり）
-gh pr create --base <ベースブランチ> --title "<PRタイトル>" --body "<本文>" --label "ai-based-coding"
-
-# 通常PRの場合（ラベルなし）
+# 通常PRの場合
 gh pr create --base <ベースブランチ> --title "<PRタイトル>" --body "<本文>"
 
-# ドラフトPRの場合（-dオプション指定時）（ラベルあり）
-gh pr create --base <ベースブランチ> --title "<PRタイトル>" --body "<本文>" --label "ai-based-coding" --draft
-
-# ドラフトPRの場合（-dオプション指定時）（ラベルなし）
+# ドラフトPRの場合（-dオプション指定時）
 gh pr create --base <ベースブランチ> --title "<PRタイトル>" --body "<本文>" --draft
 ```
 

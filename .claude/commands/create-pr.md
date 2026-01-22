@@ -87,16 +87,10 @@ git push -u origin <現在のブランチ名>
 ## 7. ghコマンドでPR作成
 
 ```bash
-# 通常PRの場合（ラベルあり）
-gh pr create --base <ベースブランチ> --title "<PRタイトル>" --body "<本文>" --label "ai-based-coding"
-
-# 通常PRの場合（ラベルなし）
+# 通常PRの場合
 gh pr create --base <ベースブランチ> --title "<PRタイトル>" --body "<本文>"
 
-# ドラフトPRの場合（-dオプション指定時）（ラベルあり）
-gh pr create --base <ベースブランチ> --title "<PRタイトル>" --body "<本文>" --label "ai-based-coding" --draft
-
-# ドラフトPRの場合（-dオプション指定時）（ラベルなし）
+# ドラフトPRの場合（-dオプション指定時）
 gh pr create --base <ベースブランチ> --title "<PRタイトル>" --body "<本文>" --draft
 ```
 
