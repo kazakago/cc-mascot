@@ -4,722 +4,458 @@
 
 **Claude Codeを擬人化するためのVRMアバターシステム**
 
-このアプリケーションは、Claude Codeの発言をリアルタイムで音声化し、3DのVRMアバターでビジュアル化するためのElectronアプリケーションです。Claude Codeのログファイルを監視して、AIの応答を自動的に検出・音声化します。
+このアプリケーションは、Claude Codeの発言をリアルタイムで音声化し、3DのVRMアバターでビジュアル化するためのElectronアプリケーションです。
 
-**主な用途:**
-- Claude Codeの擬人化（ログ監視による自動検出）
+### コンセプト
 
-**技術スタック:**
-- React + TypeScript + Vite
-- Electron (IPC通信)
-- Three.js + @react-three/fiber + @react-three/drei
-- @pixiv/three-vrm + @pixiv/three-vrm-animation
-- Web Audio API (AudioContext, AnalyserNode, GainNode)
-- chokidar（ログファイル監視）
-- localStorage + IndexedDB
+- **完全オフライン動作**: ローカル環境で完結、インターネット接続不要
+- **日本語専用**: 日本語の音声合成とルールベース感情分析に最適化
+- **プラグイン不要**: Claude Codeのログファイル監視による自動連携
+- **シンプルな構成**: Electron + React + Three.js + VRM
 
-**ポート:**
-- Electronフロントエンド: 8563
+### 技術スタック
 
-**重要:** このアプリケーションはElectron専用アプリです。`~/.claude/projects/` 配下のログファイルを自動監視し、Claude Codeの応答を検出します。
+**コア技術:**
+- Electron (デスクトップアプリ化)
+- React + TypeScript + Vite (フロントエンド)
+- Three.js + @react-three/fiber (3Dレンダリング)
+- @pixiv/three-vrm (VRMモデル対応)
+- Web Audio API (音声解析・リップシンク)
+
+**音声合成:**
+- AivisSpeech / VOICEVOX (日本語TTS)
+- ポート: localhost:8564 (アプリが自動起動)
+
+**ファイル監視:**
+- chokidar (ログファイル監視)
+- 対象: `~/.claude/projects/**/*.jsonl`
+
+**データ永続化:**
+- localStorage (音声設定)
+- IndexedDB (VRMファイル)
+- Electron Store (エンジン設定、ウィンドウサイズ)
 
 ## アーキテクチャ
 
-### 全体構成
+### システム構成図
 
 ```
-┌─────────────────┐
-│  Claude Code    │
-│  (AI Assistant) │
-└────────┬────────┘
-         │ ログ出力
-         ↓
-┌─────────────────────────┐
-│ ~/.claude/projects/     │
-│ └─ **/*.jsonl           │ ← セッションログ
-└────────┬────────────────┘
-         │ chokidar監視
-         ↓
-┌─────────────────────────┐
-│ Electron App            │
-│ ├─ Main Process         │
-│ │  ├─ LogMonitor        │ ← ログファイル監視・JSONL解析
-│ │  └─ IPC送信           │
-│ ├─ Renderer Process     │
-│ │  ├─ IPC受信           │
-│ │  ├─ VOICEVOX Client   │
-│ │  ├─ Audio Engine      │
-│ │  └─ VRM Renderer      │
-│ └─ Frontend (8563)      │
-└────────┬────────────────┘
-         │
-         ↓
-┌─────────────────────────┐
-│ VOICEVOX Engine (50021) │
-│ ├─ /audio_query         │
-│ └─ /synthesis           │
-└─────────────────────────┘
+┌──────────────────────┐
+│   Claude Code CLI    │
+└──────────┬───────────┘
+           │ ログ出力 (.jsonl)
+           ↓
+┌──────────────────────┐
+│  ~/.claude/projects/ │
+│  └─ **/*.jsonl       │
+└──────────┬───────────┘
+           │ chokidar監視 (リアルタイム差分読み取り)
+           ↓
+┌──────────────────────────────────────────┐
+│  Electron Main Process                    │
+│  ├─ logMonitor.ts (ファイル監視)          │
+│  ├─ claudeCodeParser.ts (JSONL解析)       │
+│  ├─ textFilter.ts (Markdown除去)          │
+│  ├─ ruleBasedEmotionClassifier.ts (感情判定) │
+│  └─ IPC送信 ('speak' イベント)            │
+└──────────┬───────────────────────────────┘
+           │ IPC通信
+           ↓
+┌──────────────────────────────────────────┐
+│  Electron Renderer Process (Main Window) │
+│  ├─ useSpeech (音声合成キュー)            │
+│  ├─ useLipSync (リップシンク)             │
+│  ├─ useVRM (VRMモデル読み込み)            │
+│  ├─ useVRMAnimation (アニメーション)      │
+│  ├─ useBlink (まばたき)                   │
+│  └─ VRMAvatar (3D表示)                    │
+└──────────┬───────────────────────────────┘
+           │ HTTP API
+           ↓
+┌──────────────────────┐
+│  音声合成エンジン     │
+│  (AivisSpeech/VOICEVOX)│
+│  localhost:8564       │
+└──────────────────────┘
 ```
 
-### ディレクトリ構造
+### ウィンドウ構成
+
+**メインウィンドウ（透過・常に最前面・フレームレス）:**
+- VRMアバター表示
+- リップシンク・感情表現
+- ドラッグ移動（楕円判定）
+- クリックスルー（キャラクター外）
+- 右クリックで設定ウィンドウを開く
+
+**設定ウィンドウ（通常ウィンドウ・常に最前面）:**
+- エンジン選択（AivisSpeech/VOICEVOX/Custom）
+- スピーカー選択
+- 音量調整
+- ウィンドウサイズ調整
+- VRMファイル選択
+- テスト音声再生
+
+## 主要コンポーネント
+
+### 1. ログ監視システム
+
+**electron/logMonitor.ts**
+
+設計方針:
+- `~/.claude/projects/**/*.jsonl` を監視（depth=1、サブエージェントは除外）
+- ファイルごとに位置を記録、差分のみ読み取り（既存ログは無視）
+- デバウンス処理（100ms）で過剰な処理を防ぐ
+- 非同期ストリーム読み込みで大容量ファイルにも対応
+
+データフロー:
+```
+ファイル変更検出 (chokidar)
+  ↓
+差分読み取り (readline)
+  ↓
+行ごとにJSONLパース (claudeCodeParser)
+  ↓
+テキストフィルタリング (textFilter)
+  ↓
+感情判定 (ruleBasedEmotionClassifier)
+  ↓
+IPC送信 (speak イベント)
+```
+
+### 2. JSONL解析・感情判定
+
+**electron/parsers/claudeCodeParser.ts**
+
+解析ルール:
+- `message.role === "assistant"` のみ処理
+- `message.type === "message"` のみ処理
+- `content[].type === "text"` のみ抽出（thinking, tool_useは除外）
+
+**electron/services/ruleBasedEmotionClassifier.ts**
+
+感情判定アルゴリズム:
+- キーワード辞書（日本語）: happy, angry, sad, surprised, relaxed
+- 文末パターン（正規表現）: 女性言葉・中性的・丁寧・男性的に対応
+- ヒューリスティック: コードブロック→neutral、問題解決→happy
+- スコアリング: キーワード重み + 文末パターン重み
+- 長文対応: 100文字以上は重み調整
+- デフォルト: neutral
+
+**electron/filters/textFilter.ts**
+
+フィルタリング処理:
+- コードブロック除去（```...```）
+- XML/HTMLタグ除去（<...>）
+- Markdown記法除去（##, ---, |...|, >, -, *）
+- URL置換（"URL"に統一）
+- インラインコード除去（`...` → 中身のみ残す）
+- コロン除去
+
+### 3. 音声合成システム
+
+**src/hooks/useSpeech.ts**
+
+設計方針:
+- キュー構造で順序保証（オーバーラップなし）
+- AudioContext初期化（Electron用に自動resume）
+- エラー時もキュー継続
+- volumeScale適用（GainNode）
+
+Web Audio APIグラフ:
+```
+BufferSourceNode → AnalyserNode → GainNode → Destination
+                       ↓
+                  useLipSync
+```
+
+**src/services/voicevox.ts**
+
+APIフロー:
+```
+1. POST /audio_query?text=...&speaker=...
+   → AudioQuery オブジェクト取得
+
+2. POST /synthesis?speaker=...
+   Body: AudioQuery
+   → WAV ArrayBuffer取得
+
+3. AudioContext.decodeAudioData()
+   → AudioBuffer取得
+```
+
+### 4. リップシンクシステム
+
+**src/hooks/useLipSync.ts**
+
+アルゴリズム:
+```
+AnalyserNode.getByteTimeDomainData()
+  ↓
+RMS計算: sqrt(sum(sample^2) / length)
+  ↓
+正規化: min(rms * 4, 1.0)
+  ↓
+VRM表情 'aa' に適用
+```
+
+設計ポイント:
+- AnalyserNodeは音量調整前のデータを解析（volumeScale影響なし）
+- requestAnimationFrame でフレーム同期
+- fftSize=256（音声解析に十分）
+
+### 5. VRMアバターシステム
+
+**src/hooks/useVRM.ts**
+
+VRM読み込み:
+- VRMLoaderPlugin使用
+- VRM 0.x / 1.0 自動対応
+- GLB（VRM拡張付き）対応
+- デフォルト: `/models/avatar.glb`
+- カスタム: IndexedDBから読み込み
+
+表情制御:
+- リップシンク: `aa` 表情（0.0〜1.0）
+- 感情表現: happy, angry, sad, surprised, relaxed
+- まばたき: `blink` / `blinkLeft` / `blinkRight` 表情
+
+**src/hooks/useVRMAnimation.ts**
+
+アニメーション:
+- VRMA形式（VRM Animation）
+- VRMAnimationLoaderPlugin使用
+- ループ再生対応
+- デフォルト: `/animations/idle_loop.vrma`（待機モーション）
+- 感情別アニメーション: `/animations/happy.vrma` など（オプション）
+
+**src/hooks/useBlink.ts**
+
+まばたき制御:
+- ランダム間隔（2〜6秒）
+- アニメーション時間（0.15秒）
+- リップシンク・感情表現と独立
+
+### 6. エンジン自動起動
+
+**electron/main.ts**
+
+設計方針:
+- アプリ起動時にエンジンプロセスを自動spawn
+- ポート8564で起動（--port 8564 --cors_policy_mode all）
+- 既にポートが使用中の場合はスキップ
+- アプリ終了時にエンジンプロセスを停止（SIGTERM → SIGKILL）
+- ポート解放待機（最大15秒）
+
+エンジンタイプ:
+- `aivis`: AivisSpeech（デフォルト）
+- `voicevox`: VOICEVOX
+- `custom`: カスタムパス
+
+設定保存:
+- Electron Store使用
+- `engineType`, `voicevoxEnginePath` を永続化
+
+### 7. ウィンドウ制御
+
+**electron/main.ts**
+
+メインウィンドウ:
+- サイズ: 可変（400〜1200px、正方形、アスペクト比1:1固定）
+- フレームレス・透過・常に最前面
+- ドラッグ移動: 楕円範囲内のみ（縦長楕円、radiusX=15%, radiusY=45%）
+- クリックスルー: 楕円外はマウスイベント無視
+
+設定ウィンドウ:
+- サイズ: 600x700（固定ではないがリサイズ可能）
+- 通常ウィンドウ・常に最前面
+- 右クリックで開く
+- 単一インスタンス（既に開いている場合はフォーカス）
+
+IPC通信:
+- `speak`: メイン→レンダラー（ログ監視で検出したメッセージ）
+- `vrm-changed`: 設定→メイン→メイン（VRM変更通知）
+- `speaker-changed`: 設定→メイン→メイン（スピーカー変更通知）
+- `play-test-speech`: 設定→メイン→メイン（テスト音声再生）
+- `set-ignore-mouse-events`: レンダラー→メイン（クリックスルー制御）
+- `get/set-window-position`: レンダラー↔メイン（ウィンドウ位置）
+- `get/set-window-size`: レンダラー↔メイン（ウィンドウサイズ）
+- `get/set-engine-settings`: レンダラー↔メイン（エンジン設定）
+
+## データストレージ
+
+### localStorage（Renderer Process）
+
+| キー | 型 | デフォルト | 説明 |
+|------|-----|------------|------|
+| `speakerId` | number | 888753760 | 話者ID（AivisSpeechデフォルト） |
+| `volumeScale` | number | 1.0 | 音量スケール（0.0〜2.0） |
+
+### IndexedDB（Renderer Process）
+
+データベース名: `VRMStorage`
+オブジェクトストア: `vrm-files`
+キー: `current-vrm`
+値: VRMファイル（Blob）
+
+用途: VRMファイルは5〜50MBで大容量のため、IndexedDBに保存
+
+### Electron Store（Main Process）
+
+| キー | 型 | デフォルト | 説明 |
+|------|-----|------------|------|
+| `engineType` | string | "aivis" | エンジンタイプ（aivis/voicevox/custom） |
+| `voicevoxEnginePath` | string | undefined | カスタムエンジンパス |
+| `windowSize` | number | 800 | ウィンドウサイズ（400〜1200） |
+
+## ディレクトリ構造
 
 ```
 cc-mascot/
-├── src/
+├── electron/                    # Electronメインプロセス
+│   ├── main.ts                  # エントリーポイント、ウィンドウ管理、エンジン起動
+│   ├── preload.ts               # IPC API公開
+│   ├── logMonitor.ts            # ログファイル監視
+│   ├── parsers/
+│   │   └── claudeCodeParser.ts  # JSONL解析
+│   ├── filters/
+│   │   └── textFilter.ts        # テキストフィルタリング
+│   └── services/
+│       └── ruleBasedEmotionClassifier.ts  # 感情判定
+├── src/                         # Electronレンダラープロセス
+│   ├── App.tsx                  # メインウィンドウ
+│   ├── SettingsApp.tsx          # 設定ウィンドウ
 │   ├── components/
-│   │   ├── VRMAvatar.tsx          # VRMアバター表示コンポーネント
-│   │   └── SettingsModal.tsx      # 設定モーダルUI
+│   │   ├── VRMAvatar.tsx        # VRMアバター表示
+│   │   └── Scene.tsx            # Three.jsシーン
 │   ├── hooks/
-│   │   ├── useVRM.ts              # VRMモデルローダー
-│   │   ├── useVRMAnimation.ts     # VRMAアニメーションローダー
-│   │   ├── useSpeech.ts           # 音声再生・キュー管理
-│   │   ├── useLipSync.ts          # リップシンク（音声解析）
-│   │   └── useLocalStorage.ts     # localStorage永続化
+│   │   ├── useSpeech.ts         # 音声合成・キュー管理
+│   │   ├── useLipSync.ts        # リップシンク
+│   │   ├── useVRM.ts            # VRMモデル読み込み
+│   │   ├── useVRMAnimation.ts   # アニメーション
+│   │   ├── useBlink.ts          # まばたき
+│   │   └── useLocalStorage.ts   # localStorage永続化
 │   ├── services/
-│   │   └── voicevox.ts            # VOICEVOX APIクライアント
+│   │   └── voicevox.ts          # 音声合成API
 │   ├── utils/
-│   │   └── vrmStorage.ts          # IndexedDB VRMファイル管理
-│   ├── App.tsx                    # メインアプリケーション
-│   ├── App.css                    # スタイル
-│   └── main.tsx                   # エントリーポイント
-├── electron/
-│   ├── main.ts                    # Electronメインプロセス
-│   ├── preload.ts                 # プリロードスクリプト
-│   └── logMonitor.ts              # ★ ログファイル監視モジュール
+│   │   └── vrmStorage.ts        # IndexedDB操作
+│   └── types/
+│       └── emotion.ts           # 感情型定義
 ├── public/
 │   ├── models/
-│   │   └── avatar.glb             # デフォルトVRMアバター
-│   ├── animations/
-│   │   └── idle_loop.vrma         # 待機モーション
-│   └── icons/
-│       └── settings.svg           # 設定アイコン
-├── vite.config.ts                 # Vite設定
-├── package.json
-├── README.md                      # 人間向けドキュメント
-└── CLAUDE.md                      # このファイル（AI向け技術ドキュメント）
+│   │   └── avatar.glb           # デフォルトVRMモデル
+│   └── animations/
+│       ├── idle_loop.vrma       # 待機モーション
+│       └── happy.vrma           # 喜びモーション
+└── package.json
 ```
 
-### コンポーネント階層
+## 設計上の重要な判断
 
-```
-App.tsx
-├── Canvas (Three.js)
-│   ├── VRMAvatar
-│   │   ├── primitive (VRMモデル)
-│   │   └── primitive (VRMAアニメーション)
-│   ├── OrbitControls (カメラ操作)
-│   ├── ambientLight (環境光)
-│   └── directionalLight (指向性ライト)
-└── SettingsModal (設定画面)
-```
+### なぜプラグインではなくログ監視？
 
-## データフロー
+- シンプル: プラグインAPIの学習コスト・保守コストが不要
+- 安定性: プラグインAPIの変更に影響されない
+- 完全性: すべてのログが記録されており、取りこぼしがない
+- 独立性: Claude Codeとアプリが疎結合
 
-### ログ監視フロー
+### なぜルールベースの感情判定？
 
-```
-1. アプリ起動
-   Electron App起動
-   ↓
-   LogMonitor初期化
-   ↓
-   chokidarで ~/.claude/projects/**/*.jsonl を監視開始
-   ↓
-   既存ファイルの位置をEOFに初期化（既存ログは処理しない）
+- オフライン: ML/APIサーバー不要でローカル完結
+- 高速: リアルタイム処理可能
+- 精度: 日本語特有の表現（女性言葉、文末パターン）に最適化
+- 保守性: ルールの追加・調整が容易
 
-2. Claude Code応答検出
-   Claude Codeがユーザーに応答
-   ↓
-   ~/.claude/projects/{project}/{session}.jsonl に追記
-   ↓
-   chokidarが変更を検出
-   ↓
-   LogMonitorが差分を読み取り
-   ↓
-   JSONLパース＆フィルタリング
-   ├─ type === "assistant" をチェック
-   ├─ message.role === "assistant" をチェック
-   └─ message.content[].type === "text" を抽出
-   ↓
-   Electron IPCでフロントエンドに送信
-   mainWindow.webContents.send('speak', message)
-   {type: "speak", text: "...", emotion: "neutral"}
+### なぜElectron？
 
-3. 音声合成・再生
-   フロントエンド (IPC受信: window.electron.onSpeak)
-   ↓
-   useSpeech.speakText()
-   ↓
-   キューに追加
-   ↓
-   VOICEVOX API呼び出し
-   ├─ GET /audio_query?text=...&speaker=0
-   └─ POST /synthesis?speaker=0 (body: query)
-   ↓
-   WAVデータ (ArrayBuffer)
-   ↓
-   AudioContext.decodeAudioData()
-   ↓
-   AudioBuffer生成
-   ↓
-   Audio Graph構築
-   BufferSourceNode → AnalyserNode → GainNode → Destination
-   ↓
-   再生開始 + リップシンク開始
-   ↓
-   useLipSync: AnalyserNodeからデータ取得
-   ↓
-   RMS計算 → aa表情値更新
-   ↓
-   VRMAvatar: 口が動く
-```
+- ローカルファイルアクセス: `~/.claude/projects/` 直接読み取り
+- プロセス管理: エンジン自動起動・停止
+- 透過ウィンドウ: アバター表示に最適
+- クロスプラットフォーム: macOS/Windows/Linux対応
 
-### JSONL構造
+### なぜAivisSpeechをデフォルトに？
 
-Claude Codeのログファイル（JSONL形式）:
-```json
-{
-  "type": "assistant",
-  "message": {
-    "type": "message",
-    "role": "assistant",
-    "content": [
-      {"type": "text", "text": "喋らせる内容"},
-      {"type": "thinking", "thinking": "..."},
-      {"type": "tool_use", "name": "...", "input": {...}}
-    ]
-  }
-}
-```
-
-**フィルタリングルール:**
-- トップレベルの `type === "assistant"` のみ処理
-- `message.role === "assistant"` を確認
-- `message.content[]` 内の `type === "text"` のみ抽出
-- `thinking`, `tool_use` などはスキップ
-
-## 主要機能の実装詳細
-
-### 1. 音声キューシステム (`useSpeech.ts`)
-
-複数のテキストが連続送信された場合、順序を保って再生します。
-
-**特徴:**
-- キュー構造: `Array<{text: string, emotion?: string}>`
-- 1つずつ順次処理（オーバーラップなし）
-- 再生完了時に自動的に次のアイテムを処理
-- エラー発生時もキューは継続
-
-**主要関数:**
-```typescript
-speakText(text: string, emotion?: string): void
-  → キューに追加 & 処理開始
-
-processQueue(): Promise<void>
-  → キューの先頭を取り出して再生
-  → 完了後、次のアイテムを処理
-```
-
-### 2. Web Audio API グラフ
-
-```
-BufferSourceNode → AnalyserNode → GainNode → AudioDestinationNode
-                        ↓
-                   useLipSync
-                  (リップシンク)
-```
-
-**各ノードの役割:**
-- **BufferSourceNode**: 音声データの再生元
-- **AnalyserNode**: 波形解析（リップシンク用、音量の影響を受けない）
-- **GainNode**: 音量調整（設定画面のVolume Scaleを適用）
-- **AudioDestinationNode**: スピーカー出力
-
-**重要ポイント:**
-- AnalyserNodeは音量調整前のデータを解析するため、リップシンクに音量変更の影響なし
-- GainNodeで音量を変えてもリップシンクは正常に動作
-
-### 3. リップシンクアルゴリズム (`useLipSync.ts`)
-
-**処理フロー:**
-1. `AnalyserNode.getByteTimeDomainData()` で時間領域データ取得
-2. RMS（二乗平均平方根）計算
-   ```typescript
-   rms = sqrt(sum(sample^2) / dataArray.length)
-   ```
-3. 正規化（0-1の範囲に変換）
-   ```typescript
-   normalized = min(rms / threshold, 1.0)
-   ```
-4. スムージング適用（急激な変化を抑制）
-5. VRMの `aa` 表情値として適用
-
-**パラメータ:**
-- `fftSize`: 256（音声解析には十分、低いほど高速）
-- `threshold`: 音量に応じて調整可能
-- `smoothing`: 0.1〜0.3程度（チラつき防止）
-
-### 4. 感情表現システム
-
-#### 感情タイプ定義
-
-```typescript
-type Emotion = 'neutral' | 'happy' | 'angry' | 'sad' | 'relaxed' | 'surprised';
-```
-
-#### VRM表情マッピング
-
-```typescript
-const emotionMap = {
-  neutral: [],  // すべてリセット
-  happy: ['happy', 'joy'],
-  angry: ['angry'],
-  sad: ['sad', 'sorrow'],
-  relaxed: ['relaxed'],
-  surprised: ['surprised']
-};
-```
-
-#### 表情適用ロジック
-
-**`VRMAvatar.tsx` の `applyEmotion` 関数:**
-1. VRMモデルの `expressionManager.expressionMap` から利用可能な表情を取得
-2. 感情タイプに対応する表情名を検索
-3. マッチした表情の値を1.0に設定
-4. その他の表情は0.0にリセット（neutralの場合）
-
-**重要:**
-- VRMモデルによって表情名が異なる場合がある
-- 標準的な表情名: `happy`, `angry`, `sad`, `surprised`, `relaxed`
-- 代替表情名: `joy`, `sorrow` など
-- 表情が存在しない場合は無視（エラーなし）
-
-### 5. ストレージ構成
-
-#### localStorage（設定値）
-
-| キー | 型 | デフォルト値 | 説明 |
-|------|-----|--------------|------|
-| `speakerId` | number | 0 | VOICEVOXのSpeaker ID |
-| `baseUrl` | string | "http://localhost:50021" | VOICEVOX Engine URL |
-| `volumeScale` | number | 1.0 | 音量スケール（0.0〜2.0） |
-
-#### IndexedDB（VRMファイル）
-
-- **データベース名**: `VRMStorage`
-- **オブジェクトストア**: `vrm-files`
-- **キー**: `current-vrm`
-- **値**: VRMファイル（Blob）
-
-**なぜIndexedDB？**
-- VRMファイルは5〜50MB（localStorageの容量制限を超える）
-- バイナリBlobを効率的に保存
-- 非同期APIでUIをブロックしない
-
-### 6. VRMモデル要件
-
-#### サポートフォーマット
-- VRM 0.x (.vrm)
-- VRM 1.0 (.vrm)
-- GLB (.glb) ※VRM拡張を含む場合
-
-#### 必須機能
-- **表情ブレンドシェイプ**: `aa`（リップシンク用）
-- **推奨表情**: `happy`, `angry`, `sad`, `surprised`, `relaxed`
-- **ヒューマノイドボーン**: VRM標準ボーン構造
-
-#### モデル読み込み
-- ローダー: `@pixiv/three-vrm` の `VRMLoaderPlugin`
-- VRMバージョンの自動検出
-- デフォルトモデル: `/public/models/avatar.glb`
-- カスタムモデル: IndexedDBに保存
-
-### 7. VRMアニメーション (VRMA)
-
-#### 待機アニメーション
-- ファイル: `/public/animations/idle_loop.vrma`
-- フォーマット: VRM Animation (VRMA)
-- ローダー: `VRMAnimationLoaderPlugin`
-- ループ: 有効（連続再生）
-
-#### アニメーション合成
-- ボディモーション: VRMAから適用
-- 表情: リップシンクと感情表情が上書き
-- 優先度: 表情 > VRMAの表情データ
-
-## API仕様
-
-### Electron IPC API
-
-**Main Process → Renderer Process:**
-
-Main Processからログ監視で検出したメッセージを送信：
-```typescript
-mainWindow.webContents.send('speak', message);
-```
-
-**Renderer Processで受信:**
-```typescript
-// preload.tsで公開
-window.electron.onSpeak((message: string) => {
-  const data = JSON.parse(message);
-  // { type: 'speak', text: '...', emotion: 'neutral' }
-});
-```
-
-**メッセージフォーマット:**
-```typescript
-interface SpeakMessage {
-  type: 'speak';
-  text: string;
-  emotion?: 'neutral' | 'happy' | 'angry' | 'sad' | 'relaxed' | 'surprised';
-}
-```
-
-**実装例 (App.tsx):**
-```typescript
-useEffect(() => {
-  if (window.electron?.onSpeak) {
-    window.electron.onSpeak((message: string) => {
-      const data = JSON.parse(message);
-      if (data.type === 'speak' && data.text) {
-        speakText(data.text, data.emotion || 'neutral');
-      }
-    });
-  }
-}, [speakText]);
-```
-
-## VOICEVOX連携
-
-### APIフロー
-
-```
-1. 音声クエリ生成
-   GET http://localhost:50021/audio_query?text={text}&speaker={speaker_id}
-   → レスポンス: Query Object (JSON)
-      {
-        "accent_phrases": [...],
-        "speedScale": 1.0,
-        "pitchScale": 0.0,
-        "volumeScale": 1.0,
-        ...
-      }
-
-2. 音声合成
-   POST http://localhost:50021/synthesis?speaker={speaker_id}
-   Body: Query Object (上記のJSONをそのまま送信)
-   → レスポンス: WAV audio data (ArrayBuffer)
-
-3. 音声再生
-   AudioContext.decodeAudioData(arrayBuffer)
-   → AudioBuffer
-   → BufferSourceNode再生
-```
-
-### エラーハンドリング
-
-| エラー | 原因 | 対処法 |
-|--------|------|--------|
-| ネットワークエラー | VOICEVOXが起動していない | `voicevox_engine` を起動 |
-| CORSエラー | CORS許可されていない | `--cors_policy_mode all` で起動 |
-| 400エラー | 無効なSpeaker ID | 設定画面でSpeaker IDを確認 |
-| 500エラー | VOICEVOXの内部エラー | VOICEVOXのログを確認 |
-
-### Speaker ID
-
-- デフォルト: 0（四国めたん - ノーマル）
-- 設定画面から変更可能
-- localStorageに永続化
-- VOICEVOXの `/speakers` エンドポイントで利用可能なIDを取得可能
-
-## 設定とカスタマイズ
-
-### デフォルト定数 (App.tsx)
-
-```typescript
-const DEFAULT_VRM_URL = '/models/avatar.glb';
-const ANIMATION_URL = '/animations/idle_loop.vrma';
-const DEFAULT_VOICEVOX_URL = 'http://localhost:50021';
-const DEFAULT_SPEAKER_ID = 0;
-const DEFAULT_VOLUME_SCALE = 1.0;
-```
-
-### 設定モーダル項目
-
-1. **VOICEVOX Engine URL**
-   - テキスト入力
-   - バリデーション: URL形式
-   - デフォルト: `http://localhost:50021`
-
-2. **Speaker ID**
-   - 数値入力
-   - バリデーション: 整数、0以上
-   - デフォルト: 0
-
-3. **Volume Scale**
-   - レンジスライダー
-   - 範囲: 0.00〜2.00
-   - ステップ: 0.01
-   - デフォルト: 1.00
-
-4. **VRM File**
-   - ファイル入力
-   - 許可フォーマット: .vrm, .glb
-   - IndexedDBに保存
-
-5. **Reset All Settings**
-   - ボタン
-   - 全設定を初期化 + IndexedDBクリア
-
-### ポート設定
-
-**Electronアプリの構成:**
-- **フロントエンド**: 8563（Vite Dev Server / Electron Window）
-- **IPC通信**: Electron内部通信（ポート不要）
-
-```typescript
-// vite.config.ts（フロントエンド）
-export default defineConfig({
-  server: {
-    port: 8563,
-  },
-});
-```
+- 品質: 自然な日本語音声
+- ライセンス: 商用利用可能
+- VOICEVOX互換: API互換性あり
 
 ## トラブルシューティング
 
-### 1. 音声が再生されない
+### アバターが喋らない
 
-**症状:** 無音、再生されない
+**確認項目:**
+1. エンジンがインストールされているか（AivisSpeech/VOICEVOX）
+2. 設定画面で「Loading speakers...」が表示されていないか（エンジン起動待ち）
+3. `~/.claude/projects/` にログファイルがあるか
+4. Electronコンソールに `[LogMonitor]` ログが出ているか
 
-**原因:**
-- AudioContextが初期化されていない（ユーザークリック必須）
-- VOICEVOXエンジンが起動していない
-- CORS許可されていない
-- 無効なSpeaker ID
+**デバッグ方法:**
+- メインプロセスコンソール: `[Engine]`, `[LogMonitor]` ログ確認
+- レンダラープロセスコンソール: `[App]`, `[useSpeech]` ログ確認
+- `window.electron` が定義されているか確認
+- IPC通信が正常か確認（`window.electron.onSpeak`）
 
-**確認手順:**
-1. 画面をクリックして音声を有効化
-2. `http://localhost:50021/docs` でVOICEVOXにアクセス
-3. ブラウザコンソールでCORSエラーを確認
-4. 設定画面でSpeaker IDを確認
-5. VOICEVOXのログを確認
-
-**解決方法:**
-```bash
-# VOICEVOXをCORS許可で再起動
-voicevox_engine --cors_policy_mode all
-
-# 別のSpeaker IDを試す
-curl http://localhost:50021/speakers
-```
-
-### 2. アバターが表示されない
-
-**症状:** 空白画面、エラーメッセージ
-
-**原因:**
-- VRMファイルが無効
-- 必須ブレンドシェイプがない
-- ファイルサイズが大きすぎる
-- CORS問題（外部URL）
-
-**確認手順:**
-1. ブラウザコンソールでエラーを確認
-2. VRMファイルをVRMビューアで検証
-3. ファイルサイズを確認（50MB未満推奨）
-4. ローカルファイルを使用
-
-**解決方法:**
-```bash
-# VRMファイルの検証
-# VRM Consortium公式ビューアで開く
-# https://vrm.dev/
-
-# デフォルトアバターに戻す
-# 設定画面で "Reset All Settings"
-```
-
-### 3. リップシンクが動作しない
-
-**症状:** 口が動かない
+### リップシンクが動かない
 
 **原因:**
 - VRMモデルに `aa` 表情がない
-- 音量が低すぎる
-- AnalyserNodeがデータを受信していない
-- 表情名が一致しない
+- AnalyserNodeが機能していない
 
-**確認手順:**
-1. VRMモデルの表情リストを確認
-2. 音量を最大にして再生
-3. `useLipSync.ts` の閾値を調整
-4. ブラウザコンソールで `aa` 表情の存在を確認
+**デバッグ方法:**
+- ブラウザコンソールで `vrm.expressionManager.expressionMap` 確認
+- `aa` 表情の存在を確認
 
-**解決方法:**
-```typescript
-// VRMAvatar.tsxで利用可能な表情を確認
-console.log(vrm.expressionManager?.expressionMap);
-
-// useLipSync.tsxの閾値を下げる
-const threshold = 0.01; // デフォルトより低い値
-```
-
-### 4. 感情表現が動作しない
-
-**症状:** 表情が変わらない
+### エンジンが起動しない
 
 **原因:**
-- VRMモデルに感情表情がない
-- 表情名が一致しない
-- emotionパラメータが正しく渡されていない
+- エンジンパスが正しくない
+- ポート8564が既に使用中
 
-**確認手順:**
-1. VRMモデルの表情を確認
-2. ブラウザコンソールでemotionパラメータを確認
-3. `applyEmotion` 関数のログを追加
-
-**解決方法:**
-```typescript
-// VRMAvatar.tsxのemotionMapをカスタマイズ
-const emotionMap = {
-  happy: ['happy', 'joy', 'smile'],  // 代替名を追加
-  // ...
-};
-
-// APIリクエストを確認
-console.log('Emotion:', emotion);
-```
-
-### 5. IPC通信が動作しない
-
-**症状:** ログ監視は動作しているがアバターが喋らない
-
-**原因:**
-- preload.tsが正しく読み込まれていない
-- window.electronが未定義
-- IPCリスナーが登録されていない
-
-**確認手順:**
-```javascript
-// ブラウザのコンソールで確認
-console.log('window.electron:', window.electron);
-
-// IPCリスナーをテスト
-window.electron?.onSpeak((message) => {
-  console.log('IPC message:', message);
-});
-```
-
-**解決方法:**
-```bash
-# アプリを再起動
-npm run dev
-
-# preload.jsが正しくビルドされているか確認
-ls -la dist-electron/preload.js
-```
-
-### 6. ログ監視が動作しない
-
-**症状:** Claude Codeの応答がアバターに反映されない
-
-**原因:**
-- ログディレクトリが存在しない
-- ファイル権限の問題
-- chokidarが正しく動作していない
-
-**確認手順:**
-```bash
-# ログディレクトリを確認
-ls -la ~/.claude/projects/
-
-# JSONLファイルを確認
-find ~/.claude/projects -name "*.jsonl" | head -5
-
-# アプリのコンソールログを確認（[LogMonitor]で始まるログ）
-```
-
-**解決方法:**
-```bash
-# アプリを再起動
-npm run dev
-
-# ファイル権限を確認
-chmod -R u+r ~/.claude/projects/
-```
+**デバッグ方法:**
+- 設定画面でEngine Pathを確認
+- `lsof -i :8564` でポート確認
+- メインプロセスコンソールで `[Engine]` ログ確認
 
 ## パフォーマンス最適化
 
-### 最適化ポイント
+### 音声解析
 
-1. **AnalyserNode FFT Size**
-   - 256で十分（音声解析用）
-   - 低いほど高速、CPU負荷軽減
+- AnalyserNode fftSize=256（必要最小限）
+- requestAnimationFrame使用（ブラウザ最適化）
 
-2. **アニメーションループ**
-   - `requestAnimationFrame` 使用
-   - ブラウザの最適なタイミングで実行
-   - 非表示時は自動的に停止
+### ファイル監視
 
-3. **VRM読み込み**
-   - 非同期ローディング
-   - ローディング状態のフィードバック
-   - エラーハンドリング
+- depth=1（サブディレクトリ除外）
+- デバウンス100ms（過剰な処理防止）
+- 差分読み取り（全体読み込み回避）
 
-4. **IndexedDB**
-   - 非同期API使用
-   - UIをブロックしない
-   - 大容量ファイルに対応
+### VRM読み込み
+
+- 非同期読み込み
+- 単一インスタンス（メモリ節約）
 
 ### メモリ管理
 
-- **AudioBuffer**: 再生後に自動ガベージコレクション
-- **VRMモデル**: メモリキャッシュ（単一インスタンス）
-- **IPC通信**: Electron内部で自動管理
+- AudioBuffer: 再生後自動GC
+- VRMモデル: 単一インスタンスキャッシュ
+- IPC通信: Electron内部で自動管理
 
-### ブラウザ互換性
+## テストチェックリスト
 
-**必須機能:**
-- AudioContext (Web Audio API)
-- IndexedDB
-- WebGL 2.0 (Three.js用)
-- ES6+ JavaScript
+実装変更時の確認項目:
 
-**注意:** このアプリはElectron専用のため、通常のブラウザでは動作しません
-
-**テスト済みブラウザ:**
-- Chrome 90+
-- Firefox 88+
-- Edge 90+
-- Safari 14+（AudioContextに一部制約あり）
-
-## セキュリティ考慮事項
-
-### CORS設定
-
-- VOICEVOXは `--cors_policy_mode all` で起動必須
-- 本番環境では適切なCORS設定を構成
-- 信頼できるオリジンのみ許可
-
-### Content Security Policy
-
-- IPC通信: Electron内部通信のみ（外部アクセス不可）
-- 外部VRMファイル: 信頼できるソースのみ
-- スクリプト実行: contextIsolationで保護
-
-### ファイルアップロード
-
-- VRMファイル: ブラウザのIndexedDBのみに保存
-- サーバー側にユーザーデータを保存しない
-- ファイル読み込み前にバリデーション
-
-## 今後の拡張アイデア
-
-- [ ] 背景カスタマイズ（色、画像、3D環境）
-- [ ] カメラアングル制御（ズーム、回転、プリセット位置）
-- [ ] Claude Code以外のLLM対応
+- [ ] エンジンが自動起動するか
+- [ ] ログ監視が動作するか（Claude Code応答で喋るか）
+- [ ] 感情判定が正しく動作するか
+- [ ] リップシンクが音声に同期するか
+- [ ] まばたきが自然か
+- [ ] 音声キューが順序通りに処理されるか
+- [ ] 設定変更が保持されるか
+- [ ] VRMファイルが正しく読み込まれるか
+- [ ] ウィンドウドラッグが動作するか
+- [ ] クリックスルーが動作するか
+- [ ] 設定ウィンドウが開くか
+- [ ] テスト音声が再生されるか
 
 ## 開発コマンド
 
@@ -727,61 +463,36 @@ chmod -R u+r ~/.claude/projects/
 # 依存関係インストール
 npm install
 
-# 開発サーバー起動（HMR有効）
+# 開発モード起動（HMR有効）
 npm run dev
 
-# 本番ビルド
+# テスト実行
+npm test
+
+# テストカバレッジ
+npm run test:coverage
+
+# ビルド
 npm run build
 
-# 本番サーバー起動
-npm run start
-
-# リンター実行
-npm run lint
+# パッケージング（dmg/exe/AppImage）
+npm run package
 ```
-
-## 環境セットアップ
-
-### 必須サービス
-
-1. **VOICEVOX Engine**: localhost:50021（または設定URL）
-   ```bash
-   voicevox_engine --cors_policy_mode all
-   ```
-
-2. **Node.js**: バージョン18以上
-
-### オプションツール
-
-- Electron開発者ツール（デバッグ用）
-- React DevTools拡張機能
-- VRMビューア（モデルテスト用）
-
-## テストチェックリスト
-
-変更をテストする際の確認項目：
-
-- [ ] ユーザーインタラクション後に音声が再生される
-- [ ] リップシンクが音声に同期している
-- [ ] 音声キューが順序通りに処理される
-- [ ] 設定がページリロード後も保持される
-- [ ] カスタムVRMが正しく読み込まれる
-- [ ] 音量調整がリップシンクに影響しない
-- [ ] IPC通信が正しく動作する（window.electronが定義されている）
-- [ ] ログ監視が正しく動作する（[LogMonitor]ログが出る）
-- [ ] Claude Codeの応答がアバターで音声化される
-- [ ] エラー状態が適切に表示される
-- [ ] Electron開発者ツールに致命的エラーがない
 
 ## 主要依存関係
 
-- **react**: ^18.3.1
-- **three**: ^0.170.0
-- **@react-three/fiber**: ^8.17.10
-- **@react-three/drei**: ^9.117.3
-- **@pixiv/three-vrm**: ^3.1.4
-- **@pixiv/three-vrm-animation**: ^0.1.1
-- **electron**: Electron本体
-- **chokidar**: ^5.0.0（ログファイル監視）
+**本番:**
+- `@pixiv/three-vrm`: ^3.4.4
+- `@pixiv/three-vrm-animation`: ^3.4.4
+- `@react-three/fiber`: ^9.5.0
+- `react`: ^19.2.0
+- `three`: ^0.182.0
+- `chokidar`: ^5.0.0
+- `electron-store`: ^11.0.2
+
+**開発:**
+- `electron`: ^39.2.7
+- `vite`: ^7.2.4
+- `vitest`: ^4.0.17
 
 完全な依存関係リストは `package.json` を参照してください。
