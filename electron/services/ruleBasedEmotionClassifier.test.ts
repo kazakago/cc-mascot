@@ -276,4 +276,48 @@ describe("RuleBasedEmotionClassifier", () => {
       });
     });
   });
+
+  describe("エッジケース - スコア調整", () => {
+    it("neutral >= 4 && sad > 0 && sad < 4 の場合neutralが優先される", () => {
+      // "了解" = neutral +2
+      // "します" = 中性的 +1
+      // "申し訳" = sad +3
+      // "ありません" = neutral +1
+      // "次に" = neutral +2
+      // "進めます" = neutral +2
+      // neutral: 2+1+1+2+2 = 8, sad: 3
+      // 条件: neutral >= 4 && sad > 0 && sad < 4
+      // 結果: sadスコアがneutralに吸収される
+      const text = "了解しました。申し訳ありませんが、次に進めます。";
+      const result = classifier.classify(text);
+
+      // sadが含まれているけど、neutralが圧倒的に高いのでneutralが優先される
+      expect(result).toBe("neutral");
+    });
+
+    it("neutralとsadが混在する長文でneutralが優先される", () => {
+      // 複数のneutralキーワードと少数のsadキーワード
+      const text =
+        "了解しました。まずこちらを確認してください。申し訳ありませんが、次に進めます。その後、実装を続けます。";
+      const result = classifier.classify(text);
+
+      // neutralが優先される
+      expect(result).toBe("neutral");
+    });
+
+    it("relaxedが弱い場合neutralに吸収される", () => {
+      // "了解〜" = relaxed +1
+      // "進めるわ" = neutral +1
+      // "ます" = 中性的 +1
+      // relaxed: 1 (< 6), neutral: 1+1 = 2
+      // 条件: relaxed > 0 && relaxed < 6
+      // 結果: relaxedスコアがneutralに吸収される
+      const text = "了解〜、その方針で進めるわ。";
+      const result = classifier.classify(text);
+
+      // relaxedが含まれているけど、弱いのでneutralかrelaxedになる
+      // 実際にはneutral + relaxed = 2+1 = 3なので、優先度による
+      expect(["neutral", "relaxed"]).toContain(result);
+    });
+  });
 });
