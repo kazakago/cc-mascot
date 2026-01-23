@@ -32,6 +32,8 @@ git branch --show-current
 
 2. 保護されたブランチ一覧を取得:
 
+下記コマンドの:ownerと:repoには現在のgit URLから取得した情報をそれぞれ入れてください
+
 ```bash
 gh api repos/:owner/:repo/branches --paginate --jq '.[] | select(.protected) | .name'
 ```
