@@ -379,7 +379,7 @@ describe('useSpeech', () => {
 
       // エラーがログ出力される
       await waitFor(() => {
-        expect(consoleErrorSpy).toHaveBeenCalledWith('Speech failed:', expect.any(Error));
+        expect(consoleErrorSpy).toHaveBeenCalledWith('[useSpeech] Synthesis failed for item #0:', expect.any(Error));
       });
 
       // onEndが呼ばれる（エラーでも）
