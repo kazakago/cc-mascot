@@ -498,6 +498,7 @@ cc-mascot/
 - [ ] テスト追加の検討 - 変更した箇所に関連するテストが必要か考える（3秒でいい）
 - [ ] `npm run lint` - コード品質チェック
 - [ ] `npm run build` - ビルド & 型チェック
+- [ ] `npm run format` - コードフォーマット
 
 両コマンドでエラー（exit code 0）であることを確認すること。
 
@@ -517,6 +518,12 @@ npm run dev
 
 # Lint実行
 npm run lint
+
+# フォーマット実行
+npm run format
+
+# フォーマットチェック
+npm run format:check
 
 # テスト実行
 npm test:run
