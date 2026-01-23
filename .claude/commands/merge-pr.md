@@ -1,6 +1,6 @@
 ---
 model: sonnet
-description: PRをマージして、マージ先のブランチへ移ります。option：[-b <branch>]
+description: PRをマージして、マージ先のブランチへをチェックアウトします。option：[-b <branch>]
 argument-hint: [-b <branch>]
 
 mode: agent
@@ -31,7 +31,7 @@ mode: agent
 gh pr view <ターゲットブランチ>
 ```
 
-もし複数のPRが見つかった場合は `AskUserQuestion`ツールを使用してどちらを対象とするか確認する
+もし複数のPRが見つかった場合は `AskUserQuestion`ツールを使用してどのPRを対象とするか確認する
 PRが確定したら下記コマンドを実行し、取得したPR番号とベースブランチを覚えておくこと
 
 ```bash
@@ -57,6 +57,8 @@ gh pr merge <PR番号> --merge --delete-branch
 
 2. ローカルのGit情報を最新化する
 
+サーバー側の処理を待つため5秒待ってから下記コマンドを実行する
+
 ```bash
 git fetch
 ```
@@ -73,13 +75,7 @@ git checkout <ベースブランチ>
 git merge --ff-only
 ```
 
-5. ターゲットブランチを削除する
-
-```bash
-git git branch -d <ターゲットブランチ>
-```
-
-6. スタッシュした変更があればどうするか確認する
+5. スタッシュした変更があればどうするか確認する
 
 `AskUserQuestion`ツールを使用してスタッシュ内容をどうするかどうかユーザーに問い合わせてください
     - 退避した変更をapply（戻すが削除しない）
