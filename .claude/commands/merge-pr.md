@@ -51,8 +51,6 @@ gh pr view <PR番号> --json mergeable,mergeStateStatus
 
 1. PRをマージする
 
-※`--delete-branch`を指定していると自動的にマージ先のベースブランチがチェックアウトされる
-
 ```bash
 gh pr merge <PR番号> --merge --delete-branch
 ```
@@ -63,13 +61,7 @@ gh pr merge <PR番号> --merge --delete-branch
 git fetch --prune
 ```
 
-3. ベースブランチの状態をリモートに合わせる
-
-```bash
-git merge --ff-only
-```
-
-4. スタッシュした変更があればどうするか確認する
+3. スタッシュした変更があればどうするか確認する
 
 `AskUserQuestion`ツールを使用してスタッシュ内容をどうするかどうかユーザーに問い合わせてください
     - 退避した変更をapply（戻すが削除しない）
