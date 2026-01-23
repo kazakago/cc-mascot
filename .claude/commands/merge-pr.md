@@ -1,6 +1,6 @@
 ---
 model: sonnet
-description: PRをマージして、マージ先のブランチへ移ります。option：[-b <branch>]
+description: PRをマージして、マージ先のブランチへをチェックアウトします。option：[-b <branch>]
 argument-hint: [-b <branch>]
 
 mode: agent
@@ -31,7 +31,7 @@ mode: agent
 gh pr view <ターゲットブランチ>
 ```
 
-もし複数のPRが見つかった場合は `AskUserQuestion`ツールを使用してどちらを対象とするか確認する
+もし複数のPRが見つかった場合は `AskUserQuestion`ツールを使用してどのPRを対象とするか確認する
 PRが確定したら下記コマンドを実行し、取得したPR番号とベースブランチを覚えておくこと
 
 ```bash
