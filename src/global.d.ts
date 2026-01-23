@@ -28,6 +28,7 @@ declare global {
       notifyVolumeChanged: (volumeScale: number) => void;
       playTestSpeech: () => void;
       onPlayTestSpeech: (callback: () => void) => (() => void);
+      onDevToolsStateChanged: (callback: (isOpen: boolean) => void) => (() => void);
     };
   }
 }

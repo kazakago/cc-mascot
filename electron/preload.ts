@@ -114,4 +114,15 @@ contextBridge.exposeInMainWorld('electron', {
       ipcRenderer.removeListener('play-test-speech', listener);
     };
   },
+  onDevToolsStateChanged: (callback: (isOpen: boolean) => void) => {
+    const listener = (_event: unknown, isOpen: boolean) => {
+      callback(isOpen);
+    };
+    ipcRenderer.on('devtools-state-changed', listener);
+
+    // Return cleanup function
+    return () => {
+      ipcRenderer.removeListener('devtools-state-changed', listener);
+    };
+  },
 });

@@ -200,6 +200,17 @@ const createWindow = () => {
 
     logMonitor = createLogMonitor(broadcast);
   });
+
+  // Notify renderer when DevTools is opened/closed to disable click-through
+  mainWindow.webContents.on('devtools-opened', () => {
+    console.log('[Main] DevTools opened, disabling click-through');
+    mainWindow?.webContents.send('devtools-state-changed', true);
+  });
+
+  mainWindow.webContents.on('devtools-closed', () => {
+    console.log('[Main] DevTools closed, enabling click-through');
+    mainWindow?.webContents.send('devtools-state-changed', false);
+  });
 };
 
 // Create settings window

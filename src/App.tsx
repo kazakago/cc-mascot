@@ -193,6 +193,7 @@ function App() {
     let windowStartX = 0;
     let windowStartY = 0;
     let lastInsideState: boolean | null = null;
+    let devToolsOpen = false; // Track DevTools state
 
     const getCharacterRadii = () => {
       // Vertical ellipse: narrow horizontally, tall vertically
@@ -226,9 +227,10 @@ function App() {
       const isInside = isInsideCharacterArea(e.clientX, e.clientY);
 
       // Update ignore mouse events state (for click-through outside character area)
+      // Disable click-through when DevTools is open
       if (isInside !== lastInsideState) {
         lastInsideState = isInside;
-        electron.setIgnoreMouseEvents(!isInside);
+        electron.setIgnoreMouseEvents(devToolsOpen ? false : !isInside);
       }
 
       // Handle dragging
@@ -248,14 +250,39 @@ function App() {
     // Set initial state
     electron.setIgnoreMouseEvents(false);
 
+    // Collect all cleanup functions
+    const cleanupFunctions: (() => void)[] = [];
+
+    // Add event listeners
     window.addEventListener('mousedown', handleMouseDown);
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUp);
-
-    return () => {
+    cleanupFunctions.push(() => {
       window.removeEventListener('mousedown', handleMouseDown);
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
+    });
+
+    // Listen for DevTools state changes
+    if (electron.onDevToolsStateChanged) {
+      const cleanupDevTools = electron.onDevToolsStateChanged((isOpen: boolean) => {
+        console.log(`[App] DevTools state changed: ${isOpen ? 'opened' : 'closed'}`);
+        devToolsOpen = isOpen;
+        // Update click-through state immediately when DevTools state changes
+        if (isOpen) {
+          // Enable mouse events when DevTools is open
+          electron.setIgnoreMouseEvents(false);
+        } else if (lastInsideState !== null) {
+          // Restore previous state when DevTools is closed
+          electron.setIgnoreMouseEvents(!lastInsideState);
+        }
+      });
+      cleanupFunctions.push(cleanupDevTools);
+    }
+
+    // Return combined cleanup function
+    return () => {
+      cleanupFunctions.forEach(fn => fn());
     };
   }, []);
 
