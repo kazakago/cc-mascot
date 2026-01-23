@@ -13,11 +13,13 @@ mode: agent
 ## 1. 引数のパース
 
 引数は以下のオプションを受け付けます:
+
 - `-b <branch>`: ベースブランチを指定（デフォルト: `main`）
 - `-d`: ドラフトPRとして作成
 - `-p`: セッションのプロンプトをPR本文に付与
 
 例:
+
 - `/create-pr` → mainベースで通常PR
 - `/create-pr -b production` → productionベースで通常PR
 - `/create-pr -d` → mainベースでドラフトPR
@@ -70,9 +72,9 @@ git diff <ベースブランチ>...HEAD --stat
 <summary>プロンプト</summary>
 <p>
 
-````
+```
 [取得したプロンプト内容]
-````
+```
 
 </p>
 </details>

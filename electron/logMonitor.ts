@@ -1,10 +1,10 @@
-import * as chokidar from 'chokidar';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as os from 'os';
-import * as readline from 'readline';
-import { parseClaudeCodeLog, SpeakMessage } from './parsers/claudeCodeParser';
-import { cleanTextForSpeech } from './filters/textFilter';
+import * as chokidar from "chokidar";
+import * as fs from "fs";
+import * as path from "path";
+import * as os from "os";
+import * as readline from "readline";
+import { parseClaudeCodeLog, SpeakMessage } from "./parsers/claudeCodeParser";
+import { cleanTextForSpeech } from "./filters/textFilter";
 
 // Track file positions to avoid re-reading
 const filePositions = new Map<string, number>();
@@ -20,10 +20,10 @@ type BroadcastFn = (message: string) => void;
  * @param broadcast - Callback function to send messages to the renderer process
  */
 export function createLogMonitor(broadcast: BroadcastFn) {
-  const claudeProjectsDir = path.join(os.homedir(), '.claude', 'projects');
+  const claudeProjectsDir = path.join(os.homedir(), ".claude", "projects");
 
   const watcher = chokidar.watch(claudeProjectsDir, {
-    ignored: (path, stats) => stats?.isFile() === true && !path.endsWith('.jsonl'), // only watch jsonl files
+    ignored: (path, stats) => stats?.isFile() === true && !path.endsWith(".jsonl"), // only watch jsonl files
     awaitWriteFinish: {
       stabilityThreshold: 100,
       pollInterval: 50,
@@ -31,20 +31,20 @@ export function createLogMonitor(broadcast: BroadcastFn) {
     depth: 1, // Only main agent.
   });
 
-  watcher.on('add', (filePath: string) => {
+  watcher.on("add", (filePath: string) => {
     initializeFilePosition(filePath);
   });
 
-  watcher.on('change', (filePath: string) => {
+  watcher.on("change", (filePath: string) => {
     console.log(`[LogMonitor] File changes detected: ${filePath}`);
     processFileChanges(filePath, broadcast);
   });
 
-  watcher.on('error', (error: unknown) => {
-    console.error('[LogMonitor] Watcher error:', error);
+  watcher.on("error", (error: unknown) => {
+    console.error("[LogMonitor] Watcher error:", error);
   });
 
-  watcher.on('ready', () => {
+  watcher.on("ready", () => {
     console.log(`[LogMonitor] Monitoring ${filePositions.size} files`);
   });
 
@@ -105,17 +105,13 @@ async function processFileChanges(filePath: string, broadcast: BroadcastFn) {
   }
 }
 
-async function readNewLines(
-  filePath: string,
-  startPosition: number,
-  endPosition: number
-): Promise<string[]> {
+async function readNewLines(filePath: string, startPosition: number, endPosition: number): Promise<string[]> {
   return new Promise((resolve, reject) => {
     const lines: string[] = [];
     const stream = fs.createReadStream(filePath, {
       start: startPosition,
       end: endPosition - 1,
-      encoding: 'utf8',
+      encoding: "utf8",
     });
 
     const rl = readline.createInterface({
@@ -123,14 +119,14 @@ async function readNewLines(
       crlfDelay: Infinity,
     });
 
-    rl.on('line', (line) => {
+    rl.on("line", (line) => {
       if (line.trim()) {
         lines.push(line);
       }
     });
 
-    rl.on('close', () => resolve(lines));
-    rl.on('error', reject);
+    rl.on("close", () => resolve(lines));
+    rl.on("error", reject);
   });
 }
 
@@ -149,15 +145,13 @@ function processLogLine(line: string, broadcast: BroadcastFn) {
     const cleanedText = cleanTextForSpeech(message.text);
 
     if (cleanedText) {
-      console.log(
-        `[LogMonitor] Extracted text: ${cleanedText.substring(0, 50)}...`
-      );
+      console.log(`[LogMonitor] Extracted text: ${cleanedText.substring(0, 50)}...`);
 
       broadcast(
         JSON.stringify({
           ...message,
           text: cleanedText,
-        })
+        }),
       );
     }
   }

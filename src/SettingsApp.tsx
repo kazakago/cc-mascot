@@ -1,14 +1,14 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import type { EngineType } from './global';
-import { getSpeakers } from './services/voicevox';
-import { saveVRMFile, loadVRMFile, deleteVRMFile } from './utils/vrmStorage';
+import { useState, useEffect, useRef, useCallback } from "react";
+import type { EngineType } from "./global";
+import { getSpeakers } from "./services/voicevox";
+import { saveVRMFile, loadVRMFile, deleteVRMFile } from "./utils/vrmStorage";
 
 const ENGINE_PATHS = {
-  aivis: '/Applications/AivisSpeech.app/Contents/Resources/AivisSpeech-Engine/run',
-  voicevox: '/Applications/VOICEVOX.app/Contents/Resources/vv-engine/run',
+  aivis: "/Applications/AivisSpeech.app/Contents/Resources/AivisSpeech-Engine/run",
+  voicevox: "/Applications/VOICEVOX.app/Contents/Resources/vv-engine/run",
 } as const;
 
-const VOICEVOX_BASE_URL = 'http://localhost:8564';
+const VOICEVOX_BASE_URL = "http://localhost:8564";
 
 interface SpeakerOption {
   id: number;
@@ -22,20 +22,20 @@ export default function SettingsApp() {
   const [selectedSpeakerId, setSelectedSpeakerId] = useState(888753760);
   const [volumeScaleInput, setVolumeScaleInput] = useState(1.0);
   const [windowSizeInput, setWindowSizeInput] = useState(800);
-  const [engineType, setEngineType] = useState<EngineType>('aivis');
-  const [customPath, setCustomPath] = useState('');
-  const [error, setError] = useState('');
+  const [engineType, setEngineType] = useState<EngineType>("aivis");
+  const [customPath, setCustomPath] = useState("");
+  const [error, setError] = useState("");
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
   const [speakers, setSpeakers] = useState<SpeakerOption[]>([]);
   const [loadingSpeakers, setLoadingSpeakers] = useState(false);
   const [isPlayingTest, setIsPlayingTest] = useState(false);
-  const [testAudioError, setTestAudioError] = useState('');
+  const [testAudioError, setTestAudioError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch speakers from engine with retry logic
   const fetchSpeakers = useCallback(async (maxRetries = 10) => {
     setLoadingSpeakers(true);
-    setError('');
+    setError("");
 
     for (let retryCount = 0; retryCount <= maxRetries; retryCount++) {
       try {
@@ -56,10 +56,10 @@ export default function SettingsApp() {
       } catch (err) {
         if (retryCount < maxRetries) {
           console.log(`[SettingsApp] Engine not ready, retrying (${retryCount + 1}/${maxRetries})...`);
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise((resolve) => setTimeout(resolve, 1000));
         } else {
-          console.error('Failed to fetch speakers after retries:', err);
-          setError('Failed to fetch speakers. Is the engine running?');
+          console.error("Failed to fetch speakers after retries:", err);
+          setError("Failed to fetch speakers. Is the engine running?");
           setSpeakers([]);
           setLoadingSpeakers(false);
           return [];
@@ -73,9 +73,9 @@ export default function SettingsApp() {
   useEffect(() => {
     const loadInitialValues = async () => {
       // Load from localStorage
-      const storedSpeakerId = localStorage.getItem('speakerId');
-      const storedVolumeScale = localStorage.getItem('volumeScale');
-      const storedWindowSize = localStorage.getItem('windowSize');
+      const storedSpeakerId = localStorage.getItem("speakerId");
+      const storedVolumeScale = localStorage.getItem("volumeScale");
+      const storedWindowSize = localStorage.getItem("windowSize");
 
       if (storedSpeakerId) setSelectedSpeakerId(Number(storedSpeakerId));
       if (storedVolumeScale) setVolumeScaleInput(Number(storedVolumeScale));
@@ -88,8 +88,8 @@ export default function SettingsApp() {
           window.electron.getVoicevoxPath(),
           window.electron.getWindowSize(),
         ]);
-        setEngineType(savedEngineType || 'aivis');
-        setCustomPath(savedCustomPath || '');
+        setEngineType(savedEngineType || "aivis");
+        setCustomPath(savedCustomPath || "");
         if (savedWindowSize) {
           setWindowSizeInput(savedWindowSize);
         }
@@ -102,7 +102,7 @@ export default function SettingsApp() {
           setVrmFileName(vrmFile.name);
         }
       } catch (err) {
-        console.error('[SettingsApp] Failed to load VRM file:', err);
+        console.error("[SettingsApp] Failed to load VRM file:", err);
       }
     };
     loadInitialValues();
@@ -118,27 +118,25 @@ export default function SettingsApp() {
   const restartEngine = async (engineTypeOverride?: EngineType, pathOverride?: string) => {
     setLoadingSpeakers(true);
     setSpeakers([]);
-    setError('');
+    setError("");
 
     const effectiveEngineType = engineTypeOverride !== undefined ? engineTypeOverride : engineType;
-    const effectivePath = pathOverride !== undefined ? pathOverride : (effectiveEngineType === 'custom' ? customPath.trim() : undefined);
+    const effectivePath =
+      pathOverride !== undefined ? pathOverride : effectiveEngineType === "custom" ? customPath.trim() : undefined;
 
     if (window.electron?.setEngineSettings) {
       try {
         console.log(`[SettingsApp] Restarting engine: type=${effectiveEngineType}, path=${effectivePath}`);
-        await window.electron.setEngineSettings(
-          effectiveEngineType,
-          effectivePath
-        );
+        await window.electron.setEngineSettings(effectiveEngineType, effectivePath);
 
         const newSpeakers = await fetchSpeakers();
 
         if (newSpeakers.length > 0) {
-          const currentExists = newSpeakers.some(s => s.id === selectedSpeakerId);
+          const currentExists = newSpeakers.some((s) => s.id === selectedSpeakerId);
           if (!currentExists) {
             const firstSpeakerId = newSpeakers[0].id;
             setSelectedSpeakerId(firstSpeakerId);
-            localStorage.setItem('speakerId', String(firstSpeakerId));
+            localStorage.setItem("speakerId", String(firstSpeakerId));
             console.log(`[SettingsApp] Auto-selected first speaker: ${firstSpeakerId}`);
             // Notify main window of speaker change
             if (window.electron?.notifySpeakerChanged) {
@@ -147,8 +145,8 @@ export default function SettingsApp() {
           }
         }
       } catch (err) {
-        console.error('Failed to restart engine:', err);
-        setError('Failed to restart engine');
+        console.error("Failed to restart engine:", err);
+        setError("Failed to restart engine");
         setLoadingSpeakers(false);
       }
     }
@@ -157,9 +155,9 @@ export default function SettingsApp() {
   const handleEngineTypeChange = async (newEngineType: EngineType) => {
     setEngineType(newEngineType);
 
-    if (newEngineType === 'custom') {
+    if (newEngineType === "custom") {
       if (!customPath.trim()) {
-        console.log('[SettingsApp] Custom engine selected but path is empty, skipping restart');
+        console.log("[SettingsApp] Custom engine selected but path is empty, skipping restart");
         setSpeakers([]);
         setLoadingSpeakers(false);
         return;
@@ -171,39 +169,41 @@ export default function SettingsApp() {
 
   const handleApplyCustomPath = async () => {
     if (!customPath.trim()) {
-      setError('Please enter a custom engine path');
+      setError("Please enter a custom engine path");
       return;
     }
-    await restartEngine('custom', customPath.trim());
+    await restartEngine("custom", customPath.trim());
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (!file.name.toLowerCase().endsWith('.glb') && !file.name.toLowerCase().endsWith('.vrm')) {
-        setError('Please select a VRM (.vrm or .glb) file');
+      if (!file.name.toLowerCase().endsWith(".glb") && !file.name.toLowerCase().endsWith(".vrm")) {
+        setError("Please select a VRM (.vrm or .glb) file");
         return;
       }
       setSelectedFileName(file.name);
       setVrmFileName(file.name);
       // Save to IndexedDB via the existing utility
-      saveVRMFile(file).then(() => {
-        console.log('[SettingsApp] VRM file saved');
-        // Notify main window to reload VRM
-        if (window.electron?.notifyVRMChanged) {
-          window.electron.notifyVRMChanged();
-        }
-      }).catch((err) => {
-        console.error('[SettingsApp] Failed to save VRM file:', err);
-        setError('Failed to save VRM file');
-      });
-      setError('');
+      saveVRMFile(file)
+        .then(() => {
+          console.log("[SettingsApp] VRM file saved");
+          // Notify main window to reload VRM
+          if (window.electron?.notifyVRMChanged) {
+            window.electron.notifyVRMChanged();
+          }
+        })
+        .catch((err) => {
+          console.error("[SettingsApp] Failed to save VRM file:", err);
+          setError("Failed to save VRM file");
+        });
+      setError("");
     }
   };
 
   const handleSpeakerChange = (newSpeakerId: number) => {
     setSelectedSpeakerId(newSpeakerId);
-    localStorage.setItem('speakerId', String(newSpeakerId));
+    localStorage.setItem("speakerId", String(newSpeakerId));
     console.log(`[SettingsApp] Speaker changed to: ${newSpeakerId}`);
     // Notify main window of speaker change
     if (window.electron?.notifySpeakerChanged) {
@@ -220,7 +220,7 @@ export default function SettingsApp() {
   };
 
   const handleVolumeChangeComplete = () => {
-    localStorage.setItem('volumeScale', String(volumeScaleInput));
+    localStorage.setItem("volumeScale", String(volumeScaleInput));
     console.log(`[SettingsApp] Volume saved to localStorage: ${volumeScaleInput}`);
   };
 
@@ -231,11 +231,11 @@ export default function SettingsApp() {
       try {
         const clampedSize = await window.electron.setWindowSize(newSize);
         setWindowSizeInput(clampedSize);
-        localStorage.setItem('windowSize', String(clampedSize));
+        localStorage.setItem("windowSize", String(clampedSize));
         console.log(`[SettingsApp] Window size changed to: ${clampedSize}`);
       } catch (err) {
-        console.error('Failed to change window size:', err);
-        setError('Failed to change window size');
+        console.error("Failed to change window size:", err);
+        setError("Failed to change window size");
       }
     }
   };
@@ -246,37 +246,37 @@ export default function SettingsApp() {
     }
 
     setIsPlayingTest(true);
-    setTestAudioError('');
-    setError('');
+    setTestAudioError("");
+    setError("");
 
     // Send IPC message to main window to play test speech with lip sync
     if (window.electron?.playTestSpeech) {
       window.electron.playTestSpeech();
-      console.log('[SettingsApp] Test speech requested');
+      console.log("[SettingsApp] Test speech requested");
 
       // Reset playing state after a delay (speech is handled by main window)
       setTimeout(() => {
         setIsPlayingTest(false);
       }, 3000);
     } else {
-      setTestAudioError('IPC通信エラー: メインウィンドウに接続できません');
+      setTestAudioError("IPC通信エラー: メインウィンドウに接続できません");
       setIsPlayingTest(false);
     }
   };
 
   const handleReset = async () => {
-    if (confirm('Are you sure you want to reset all settings to defaults? This will close the settings window.')) {
+    if (confirm("Are you sure you want to reset all settings to defaults? This will close the settings window.")) {
       localStorage.clear();
 
       // Delete VRM file from IndexedDB
       try {
         await deleteVRMFile();
-        console.log('[SettingsApp] VRM file deleted');
+        console.log("[SettingsApp] VRM file deleted");
         // Update UI state to reflect the deletion
         setVrmFileName(undefined);
         setSelectedFileName(null);
       } catch (err) {
-        console.error('[SettingsApp] Failed to delete VRM file:', err);
+        console.error("[SettingsApp] Failed to delete VRM file:", err);
       }
 
       if (window.electron?.resetAllSettings) {
@@ -315,14 +315,16 @@ export default function SettingsApp() {
           <h2 className="m-0 mb-4 text-lg font-semibold text-gray-800">キャラクター</h2>
           <div className="space-y-4">
             <div className="flex flex-col gap-3">
-              <label htmlFor="vrm-file" className="text-sm font-medium text-gray-600">VRMモデル変更</label>
+              <label htmlFor="vrm-file" className="text-sm font-medium text-gray-600">
+                VRMモデル変更
+              </label>
               <input
                 ref={fileInputRef}
                 type="file"
                 id="vrm-file"
                 accept=".vrm,.glb"
                 onChange={handleFileChange}
-                style={{ display: 'none' }}
+                style={{ display: "none" }}
               />
               <button
                 className="px-4 py-2 rounded-md text-sm font-medium cursor-pointer transition-all duration-200 border border-gray-300 bg-white text-gray-800 hover:bg-gray-100 hover:border-gray-400 w-fit"
@@ -332,7 +334,7 @@ export default function SettingsApp() {
                 VRMファイルを選択
               </button>
               <p className="text-sm text-gray-600 mb-0 italic">
-                {selectedFileName || vrmFileName || 'ファイルが選択されていません'}
+                {selectedFileName || vrmFileName || "ファイルが選択されていません"}
               </p>
             </div>
             <div className="flex flex-col gap-3">
@@ -369,8 +371,8 @@ export default function SettingsApp() {
                     type="radio"
                     name="engineType"
                     value="aivis"
-                    checked={engineType === 'aivis'}
-                    onChange={() => handleEngineTypeChange('aivis')}
+                    checked={engineType === "aivis"}
+                    onChange={() => handleEngineTypeChange("aivis")}
                     className="w-4 h-4 m-0 cursor-pointer accent-primary"
                   />
                   <span className="font-normal">AivisSpeech</span>
@@ -380,8 +382,8 @@ export default function SettingsApp() {
                     type="radio"
                     name="engineType"
                     value="voicevox"
-                    checked={engineType === 'voicevox'}
-                    onChange={() => handleEngineTypeChange('voicevox')}
+                    checked={engineType === "voicevox"}
+                    onChange={() => handleEngineTypeChange("voicevox")}
                     className="w-4 h-4 m-0 cursor-pointer accent-primary"
                   />
                   <span className="font-normal">VOICEVOX</span>
@@ -391,8 +393,8 @@ export default function SettingsApp() {
                     type="radio"
                     name="engineType"
                     value="custom"
-                    checked={engineType === 'custom'}
-                    onChange={() => handleEngineTypeChange('custom')}
+                    checked={engineType === "custom"}
+                    onChange={() => handleEngineTypeChange("custom")}
                     className="w-4 h-4 m-0 cursor-pointer accent-primary"
                   />
                   <span className="font-normal">カスタム</span>
@@ -400,18 +402,20 @@ export default function SettingsApp() {
               </div>
             </div>
             <div className="flex flex-col gap-3">
-              <label htmlFor="engine-path" className="text-sm font-medium text-gray-600">エンジンパス</label>
+              <label htmlFor="engine-path" className="text-sm font-medium text-gray-600">
+                エンジンパス
+              </label>
               <div className="flex gap-2 items-center">
                 <input
                   type="text"
                   id="engine-path"
-                  value={engineType === 'custom' ? customPath : ENGINE_PATHS[engineType]}
+                  value={engineType === "custom" ? customPath : ENGINE_PATHS[engineType]}
                   onChange={(e) => setCustomPath(e.target.value)}
-                  disabled={engineType !== 'custom'}
-                  placeholder={engineType === 'custom' ? 'カスタムエンジンパスを入力' : ''}
+                  disabled={engineType !== "custom"}
+                  placeholder={engineType === "custom" ? "カスタムエンジンパスを入力" : ""}
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm font-mono text-gray-800 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
                 />
-                {engineType === 'custom' && (
+                {engineType === "custom" && (
                   <button
                     type="button"
                     onClick={handleApplyCustomPath}
@@ -424,7 +428,9 @@ export default function SettingsApp() {
               </div>
             </div>
             <div className="flex flex-col gap-3">
-              <label htmlFor="speaker-select" className="text-sm font-medium text-gray-600">音声スタイル</label>
+              <label htmlFor="speaker-select" className="text-sm font-medium text-gray-600">
+                音声スタイル
+              </label>
               {loadingSpeakers ? (
                 <>
                   <select
@@ -487,7 +493,7 @@ export default function SettingsApp() {
                 disabled={isPlayingTest || speakers.length === 0}
                 className="px-4 py-2 rounded-md text-sm font-medium cursor-pointer transition-all duration-200 border-0 bg-primary text-white w-fit hover:bg-primary-dark disabled:bg-gray-400 disabled:cursor-not-allowed"
               >
-                {isPlayingTest ? '再生中...' : 'テスト音声を再生'}
+                {isPlayingTest ? "再生中..." : "テスト音声を再生"}
               </button>
               {testAudioError && <p className="text-sm text-danger mt-1 mb-0">{testAudioError}</p>}
             </div>

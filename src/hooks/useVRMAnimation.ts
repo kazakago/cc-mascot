@@ -1,23 +1,15 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { AnimationMixer, AnimationAction, LoopOnce } from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import {
-  VRMAnimationLoaderPlugin,
-  VRMAnimation,
-  createVRMAnimationClip,
-} from '@pixiv/three-vrm-animation';
-import type { VRM } from '@pixiv/three-vrm';
+import { useState, useEffect, useCallback, useRef } from "react";
+import { AnimationMixer, AnimationAction, LoopOnce } from "three";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { VRMAnimationLoaderPlugin, VRMAnimation, createVRMAnimationClip } from "@pixiv/three-vrm-animation";
+import type { VRM } from "@pixiv/three-vrm";
 
 interface UseVRMAnimationOptions {
   loop?: boolean;
   onAnimationEnd?: () => void;
 }
 
-export function useVRMAnimation(
-  vrm: VRM | null,
-  animationUrl: string,
-  options: UseVRMAnimationOptions = {}
-) {
+export function useVRMAnimation(vrm: VRM | null, animationUrl: string, options: UseVRMAnimationOptions = {}) {
   const { loop = true, onAnimationEnd } = options;
   const [vrmAnimation, setVrmAnimation] = useState<VRMAnimation | null>(null);
   const mixerRef = useRef<AnimationMixer | null>(null);
@@ -30,7 +22,8 @@ export function useVRMAnimation(
     const loader = new GLTFLoader();
     loader.register((parser) => new VRMAnimationLoaderPlugin(parser));
 
-    loader.loadAsync(animationUrl)
+    loader
+      .loadAsync(animationUrl)
       .then((gltf) => {
         const vrmAnimations = gltf.userData.vrmAnimations as VRMAnimation[] | undefined;
         if (vrmAnimations && vrmAnimations.length > 0) {
@@ -38,7 +31,7 @@ export function useVRMAnimation(
         }
       })
       .catch((err) => {
-        console.error('Failed to load VRMA:', err);
+        console.error("Failed to load VRMA:", err);
       });
   }, [animationUrl]);
 
@@ -94,13 +87,13 @@ export function useVRMAnimation(
       const handleFinished = (event: { action: AnimationAction }) => {
         if (event.action === newAction) {
           onAnimationEnd();
-          mixer.removeEventListener('finished', handleFinished);
+          mixer.removeEventListener("finished", handleFinished);
         }
       };
-      mixer.addEventListener('finished', handleFinished);
+      mixer.addEventListener("finished", handleFinished);
 
       return () => {
-        mixer.removeEventListener('finished', handleFinished);
+        mixer.removeEventListener("finished", handleFinished);
       };
     }
   }, [vrm, vrmAnimation, loop, onAnimationEnd]);

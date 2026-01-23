@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import type { VRM } from '@pixiv/three-vrm';
+import { useState, useEffect, useCallback, useRef } from "react";
+import type { VRM } from "@pixiv/three-vrm";
 
 interface UseBlinkOptions {
   minInterval?: number; // 最小まばたき間隔（ミリ秒）
@@ -46,17 +46,17 @@ export function useBlink(vrm: VRM | null, options: UseBlinkOptions = {}) {
         // 目を閉じる（0 → 1）
         const progress = elapsed / halfDuration;
         const value = progress; // linear interpolation
-        vrm.expressionManager?.setValue('blink', value);
+        vrm.expressionManager?.setValue("blink", value);
         blinkAnimationRef.current = requestAnimationFrame(animate);
       } else if (elapsed < blinkDuration) {
         // 目を開く（1 → 0）
         const progress = (elapsed - halfDuration) / halfDuration;
         const value = 1.0 - progress; // linear interpolation
-        vrm.expressionManager?.setValue('blink', value);
+        vrm.expressionManager?.setValue("blink", value);
         blinkAnimationRef.current = requestAnimationFrame(animate);
       } else {
         // アニメーション終了
-        vrm.expressionManager?.setValue('blink', 0.0);
+        vrm.expressionManager?.setValue("blink", 0.0);
         setIsBlinking(false);
         blinkAnimationRef.current = null;
       }
@@ -100,7 +100,7 @@ export function useBlink(vrm: VRM | null, options: UseBlinkOptions = {}) {
   useEffect(() => {
     return () => {
       if (vrm?.expressionManager) {
-        vrm.expressionManager.setValue('blink', 0.0);
+        vrm.expressionManager.setValue("blink", 0.0);
       }
     };
   }, [vrm]);

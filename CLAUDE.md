@@ -16,6 +16,7 @@
 ### 技術スタック
 
 **コア技術:**
+
 - Electron (デスクトップアプリ化)
 - React + TypeScript + Vite (フロントエンド)
 - Three.js + @react-three/fiber (3Dレンダリング)
@@ -23,14 +24,17 @@
 - Web Audio API (音声解析・リップシンク)
 
 **音声合成:**
+
 - AivisSpeech / VOICEVOX (日本語TTS)
 - ポート: localhost:8564 (アプリが自動起動)
 
 **ファイル監視:**
+
 - chokidar (ログファイル監視)
 - 対象: `~/.claude/projects/**/*.jsonl`
 
 **データ永続化:**
+
 - localStorage (音声設定)
 - IndexedDB (VRMファイル)
 - Electron Store (エンジン設定、ウィンドウサイズ)
@@ -82,6 +86,7 @@
 ### ウィンドウ構成
 
 **メインウィンドウ（透過・常に最前面・フレームレス）:**
+
 - VRMアバター表示
 - リップシンク・感情表現
 - ドラッグ移動（楕円判定）
@@ -89,6 +94,7 @@
 - 右クリックで設定ウィンドウを開く
 
 **設定ウィンドウ（通常ウィンドウ・常に最前面）:**
+
 - エンジン選択（AivisSpeech/VOICEVOX/Custom）
 - スピーカー選択
 - 音量調整
@@ -103,12 +109,14 @@
 **electron/logMonitor.ts**
 
 設計方針:
+
 - `~/.claude/projects/**/*.jsonl` を監視（depth=1、サブエージェントは除外）
 - ファイルごとに位置を記録、差分のみ読み取り（既存ログは無視）
 - デバウンス処理（100ms）で過剰な処理を防ぐ
 - 非同期ストリーム読み込みで大容量ファイルにも対応
 
 データフロー:
+
 ```
 ファイル変更検出 (chokidar)
   ↓
@@ -128,6 +136,7 @@ IPC送信 (speak イベント)
 **electron/parsers/claudeCodeParser.ts**
 
 解析ルール:
+
 - `message.role === "assistant"` のみ処理
 - `message.type === "message"` のみ処理
 - `content[].type === "text"` のみ抽出（thinking, tool_useは除外）
@@ -135,6 +144,7 @@ IPC送信 (speak イベント)
 **electron/services/ruleBasedEmotionClassifier.ts**
 
 感情判定アルゴリズム:
+
 - キーワード辞書（日本語）: happy, angry, sad, surprised, relaxed
 - 文末パターン（正規表現）: 女性言葉・中性的・丁寧・男性的に対応
 - ヒューリスティック: コードブロック→neutral、問題解決→happy
@@ -145,9 +155,10 @@ IPC送信 (speak イベント)
 **electron/filters/textFilter.ts**
 
 フィルタリング処理:
-- コードブロック除去（```...```）
+
+- コードブロック除去（`...`）
 - XML/HTMLタグ除去（<...>）
-- Markdown記法除去（##, ---, |...|, >, -, *）
+- Markdown記法除去（##, ---, |...|, >, -, \*）
 - URL置換（"URL"に統一）
 - インラインコード除去（`...` → 中身のみ残す）
 - コロン除去
@@ -157,12 +168,14 @@ IPC送信 (speak イベント)
 **src/hooks/useSpeech.ts**
 
 設計方針:
+
 - キュー構造で順序保証（オーバーラップなし）
 - AudioContext初期化（Electron用に自動resume）
 - エラー時もキュー継続
 - volumeScale適用（GainNode）
 
 Web Audio APIグラフ:
+
 ```
 BufferSourceNode → AnalyserNode → GainNode → Destination
                        ↓
@@ -172,6 +185,7 @@ BufferSourceNode → AnalyserNode → GainNode → Destination
 **src/services/voicevox.ts**
 
 APIフロー:
+
 ```
 1. POST /audio_query?text=...&speaker=...
    → AudioQuery オブジェクト取得
@@ -189,6 +203,7 @@ APIフロー:
 **src/hooks/useLipSync.ts**
 
 アルゴリズム:
+
 ```
 AnalyserNode.getByteTimeDomainData()
   ↓
@@ -200,6 +215,7 @@ VRM表情 'aa' に適用
 ```
 
 設計ポイント:
+
 - AnalyserNodeは音量調整前のデータを解析（volumeScale影響なし）
 - requestAnimationFrame でフレーム同期
 - fftSize=256（音声解析に十分）
@@ -209,6 +225,7 @@ VRM表情 'aa' に適用
 **src/hooks/useVRM.ts**
 
 VRM読み込み:
+
 - VRMLoaderPlugin使用
 - VRM 0.x / 1.0 自動対応
 - GLB（VRM拡張付き）対応
@@ -216,6 +233,7 @@ VRM読み込み:
 - カスタム: IndexedDBから読み込み
 
 表情制御:
+
 - リップシンク: `aa` 表情（0.0〜1.0）
 - 感情表現: happy, angry, sad, surprised, relaxed
 - まばたき: `blink` / `blinkLeft` / `blinkRight` 表情
@@ -223,6 +241,7 @@ VRM読み込み:
 **src/hooks/useVRMAnimation.ts**
 
 アニメーション:
+
 - VRMA形式（VRM Animation）
 - VRMAnimationLoaderPlugin使用
 - ループ再生対応
@@ -232,6 +251,7 @@ VRM読み込み:
 **src/hooks/useBlink.ts**
 
 まばたき制御:
+
 - ランダム間隔（2〜6秒）
 - アニメーション時間（0.15秒）
 - リップシンク・感情表現と独立
@@ -241,6 +261,7 @@ VRM読み込み:
 **electron/main.ts**
 
 設計方針:
+
 - アプリ起動時にエンジンプロセスを自動spawn
 - ポート8564で起動（--port 8564 --cors_policy_mode all）
 - 既にポートが使用中の場合はスキップ
@@ -248,11 +269,13 @@ VRM読み込み:
 - ポート解放待機（最大15秒）
 
 エンジンタイプ:
+
 - `aivis`: AivisSpeech（デフォルト）
 - `voicevox`: VOICEVOX
 - `custom`: カスタムパス
 
 設定保存:
+
 - Electron Store使用
 - `engineType`, `voicevoxEnginePath` を永続化
 
@@ -261,18 +284,21 @@ VRM読み込み:
 **electron/main.ts**
 
 メインウィンドウ:
+
 - サイズ: 可変（400〜1200px、正方形、アスペクト比1:1固定）
 - フレームレス・透過・常に最前面
 - ドラッグ移動: 楕円範囲内のみ（縦長楕円、radiusX=15%, radiusY=45%）
 - クリックスルー: 楕円外はマウスイベント無視
 
 設定ウィンドウ:
+
 - サイズ: 600x700（固定ではないがリサイズ可能）
 - 通常ウィンドウ・常に最前面
 - 右クリックで開く
 - 単一インスタンス（既に開いている場合はフォーカス）
 
 IPC通信:
+
 - `speak`: メイン→レンダラー（ログ監視で検出したメッセージ）
 - `vrm-changed`: 設定→メイン→メイン（VRM変更通知）
 - `speaker-changed`: 設定→メイン→メイン（スピーカー変更通知）
@@ -286,10 +312,10 @@ IPC通信:
 
 ### localStorage（Renderer Process）
 
-| キー | 型 | デフォルト | 説明 |
-|------|-----|------------|------|
-| `speakerId` | number | 888753760 | 話者ID（AivisSpeechデフォルト） |
-| `volumeScale` | number | 1.0 | 音量スケール（0.0〜2.0） |
+| キー          | 型     | デフォルト | 説明                            |
+| ------------- | ------ | ---------- | ------------------------------- |
+| `speakerId`   | number | 888753760  | 話者ID（AivisSpeechデフォルト） |
+| `volumeScale` | number | 1.0        | 音量スケール（0.0〜2.0）        |
 
 ### IndexedDB（Renderer Process）
 
@@ -302,11 +328,11 @@ IPC通信:
 
 ### Electron Store（Main Process）
 
-| キー | 型 | デフォルト | 説明 |
-|------|-----|------------|------|
-| `engineType` | string | "aivis" | エンジンタイプ（aivis/voicevox/custom） |
-| `voicevoxEnginePath` | string | undefined | カスタムエンジンパス |
-| `windowSize` | number | 800 | ウィンドウサイズ（400〜1200） |
+| キー                 | 型     | デフォルト | 説明                                    |
+| -------------------- | ------ | ---------- | --------------------------------------- |
+| `engineType`         | string | "aivis"    | エンジンタイプ（aivis/voicevox/custom） |
+| `voicevoxEnginePath` | string | undefined  | カスタムエンジンパス                    |
+| `windowSize`         | number | 800        | ウィンドウサイズ（400〜1200）           |
 
 ## ディレクトリ構造
 
@@ -384,12 +410,14 @@ cc-mascot/
 ### アバターが喋らない
 
 **確認項目:**
+
 1. エンジンがインストールされているか（AivisSpeech/VOICEVOX）
 2. 設定画面で「Loading speakers...」が表示されていないか（エンジン起動待ち）
 3. `~/.claude/projects/` にログファイルがあるか
 4. Electronコンソールに `[LogMonitor]` ログが出ているか
 
 **デバッグ方法:**
+
 - メインプロセスコンソール: `[Engine]`, `[LogMonitor]` ログ確認
 - レンダラープロセスコンソール: `[App]`, `[useSpeech]` ログ確認
 - `window.electron` が定義されているか確認
@@ -398,20 +426,24 @@ cc-mascot/
 ### リップシンクが動かない
 
 **原因:**
+
 - VRMモデルに `aa` 表情がない
 - AnalyserNodeが機能していない
 
 **デバッグ方法:**
+
 - ブラウザコンソールで `vrm.expressionManager.expressionMap` 確認
 - `aa` 表情の存在を確認
 
 ### エンジンが起動しない
 
 **原因:**
+
 - エンジンパスが正しくない
 - ポート8564が既に使用中
 
 **デバッグ方法:**
+
 - 設定画面でEngine Pathを確認
 - `lsof -i :8564` でポート確認
 - メインプロセスコンソールで `[Engine]` ログ確認
@@ -502,6 +534,7 @@ npm run package
 ## 主要依存関係
 
 **本番:**
+
 - `@pixiv/three-vrm`: ^3.4.4
 - `@pixiv/three-vrm-animation`: ^3.4.4
 - `@react-three/fiber`: ^9.5.0
@@ -511,6 +544,7 @@ npm run package
 - `electron-store`: ^11.0.2
 
 **開発:**
+
 - `electron`: ^39.2.7
 - `vite`: ^7.2.4
 - `vitest`: ^4.0.17
