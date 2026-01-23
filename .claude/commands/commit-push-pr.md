@@ -146,7 +146,7 @@ git diff <ベースブランチ>...HEAD --stat
 
 `-p`オプションが指定されている場合、テンプレートの最後に以下の形式で追記してください:
 
-`````markdown
+````markdown
 ## :robot: プロンプト
 
 <details>
@@ -159,7 +159,7 @@ git diff <ベースブランチ>...HEAD --stat
 
 </p>
 </details>
-`````
+````
 
 ### LLMとの共著であることを明記
 
