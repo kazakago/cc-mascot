@@ -65,7 +65,7 @@ git diff <ベースブランチ>...HEAD --stat
 
 **重要**: バッククォート(`` ` ``)はMarkdownの記法として使用するため、エスケープせずそのまま出力してください。
 
-`````markdown
+````markdown
 ## :robot: プロンプト
 
 <details>
@@ -78,7 +78,7 @@ git diff <ベースブランチ>...HEAD --stat
 
 </p>
 </details>
-`````
+````
 
 ### LLMとの共著であることを明記
 
