@@ -57,11 +57,8 @@ gh pr merge <PR番号> --merge --delete-branch
 
 2. ローカルのGit情報を最新化する
 
-10秒待ってから下記コマンドを実行する
-（サーバー側の処理を待つ）
-
 ```bash
-git fetch
+git fetch --prune
 ```
 
 3. ベースブランチをCheckoutする
