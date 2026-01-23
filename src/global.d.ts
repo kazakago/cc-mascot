@@ -8,6 +8,7 @@ declare global {
       onSpeak: (callback: (message: string) => void) => (() => void);
       onVRMChanged: (callback: () => void) => (() => void);
       onSpeakerChanged: (callback: (speakerId: number) => void) => (() => void);
+      onVolumeChanged: (callback: (volumeScale: number) => void) => (() => void);
       getVoicevoxPath: () => Promise<string | undefined>;
       setVoicevoxPath: (path: string) => Promise<boolean>;
       getEngineType: () => Promise<EngineType | undefined>;
@@ -24,6 +25,7 @@ declare global {
       closeSettingsWindow: () => void;
       notifyVRMChanged: () => void;
       notifySpeakerChanged: (speakerId: number) => void;
+      notifyVolumeChanged: (volumeScale: number) => void;
       playTestSpeech: () => void;
       onPlayTestSpeech: (callback: () => void) => (() => void);
     };
