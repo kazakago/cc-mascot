@@ -1,6 +1,6 @@
-import { useRef, useCallback, useEffect, useState } from 'react';
-import { speak } from '../services/voicevox';
-import type { Emotion } from '../types/emotion';
+import { useRef, useCallback, useEffect, useState } from "react";
+import { speak } from "../services/voicevox";
+import type { Emotion } from "../types/emotion";
 
 interface UseSpeechOptions {
   onStart: (analyser: AnalyserNode, emotion: Emotion) => void;
@@ -14,7 +14,7 @@ interface QueueItem {
   id: number;
   text: string;
   emotion: Emotion;
-  status: 'pending' | 'synthesizing' | 'ready' | 'playing';
+  status: "pending" | "synthesizing" | "ready" | "playing";
   audioBuffer?: AudioBuffer;
   promise?: Promise<AudioBuffer>;
 }
@@ -36,11 +36,11 @@ export function useSpeech({ onStart, onEnd, speakerId, baseUrl, volumeScale }: U
     audioContextRef.current = ctx;
 
     const initialize = async () => {
-      if (ctx.state !== 'running') {
+      if (ctx.state !== "running") {
         await ctx.resume();
-        console.log('AudioContext resumed');
+        console.log("AudioContext resumed");
       } else {
-        console.log('AudioContext initialized');
+        console.log("AudioContext initialized");
       }
       setIsReady(true);
     };
@@ -49,28 +49,31 @@ export function useSpeech({ onStart, onEnd, speakerId, baseUrl, volumeScale }: U
   }, []);
 
   // 音声合成を並列実行（キューに入ったら即座に開始）
-  const synthesizeAudio = useCallback(async (item: QueueItem) => {
-    if (!audioContextRef.current) return;
+  const synthesizeAudio = useCallback(
+    async (item: QueueItem) => {
+      if (!audioContextRef.current) return;
 
-    try {
-      console.log(`[useSpeech] Synthesizing item #${item.id}: "${item.text}"`);
-      const wavBuffer = await speak(item.text, speakerId, baseUrl);
-      const audioBuffer = await audioContextRef.current.decodeAudioData(wavBuffer);
+      try {
+        console.log(`[useSpeech] Synthesizing item #${item.id}: "${item.text}"`);
+        const wavBuffer = await speak(item.text, speakerId, baseUrl);
+        const audioBuffer = await audioContextRef.current.decodeAudioData(wavBuffer);
 
-      // 音声合成完了、アイテムを更新
-      item.audioBuffer = audioBuffer;
-      item.status = 'ready';
-      console.log(`[useSpeech] Item #${item.id} synthesis complete`);
+        // 音声合成完了、アイテムを更新
+        item.audioBuffer = audioBuffer;
+        item.status = "ready";
+        console.log(`[useSpeech] Item #${item.id} synthesis complete`);
 
-      // 発話処理をトリガー
-      processQueueRef.current?.();
-    } catch (error) {
-      console.error(`[useSpeech] Synthesis failed for item #${item.id}:`, error);
-      // 失敗したアイテムは削除
-      queueRef.current.delete(item.id);
-      processQueueRef.current?.();
-    }
-  }, [speakerId, baseUrl]);
+        // 発話処理をトリガー
+        processQueueRef.current?.();
+      } catch (error) {
+        console.error(`[useSpeech] Synthesis failed for item #${item.id}:`, error);
+        // 失敗したアイテムは削除
+        queueRef.current.delete(item.id);
+        processQueueRef.current?.();
+      }
+    },
+    [speakerId, baseUrl],
+  );
 
   // 音声合成完了したアイテムを順番に発話
   const processQueue = useCallback(async () => {
@@ -80,22 +83,22 @@ export function useSpeech({ onStart, onEnd, speakerId, baseUrl, volumeScale }: U
 
     // AudioContextが準備できていない場合は終了
     if (!isReady || !audioContextRef.current) {
-      console.warn('AudioContext not ready');
+      console.warn("AudioContext not ready");
       return;
     }
 
     const ctx = audioContextRef.current;
 
     // suspended状態なら無視
-    if (ctx.state === 'suspended') {
-      console.warn('AudioContext suspended, waiting');
+    if (ctx.state === "suspended") {
+      console.warn("AudioContext suspended, waiting");
       return;
     }
 
     // 次に発話すべきアイテムを探す（ID順）
     let nextItem: QueueItem | undefined;
     for (const [id, item] of queueRef.current) {
-      if (item.status === 'ready') {
+      if (item.status === "ready") {
         // まだ再生していない最も小さいIDのアイテムを再生
         if (!nextItem || id < nextItem.id) {
           nextItem = item;
@@ -110,7 +113,7 @@ export function useSpeech({ onStart, onEnd, speakerId, baseUrl, volumeScale }: U
 
     try {
       isSpeakingRef.current = true;
-      nextItem.status = 'playing';
+      nextItem.status = "playing";
 
       console.log(`[useSpeech] Playing item #${nextItem.id}: "${nextItem.text}"`);
 
@@ -160,37 +163,37 @@ export function useSpeech({ onStart, onEnd, speakerId, baseUrl, volumeScale }: U
   // Real-time volume update: update current gain node when volumeScale changes
   useEffect(() => {
     if (currentGainNodeRef.current) {
-      currentGainNodeRef.current.gain.setValueAtTime(
-        volumeScale,
-        currentGainNodeRef.current.context.currentTime
-      );
+      currentGainNodeRef.current.gain.setValueAtTime(volumeScale, currentGainNodeRef.current.context.currentTime);
     }
   }, [volumeScale]);
 
-  const speakText = useCallback((text: string, emotion: Emotion = 'neutral') => {
-    // AudioContextが準備できていない場合は無視
-    if (!isReady) {
-      console.warn('AudioContext not ready, ignoring:', text);
-      return;
-    }
+  const speakText = useCallback(
+    (text: string, emotion: Emotion = "neutral") => {
+      // AudioContextが準備できていない場合は無視
+      if (!isReady) {
+        console.warn("AudioContext not ready, ignoring:", text);
+        return;
+      }
 
-    const id = nextIdRef.current++;
-    const item: QueueItem = {
-      id,
-      text,
-      emotion,
-      status: 'pending',
-    };
+      const id = nextIdRef.current++;
+      const item: QueueItem = {
+        id,
+        text,
+        emotion,
+        status: "pending",
+      };
 
-    console.log(`[useSpeech] Queued item #${id}: "${text}" with emotion "${emotion}"`);
+      console.log(`[useSpeech] Queued item #${id}: "${text}" with emotion "${emotion}"`);
 
-    // キューに追加
-    queueRef.current.set(id, item);
+      // キューに追加
+      queueRef.current.set(id, item);
 
-    // 即座に音声合成を開始（並列実行）
-    item.status = 'synthesizing';
-    synthesizeAudio(item);
-  }, [isReady, synthesizeAudio]);
+      // 即座に音声合成を開始（並列実行）
+      item.status = "synthesizing";
+      synthesizeAudio(item);
+    },
+    [isReady, synthesizeAudio],
+  );
 
   return { speakText, isReady };
 }

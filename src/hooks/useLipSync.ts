@@ -1,4 +1,4 @@
-import { useRef, useCallback, useEffect } from 'react';
+import { useRef, useCallback, useEffect } from "react";
 
 interface UseLipSyncOptions {
   onMouthValueChange: (value: number) => void;

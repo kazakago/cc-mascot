@@ -1,5 +1,5 @@
-import 'fake-indexeddb/auto';
-import { beforeEach } from 'vitest';
+import "fake-indexeddb/auto";
+import { beforeEach } from "vitest";
 
 // localStorageのモック
 class LocalStorageMock {

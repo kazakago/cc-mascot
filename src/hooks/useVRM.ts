@@ -1,12 +1,12 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { VRM, VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
-import { VRMLookAtQuaternionProxy } from '@pixiv/three-vrm-animation';
-import { MathUtils } from 'three';
-import type { Emotion } from '../types/emotion';
-import { getExpressionName } from '../types/emotion';
+import { useState, useEffect, useCallback, useRef } from "react";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { VRM, VRMLoaderPlugin, VRMUtils } from "@pixiv/three-vrm";
+import { VRMLookAtQuaternionProxy } from "@pixiv/three-vrm-animation";
+import { MathUtils } from "three";
+import type { Emotion } from "../types/emotion";
+import { getExpressionName } from "../types/emotion";
 
-const EMOTIONS: Emotion[] = ['neutral', 'happy', 'angry', 'sad', 'relaxed', 'surprised'];
+const EMOTIONS: Emotion[] = ["neutral", "happy", "angry", "sad", "relaxed", "surprised"];
 const LERP_FACTOR = 0.1; // Lower = smoother but slower transition
 
 export function useVRM(url: string) {
@@ -38,7 +38,8 @@ export function useVRM(url: string) {
     const loader = new GLTFLoader();
     loader.register((parser) => new VRMLoaderPlugin(parser));
 
-    loader.loadAsync(url)
+    loader
+      .loadAsync(url)
       .then((gltf) => {
         const loadedVrm = gltf.userData.vrm as VRM;
 
@@ -47,7 +48,7 @@ export function useVRM(url: string) {
         // Create VRMLookAtQuaternionProxy to suppress animation warnings
         if (loadedVrm.lookAt) {
           const lookAtProxy = new VRMLookAtQuaternionProxy(loadedVrm.lookAt);
-          lookAtProxy.name = 'VRMLookAtQuaternionProxy';
+          lookAtProxy.name = "VRMLookAtQuaternionProxy";
           loadedVrm.scene.add(lookAtProxy);
         }
 
@@ -57,7 +58,7 @@ export function useVRM(url: string) {
         setError(null);
       })
       .catch((err) => {
-        console.error('Failed to load VRM:', err);
+        console.error("Failed to load VRM:", err);
         setError(err);
         setLoading(false);
       });
@@ -70,18 +71,25 @@ export function useVRM(url: string) {
     };
   }, [url]);
 
-  const setMouthOpen = useCallback((value: number) => {
-    console.log(`[setMouthOpen] called with value=${value}, vrm=${!!vrm}, expressionManager=${!!vrm?.expressionManager}`);
-    if (vrm?.expressionManager) {
-      const happyValue = currentEmotionValues.current.happy;
-      // happyが強いほどリップシンクを弱く（0.2〜1.0の範囲）
-      // 笑顔時に口が開きすぎてメッシュからはみ出るのを防ぐ
-      const scale = 1.0 - (happyValue * 0.8);
-      const adjustedValue = value * scale;
-      console.log(`[LipSync] raw=${value.toFixed(2)}, happy=${happyValue.toFixed(2)}, scale=${scale.toFixed(2)}, adjusted=${adjustedValue.toFixed(2)}`);
-      vrm.expressionManager.setValue('aa', adjustedValue);
-    }
-  }, [vrm]);
+  const setMouthOpen = useCallback(
+    (value: number) => {
+      console.log(
+        `[setMouthOpen] called with value=${value}, vrm=${!!vrm}, expressionManager=${!!vrm?.expressionManager}`,
+      );
+      if (vrm?.expressionManager) {
+        const happyValue = currentEmotionValues.current.happy;
+        // happyが強いほどリップシンクを弱く（0.2〜1.0の範囲）
+        // 笑顔時に口が開きすぎてメッシュからはみ出るのを防ぐ
+        const scale = 1.0 - happyValue * 0.8;
+        const adjustedValue = value * scale;
+        console.log(
+          `[LipSync] raw=${value.toFixed(2)}, happy=${happyValue.toFixed(2)}, scale=${scale.toFixed(2)}, adjusted=${adjustedValue.toFixed(2)}`,
+        );
+        vrm.expressionManager.setValue("aa", adjustedValue);
+      }
+    },
+    [vrm],
+  );
 
   const setEmotion = useCallback((emotion: Emotion, value: number = 1.0) => {
     // Set target values for smooth transition
@@ -90,27 +98,30 @@ export function useVRM(url: string) {
     });
   }, []);
 
-  const update = useCallback((delta: number) => {
-    if (vrm) {
-      // Smoothly interpolate emotion values
-      if (vrm.expressionManager) {
-        EMOTIONS.forEach((emotion) => {
-          const current = currentEmotionValues.current[emotion];
-          const target = targetEmotionValues.current[emotion];
+  const update = useCallback(
+    (delta: number) => {
+      if (vrm) {
+        // Smoothly interpolate emotion values
+        if (vrm.expressionManager) {
+          EMOTIONS.forEach((emotion) => {
+            const current = currentEmotionValues.current[emotion];
+            const target = targetEmotionValues.current[emotion];
 
-          // Lerp towards target value
-          const newValue = MathUtils.lerp(current, target, LERP_FACTOR);
-          currentEmotionValues.current[emotion] = newValue;
+            // Lerp towards target value
+            const newValue = MathUtils.lerp(current, target, LERP_FACTOR);
+            currentEmotionValues.current[emotion] = newValue;
 
-          // Apply to VRM
-          const expressionName = getExpressionName(emotion);
-          vrm.expressionManager?.setValue(expressionName, newValue);
-        });
+            // Apply to VRM
+            const expressionName = getExpressionName(emotion);
+            vrm.expressionManager?.setValue(expressionName, newValue);
+          });
+        }
+
+        vrm.update(delta);
       }
-
-      vrm.update(delta);
-    }
-  }, [vrm]);
+    },
+    [vrm],
+  );
 
   return { vrm, loading, error, setMouthOpen, setEmotion, update };
 }

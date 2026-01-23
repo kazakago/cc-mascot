@@ -1,5 +1,5 @@
-const DB_NAME = 'cc-mascot-db';
-const STORE_NAME = 'vrm-models';
+const DB_NAME = "cc-mascot-db";
+const STORE_NAME = "vrm-models";
 const DB_VERSION = 1;
 
 function openDB(): Promise<IDBDatabase> {
@@ -21,9 +21,9 @@ function openDB(): Promise<IDBDatabase> {
 export async function saveVRMFile(file: File): Promise<void> {
   const db = await openDB();
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORE_NAME, 'readwrite');
+    const transaction = db.transaction(STORE_NAME, "readwrite");
     const store = transaction.objectStore(STORE_NAME);
-    const request = store.put(file, 'current-vrm');
+    const request = store.put(file, "current-vrm");
 
     request.onerror = () => reject(request.error);
     request.onsuccess = () => resolve();
@@ -33,9 +33,9 @@ export async function saveVRMFile(file: File): Promise<void> {
 export async function loadVRMFile(): Promise<File | null> {
   const db = await openDB();
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORE_NAME, 'readonly');
+    const transaction = db.transaction(STORE_NAME, "readonly");
     const store = transaction.objectStore(STORE_NAME);
-    const request = store.get('current-vrm');
+    const request = store.get("current-vrm");
 
     request.onerror = () => reject(request.error);
     request.onsuccess = () => resolve(request.result || null);
@@ -45,9 +45,9 @@ export async function loadVRMFile(): Promise<File | null> {
 export async function deleteVRMFile(): Promise<void> {
   const db = await openDB();
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORE_NAME, 'readwrite');
+    const transaction = db.transaction(STORE_NAME, "readwrite");
     const store = transaction.objectStore(STORE_NAME);
-    const request = store.delete('current-vrm');
+    const request = store.delete("current-vrm");
 
     request.onerror = () => reject(request.error);
     request.onsuccess = () => resolve();

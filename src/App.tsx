@@ -1,67 +1,78 @@
-import { useRef, useCallback, useState, useEffect } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { Scene } from './components/Scene';
-import { VRMAvatar } from './components/VRMAvatar';
-import type { VRMAvatarHandle } from './components/VRMAvatar';
-import { useSpeech } from './hooks/useSpeech';
-import { useLipSync } from './hooks/useLipSync';
-import { useLocalStorage } from './hooks/useLocalStorage';
-import { loadVRMFile, createBlobURL } from './utils/vrmStorage';
-import type { Emotion } from './types/emotion';
+import { useRef, useCallback, useState, useEffect } from "react";
+import { Canvas } from "@react-three/fiber";
+import { Scene } from "./components/Scene";
+import { VRMAvatar } from "./components/VRMAvatar";
+import type { VRMAvatarHandle } from "./components/VRMAvatar";
+import { useSpeech } from "./hooks/useSpeech";
+import { useLipSync } from "./hooks/useLipSync";
+import { useLocalStorage } from "./hooks/useLocalStorage";
+import { loadVRMFile, createBlobURL } from "./utils/vrmStorage";
+import type { Emotion } from "./types/emotion";
 
 // Helper function to check if point is inside ellipse
-function isInsideEllipse(x: number, y: number, centerX: number, centerY: number, radiusX: number, radiusY: number): boolean {
+function isInsideEllipse(
+  x: number,
+  y: number,
+  centerX: number,
+  centerY: number,
+  radiusX: number,
+  radiusY: number,
+): boolean {
   const dx = x - centerX;
   const dy = y - centerY;
   // Ellipse equation: (x/a)^2 + (y/b)^2 <= 1
   return (dx * dx) / (radiusX * radiusX) + (dy * dy) / (radiusY * radiusY) <= 1;
 }
 
-const DEFAULT_VRM_URL = '/models/avatar.glb';
-const IDLE_ANIMATION_URL = '/animations/idle_loop.vrma';
+const DEFAULT_VRM_URL = "/models/avatar.glb";
+const IDLE_ANIMATION_URL = "/animations/idle_loop.vrma";
 const EMOTION_ANIMATION_URLS: Partial<Record<Emotion, string>> = {
-  happy: '/animations/happy.vrma',
+  happy: "/animations/happy.vrma",
 };
-const VOICEVOX_BASE_URL = 'http://localhost:8564';
+const VOICEVOX_BASE_URL = "http://localhost:8564";
 
 function App() {
   const avatarRef = useRef<VRMAvatarHandle>(null);
-  const [speakerId, setSpeakerId] = useLocalStorage('speakerId', 888753760);
-  const [volumeScale, setVolumeScale] = useLocalStorage('volumeScale', 1.0);
+  const [speakerId, setSpeakerId] = useLocalStorage("speakerId", 888753760);
+  const [volumeScale, setVolumeScale] = useLocalStorage("volumeScale", 1.0);
   const [vrmUrl, setVrmUrl] = useState<string>(DEFAULT_VRM_URL);
   const [currentAnimationUrl, setCurrentAnimationUrl] = useState<string>(IDLE_ANIMATION_URL);
-  const [currentEmotion, setCurrentEmotion] = useState<Emotion>('neutral');
+  const [currentEmotion, setCurrentEmotion] = useState<Emotion>("neutral");
 
   // Load VRM from IndexedDB on mount
   useEffect(() => {
-    loadVRMFile().then((file) => {
-      if (file) {
-        const url = createBlobURL(file);
-        setVrmUrl(url);
-      }
-    }).catch((err) => {
-      console.error('Failed to load VRM file:', err);
-    });
+    loadVRMFile()
+      .then((file) => {
+        if (file) {
+          const url = createBlobURL(file);
+          setVrmUrl(url);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load VRM file:", err);
+      });
   }, []);
 
   // Listen for VRM change notifications from settings window
   useEffect(() => {
     if (window.electron?.onVRMChanged) {
       const cleanup = window.electron.onVRMChanged(() => {
-        console.log('[App] VRM file changed, reloading...');
-        loadVRMFile().then((file) => {
-          if (file) {
-            const url = createBlobURL(file);
-            setVrmUrl(url);
-            console.log('[App] VRM reloaded:', file.name);
-          } else {
-            // No custom VRM, load default
-            setVrmUrl(DEFAULT_VRM_URL);
-            console.log('[App] No custom VRM, using default');
-          }
-        }).catch((err) => {
-          console.error('Failed to reload VRM file:', err);
-        });
+        console.log("[App] VRM file changed, reloading...");
+        loadVRMFile()
+          .then((file) => {
+            if (file) {
+              const url = createBlobURL(file);
+              setVrmUrl(url);
+              console.log("[App] VRM reloaded:", file.name);
+            } else {
+              // No custom VRM, load default
+              setVrmUrl(DEFAULT_VRM_URL);
+              console.log("[App] No custom VRM, using default");
+            }
+          })
+          .catch((err) => {
+            console.error("Failed to reload VRM file:", err);
+          });
       });
 
       return cleanup;
@@ -72,7 +83,7 @@ function App() {
   useEffect(() => {
     if (window.electron?.onSpeakerChanged) {
       const cleanup = window.electron.onSpeakerChanged((speakerId: number) => {
-        console.log('[App] Speaker changed to:', speakerId);
+        console.log("[App] Speaker changed to:", speakerId);
         setSpeakerId(speakerId);
       });
 
@@ -84,7 +95,7 @@ function App() {
   useEffect(() => {
     if (window.electron?.onVolumeChanged) {
       const cleanup = window.electron.onVolumeChanged((volumeScale: number) => {
-        console.log('[App] Volume changed to:', volumeScale);
+        console.log("[App] Volume changed to:", volumeScale);
         setVolumeScale(volumeScale);
       });
 
@@ -100,26 +111,29 @@ function App() {
     onMouthValueChange: handleMouthValueChange,
   });
 
-  const handleSpeechStart = useCallback((analyser: AnalyserNode, emotion: Emotion) => {
-    // Set emotion when speech actually starts (after VOICEVOX API processing)
-    setCurrentEmotion(emotion);
-    avatarRef.current?.setEmotion(emotion);
+  const handleSpeechStart = useCallback(
+    (analyser: AnalyserNode, emotion: Emotion) => {
+      // Set emotion when speech actually starts (after VOICEVOX API processing)
+      setCurrentEmotion(emotion);
+      avatarRef.current?.setEmotion(emotion);
 
-    // Select animation based on emotion
-    const animationUrl = EMOTION_ANIMATION_URLS[emotion];
-    if (animationUrl) {
-      setCurrentAnimationUrl(animationUrl);
-    }
-    // If no animation for this emotion, keep current animation (idle)
+      // Select animation based on emotion
+      const animationUrl = EMOTION_ANIMATION_URLS[emotion];
+      if (animationUrl) {
+        setCurrentAnimationUrl(animationUrl);
+      }
+      // If no animation for this emotion, keep current animation (idle)
 
-    startLipSync(analyser);
-  }, [startLipSync]);
+      startLipSync(analyser);
+    },
+    [startLipSync],
+  );
 
   const handleSpeechEnd = useCallback(() => {
     stopLipSync();
     // Reset emotion to neutral after speaking
-    setCurrentEmotion('neutral');
-    avatarRef.current?.setEmotion('neutral');
+    setCurrentEmotion("neutral");
+    avatarRef.current?.setEmotion("neutral");
   }, [stopLipSync]);
 
   const handleAnimationEnd = useCallback(() => {
@@ -153,13 +167,13 @@ function App() {
       const cleanup = window.electron.onSpeak((message: string) => {
         try {
           const data = JSON.parse(message) as { type: string; text: string; emotion?: Emotion };
-          if (data.type === 'speak' && data.text) {
-            const emotion = data.emotion || 'neutral';
+          if (data.type === "speak" && data.text) {
+            const emotion = data.emotion || "neutral";
             // Emotion will be set in handleSpeechStart (when speech actually starts)
             speakText(data.text, emotion);
           }
         } catch (err) {
-          console.error('Failed to parse speak message:', err);
+          console.error("Failed to parse speak message:", err);
         }
       });
 
@@ -172,8 +186,8 @@ function App() {
   useEffect(() => {
     if (window.electron?.onPlayTestSpeech) {
       const cleanup = window.electron.onPlayTestSpeech(() => {
-        console.log('[App] Playing test speech');
-        speakText('こんにちは。お役に立てることはありますか', 'happy');
+        console.log("[App] Playing test speech");
+        speakText("こんにちは。お役に立てることはありますか", "happy");
       });
 
       return cleanup;
@@ -197,7 +211,7 @@ function App() {
 
     const getCharacterRadii = () => {
       // Vertical ellipse: narrow horizontally, tall vertically
-      const radiusX = window.innerWidth * 0.15;  // 30% width of window
+      const radiusX = window.innerWidth * 0.15; // 30% width of window
       const radiusY = window.innerHeight * 0.45; // 90% height of window
       return { radiusX, radiusY };
     };
@@ -254,19 +268,19 @@ function App() {
     const cleanupFunctions: (() => void)[] = [];
 
     // Add event listeners
-    window.addEventListener('mousedown', handleMouseDown);
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener("mousedown", handleMouseDown);
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
     cleanupFunctions.push(() => {
-      window.removeEventListener('mousedown', handleMouseDown);
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener("mousedown", handleMouseDown);
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
     });
 
     // Listen for DevTools state changes
     if (electron.onDevToolsStateChanged) {
       const cleanupDevTools = electron.onDevToolsStateChanged((isOpen: boolean) => {
-        console.log(`[App] DevTools state changed: ${isOpen ? 'opened' : 'closed'}`);
+        console.log(`[App] DevTools state changed: ${isOpen ? "opened" : "closed"}`);
         devToolsOpen = isOpen;
         // Update click-through state immediately when DevTools state changes
         if (isOpen) {
@@ -282,7 +296,7 @@ function App() {
 
     // Return combined cleanup function
     return () => {
-      cleanupFunctions.forEach(fn => fn());
+      cleanupFunctions.forEach((fn) => fn());
     };
   }, []);
 
@@ -290,7 +304,7 @@ function App() {
     <div className="w-screen h-screen overflow-hidden relative">
       <Canvas
         camera={{ position: [0, 0.2, 3.2], fov: 30 }}
-        style={{ width: '100vw', height: '100vh' }}
+        style={{ width: "100vw", height: "100vh" }}
         onContextMenu={(e) => {
           e.preventDefault();
           // Open settings window

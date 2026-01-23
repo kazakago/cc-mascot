@@ -1,12 +1,13 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
-import { useVRMAnimation } from './useVRMAnimation';
-import type { VRM } from '@pixiv/three-vrm';
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { renderHook, waitFor } from "@testing-library/react";
+import { useVRMAnimation } from "./useVRMAnimation";
+import type { VRM } from "@pixiv/three-vrm";
 
 // Mock VRM
-const createMockVRM = (): VRM => ({
-  scene: {},
-} as unknown as VRM);
+const createMockVRM = (): VRM =>
+  ({
+    scene: {},
+  }) as unknown as VRM;
 
 // Three.jsとVRMAnimationのモック
 const mockMixer = {
@@ -24,7 +25,7 @@ const mockMixer = {
   removeEventListener: vi.fn(),
 };
 
-vi.mock('three', () => ({
+vi.mock("three", () => ({
   AnimationMixer: vi.fn(function () {
     return mockMixer;
   }),
@@ -35,14 +36,14 @@ const mockLoadAsync = vi.fn().mockResolvedValue({
   userData: {
     vrmAnimations: [
       {
-        name: 'test-animation',
+        name: "test-animation",
       },
     ],
   },
 });
 
-vi.mock('three/examples/jsm/loaders/GLTFLoader.js', () => ({
-  GLTFLoader: vi.fn(function() {
+vi.mock("three/examples/jsm/loaders/GLTFLoader.js", () => ({
+  GLTFLoader: vi.fn(function () {
     return {
       register: vi.fn(),
       loadAsync: mockLoadAsync,
@@ -50,12 +51,12 @@ vi.mock('three/examples/jsm/loaders/GLTFLoader.js', () => ({
   }),
 }));
 
-vi.mock('@pixiv/three-vrm-animation', () => ({
+vi.mock("@pixiv/three-vrm-animation", () => ({
   VRMAnimationLoaderPlugin: vi.fn(),
-  createVRMAnimationClip: vi.fn(() => ({ name: 'mock-clip' })),
+  createVRMAnimationClip: vi.fn(() => ({ name: "mock-clip" })),
 }));
 
-describe('useVRMAnimation', () => {
+describe("useVRMAnimation", () => {
   let mockVRM: VRM;
 
   beforeEach(() => {
@@ -63,46 +64,46 @@ describe('useVRMAnimation', () => {
     mockVRM = createMockVRM();
   });
 
-  describe('初期化', () => {
-    it('updateメソッドを返す', () => {
-      const { result } = renderHook(() => useVRMAnimation(mockVRM, '/test.vrma'));
+  describe("初期化", () => {
+    it("updateメソッドを返す", () => {
+      const { result } = renderHook(() => useVRMAnimation(mockVRM, "/test.vrma"));
 
-      expect(result.current).toHaveProperty('update');
-      expect(typeof result.current.update).toBe('function');
+      expect(result.current).toHaveProperty("update");
+      expect(typeof result.current.update).toBe("function");
     });
 
-    it('vrmがnullでもエラーにならない', () => {
+    it("vrmがnullでもエラーにならない", () => {
       expect(() => {
-        renderHook(() => useVRMAnimation(null, '/test.vrma'));
+        renderHook(() => useVRMAnimation(null, "/test.vrma"));
       }).not.toThrow();
     });
 
-    it('animationUrlが空でもエラーにならない', () => {
+    it("animationUrlが空でもエラーにならない", () => {
       expect(() => {
-        renderHook(() => useVRMAnimation(mockVRM, ''));
+        renderHook(() => useVRMAnimation(mockVRM, ""));
       }).not.toThrow();
     });
   });
 
-  describe('VRMAローディング', () => {
-    it('animationUrlが指定されている場合、VRMAをロードする', async () => {
-      renderHook(() => useVRMAnimation(mockVRM, '/test.vrma'));
+  describe("VRMAローディング", () => {
+    it("animationUrlが指定されている場合、VRMAをロードする", async () => {
+      renderHook(() => useVRMAnimation(mockVRM, "/test.vrma"));
 
       await waitFor(() => {
-        expect(mockLoadAsync).toHaveBeenCalledWith('/test.vrma');
+        expect(mockLoadAsync).toHaveBeenCalledWith("/test.vrma");
       });
     });
 
-    it('ロード失敗時にエラーログが出力される', async () => {
-      const mockError = new Error('Load failed');
+    it("ロード失敗時にエラーログが出力される", async () => {
+      const mockError = new Error("Load failed");
       mockLoadAsync.mockRejectedValueOnce(mockError);
 
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
-      renderHook(() => useVRMAnimation(mockVRM, '/test-error.vrma'));
+      renderHook(() => useVRMAnimation(mockVRM, "/test-error.vrma"));
 
       await waitFor(() => {
-        expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to load VRMA:', mockError);
+        expect(consoleErrorSpy).toHaveBeenCalledWith("Failed to load VRMA:", mockError);
       });
 
       consoleErrorSpy.mockRestore();
@@ -110,15 +111,15 @@ describe('useVRMAnimation', () => {
       // mockをリセット
       mockLoadAsync.mockResolvedValue({
         userData: {
-          vrmAnimations: [{ name: 'test-animation' }],
+          vrmAnimations: [{ name: "test-animation" }],
         },
       });
     });
   });
 
-  describe('AnimationMixer', () => {
-    it('vrmが指定されている場合、AnimationMixerが作成される', () => {
-      const { result } = renderHook(() => useVRMAnimation(mockVRM, '/test.vrma'));
+  describe("AnimationMixer", () => {
+    it("vrmが指定されている場合、AnimationMixerが作成される", () => {
+      const { result } = renderHook(() => useVRMAnimation(mockVRM, "/test.vrma"));
 
       // updateを呼んで、mixerが動作していることを確認
       result.current.update(0.016);
@@ -127,8 +128,8 @@ describe('useVRMAnimation', () => {
       expect(mockMixer.update).toHaveBeenCalled();
     });
 
-    it('unmount時にstopAllActionが呼ばれる', () => {
-      const { unmount } = renderHook(() => useVRMAnimation(mockVRM, '/test.vrma'));
+    it("unmount時にstopAllActionが呼ばれる", () => {
+      const { unmount } = renderHook(() => useVRMAnimation(mockVRM, "/test.vrma"));
 
       unmount();
 
@@ -136,25 +137,25 @@ describe('useVRMAnimation', () => {
     });
   });
 
-  describe('update', () => {
-    it('mixerがnullの場合でもエラーにならない', () => {
-      const { result } = renderHook(() => useVRMAnimation(null, '/test.vrma'));
+  describe("update", () => {
+    it("mixerがnullの場合でもエラーにならない", () => {
+      const { result } = renderHook(() => useVRMAnimation(null, "/test.vrma"));
 
       expect(() => {
         result.current.update(0.016);
       }).not.toThrow();
     });
 
-    it('mixerが存在する場合、mixer.updateが呼ばれる', () => {
-      const { result } = renderHook(() => useVRMAnimation(mockVRM, '/test.vrma'));
+    it("mixerが存在する場合、mixer.updateが呼ばれる", () => {
+      const { result } = renderHook(() => useVRMAnimation(mockVRM, "/test.vrma"));
 
       result.current.update(0.016);
 
       expect(mockMixer.update).toHaveBeenCalledWith(0.016);
     });
 
-    it('異なるdelta値でupdateを呼べる', () => {
-      const { result } = renderHook(() => useVRMAnimation(mockVRM, '/test.vrma'));
+    it("異なるdelta値でupdateを呼べる", () => {
+      const { result } = renderHook(() => useVRMAnimation(mockVRM, "/test.vrma"));
 
       result.current.update(0.016);
       expect(mockMixer.update).toHaveBeenCalledWith(0.016);
@@ -167,9 +168,9 @@ describe('useVRMAnimation', () => {
     });
   });
 
-  describe('オプション', () => {
-    it('loopオプションでループ再生を制御できる', async () => {
-      renderHook(() => useVRMAnimation(mockVRM, '/test.vrma', { loop: false }));
+  describe("オプション", () => {
+    it("loopオプションでループ再生を制御できる", async () => {
+      renderHook(() => useVRMAnimation(mockVRM, "/test.vrma", { loop: false }));
 
       // VRMAのロード完了を待つ
       await waitFor(() => {
@@ -186,12 +187,10 @@ describe('useVRMAnimation', () => {
       expect(action.setLoop).toHaveBeenCalled();
     });
 
-    it('onAnimationEndコールバックを設定できる', async () => {
+    it("onAnimationEndコールバックを設定できる", async () => {
       const onAnimationEnd = vi.fn();
 
-      renderHook(() =>
-        useVRMAnimation(mockVRM, '/test.vrma', { loop: false, onAnimationEnd })
-      );
+      renderHook(() => useVRMAnimation(mockVRM, "/test.vrma", { loop: false, onAnimationEnd }));
 
       // VRMAのロード完了を待つ
       await waitFor(() => {
@@ -200,16 +199,14 @@ describe('useVRMAnimation', () => {
 
       // イベントリスナーが登録される
       await waitFor(() => {
-        expect(mockMixer.addEventListener).toHaveBeenCalledWith('finished', expect.any(Function));
+        expect(mockMixer.addEventListener).toHaveBeenCalledWith("finished", expect.any(Function));
       });
     });
 
-    it('loopがtrueの場合、onAnimationEndは無視される', async () => {
+    it("loopがtrueの場合、onAnimationEndは無視される", async () => {
       const onAnimationEnd = vi.fn();
 
-      renderHook(() =>
-        useVRMAnimation(mockVRM, '/test.vrma', { loop: true, onAnimationEnd })
-      );
+      renderHook(() => useVRMAnimation(mockVRM, "/test.vrma", { loop: true, onAnimationEnd }));
 
       // VRMAのロード完了を待つ
       await waitFor(() => {
@@ -220,36 +217,34 @@ describe('useVRMAnimation', () => {
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       // finishedイベントリスナーは登録されていない
-      expect(mockMixer.addEventListener).not.toHaveBeenCalledWith('finished', expect.any(Function));
+      expect(mockMixer.addEventListener).not.toHaveBeenCalledWith("finished", expect.any(Function));
     });
   });
 
-  describe('アニメーション切り替え', () => {
-    it('新しいアニメーションURLに変更すると再ロードされる', async () => {
-      const { rerender } = renderHook(
-        ({ url }) => useVRMAnimation(mockVRM, url),
-        { initialProps: { url: '/test1.vrma' } }
-      );
+  describe("アニメーション切り替え", () => {
+    it("新しいアニメーションURLに変更すると再ロードされる", async () => {
+      const { rerender } = renderHook(({ url }) => useVRMAnimation(mockVRM, url), {
+        initialProps: { url: "/test1.vrma" },
+      });
 
       await waitFor(() => {
-        expect(mockLoadAsync).toHaveBeenCalledWith('/test1.vrma');
+        expect(mockLoadAsync).toHaveBeenCalledWith("/test1.vrma");
       });
 
       mockLoadAsync.mockClear();
 
       // URLを変更
-      rerender({ url: '/test2.vrma' });
+      rerender({ url: "/test2.vrma" });
 
       await waitFor(() => {
-        expect(mockLoadAsync).toHaveBeenCalledWith('/test2.vrma');
+        expect(mockLoadAsync).toHaveBeenCalledWith("/test2.vrma");
       });
     });
 
-    it('同じURLでは再ロードされない', async () => {
-      const { rerender } = renderHook(
-        ({ url }) => useVRMAnimation(mockVRM, url),
-        { initialProps: { url: '/test.vrma' } }
-      );
+    it("同じURLでは再ロードされない", async () => {
+      const { rerender } = renderHook(({ url }) => useVRMAnimation(mockVRM, url), {
+        initialProps: { url: "/test.vrma" },
+      });
 
       await waitFor(() => {
         expect(mockLoadAsync).toHaveBeenCalledTimes(1);
@@ -258,7 +253,7 @@ describe('useVRMAnimation', () => {
       mockLoadAsync.mockClear();
 
       // 同じURLで再レンダリング
-      rerender({ url: '/test.vrma' });
+      rerender({ url: "/test.vrma" });
 
       // 新しいロードは発生しない
       await new Promise((resolve) => setTimeout(resolve, 50));
@@ -266,8 +261,8 @@ describe('useVRMAnimation', () => {
     });
   });
 
-  describe('エッジケース', () => {
-    it('vrmAnimationsが空配列でもエラーにならない', async () => {
+  describe("エッジケース", () => {
+    it("vrmAnimationsが空配列でもエラーにならない", async () => {
       mockLoadAsync.mockResolvedValueOnce({
         userData: {
           vrmAnimations: [],
@@ -275,39 +270,36 @@ describe('useVRMAnimation', () => {
       });
 
       expect(() => {
-        renderHook(() => useVRMAnimation(mockVRM, '/test-empty.vrma'));
+        renderHook(() => useVRMAnimation(mockVRM, "/test-empty.vrma"));
       }).not.toThrow();
 
       // mockをリセット
       mockLoadAsync.mockResolvedValue({
         userData: {
-          vrmAnimations: [{ name: 'test-animation' }],
+          vrmAnimations: [{ name: "test-animation" }],
         },
       });
     });
 
-    it('vrmAnimationsがundefinedでもエラーにならない', async () => {
+    it("vrmAnimationsがundefinedでもエラーにならない", async () => {
       mockLoadAsync.mockResolvedValueOnce({
         userData: {},
       });
 
       expect(() => {
-        renderHook(() => useVRMAnimation(mockVRM, '/test-no-animations.vrma'));
+        renderHook(() => useVRMAnimation(mockVRM, "/test-no-animations.vrma"));
       }).not.toThrow();
 
       // mockをリセット
       mockLoadAsync.mockResolvedValue({
         userData: {
-          vrmAnimations: [{ name: 'test-animation' }],
+          vrmAnimations: [{ name: "test-animation" }],
         },
       });
     });
 
-    it('VRMが後から設定されてもエラーにならない', () => {
-      const { rerender } = renderHook(
-        ({ vrm }) => useVRMAnimation(vrm, '/test.vrma'),
-        { initialProps: { vrm: null } }
-      );
+    it("VRMが後から設定されてもエラーにならない", () => {
+      const { rerender } = renderHook(({ vrm }) => useVRMAnimation(vrm, "/test.vrma"), { initialProps: { vrm: null } });
 
       // VRMを設定
       rerender({ vrm: mockVRM });

@@ -3,15 +3,15 @@
  * Parses Claude Code session logs and extracts assistant messages
  */
 
-import { RuleBasedEmotionClassifier } from '../services/ruleBasedEmotionClassifier';
+import { RuleBasedEmotionClassifier } from "../services/ruleBasedEmotionClassifier";
 
 // グローバル感情分類器インスタンス
 const emotionClassifier = new RuleBasedEmotionClassifier();
 
 export interface SpeakMessage {
-  type: 'speak';
+  type: "speak";
   text: string;
-  emotion?: 'neutral' | 'happy' | 'angry' | 'sad' | 'relaxed' | 'surprised';
+  emotion?: "neutral" | "happy" | "angry" | "sad" | "relaxed" | "surprised";
 }
 
 interface ContentItem {
@@ -41,12 +41,12 @@ export function parseClaudeCodeLog(line: string): SpeakMessage[] {
     const entry: LogEntry = JSON.parse(line);
 
     // Filter: must have message with assistant role
-    if (!entry.message || entry.message.role !== 'assistant') {
+    if (!entry.message || entry.message.role !== "assistant") {
       return messages;
     }
 
     // Filter: must have message with message type
-    if (!entry.message || entry.message.type !== 'message') {
+    if (!entry.message || entry.message.type !== "message") {
       return messages;
     }
 
@@ -57,13 +57,13 @@ export function parseClaudeCodeLog(line: string): SpeakMessage[] {
 
     // Extract text content items only
     for (const item of entry.message.content) {
-      if (item.type === 'text' && item.text) {
+      if (item.type === "text" && item.text) {
         const text = item.text.trim();
         if (text) {
           // 感情分類器でテキストから感情を自動判定
           const emotion = emotionClassifier.classify(text);
           messages.push({
-            type: 'speak',
+            type: "speak",
             text: text,
             emotion: emotion,
           });

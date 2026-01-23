@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
-import { useBlink } from './useBlink';
-import type { VRM } from '@pixiv/three-vrm';
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { renderHook, act } from "@testing-library/react";
+import { useBlink } from "./useBlink";
+import type { VRM } from "@pixiv/three-vrm";
 
 // VRM と ExpressionManager のモック
 class MockExpressionManager {
@@ -27,7 +27,7 @@ function createMockVRM(): VRM {
   } as unknown as VRM;
 }
 
-describe('useBlink', () => {
+describe("useBlink", () => {
   let mockVRM: VRM;
   let expressionManager: MockExpressionManager;
 
@@ -37,11 +37,11 @@ describe('useBlink', () => {
     expressionManager = mockVRM.expressionManager as unknown as MockExpressionManager;
 
     // requestAnimationFrame のモック（即座に実行）
-    vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation((cb) => {
+    vi.spyOn(globalThis, "requestAnimationFrame").mockImplementation((cb) => {
       setTimeout(() => cb(performance.now()), 0);
       return 1;
     });
-    vi.spyOn(globalThis, 'cancelAnimationFrame').mockImplementation(() => {});
+    vi.spyOn(globalThis, "cancelAnimationFrame").mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -49,29 +49,29 @@ describe('useBlink', () => {
     vi.useRealTimers();
   });
 
-  describe('初期化', () => {
-    it('isBlinkingを返す', () => {
+  describe("初期化", () => {
+    it("isBlinkingを返す", () => {
       const { result } = renderHook(() => useBlink(mockVRM));
 
-      expect(result.current).toHaveProperty('isBlinking');
-      expect(typeof result.current.isBlinking).toBe('boolean');
+      expect(result.current).toHaveProperty("isBlinking");
+      expect(typeof result.current.isBlinking).toBe("boolean");
     });
 
-    it('初期状態ではisBlinkingがfalse', () => {
+    it("初期状態ではisBlinkingがfalse", () => {
       const { result } = renderHook(() => useBlink(mockVRM));
 
       expect(result.current.isBlinking).toBe(false);
     });
 
-    it('VRMがnullでもエラーにならない', () => {
+    it("VRMがnullでもエラーにならない", () => {
       expect(() => {
         renderHook(() => useBlink(null));
       }).not.toThrow();
     });
   });
 
-  describe('まばたきスケジューリング', () => {
-    it('VRMがあれば自動的にまばたきがスケジュールされる', () => {
+  describe("まばたきスケジューリング", () => {
+    it("VRMがあれば自動的にまばたきがスケジュールされる", () => {
       renderHook(() => useBlink(mockVRM));
 
       // デフォルトの最大間隔（6秒）+ アニメーション時間まで進める
@@ -84,17 +84,17 @@ describe('useBlink', () => {
       expect(true).toBe(true); // テストを簡略化
     });
 
-    it('enabledがfalseならまばたきしない', () => {
+    it("enabledがfalseならまばたきしない", () => {
       renderHook(() => useBlink(mockVRM, { enabled: false }));
 
       // 十分な時間経過
       vi.advanceTimersByTime(10000);
 
       // blink値が設定されていない
-      expect(expressionManager.getValue('blink')).toBe(0);
+      expect(expressionManager.getValue("blink")).toBe(0);
     });
 
-    it('カスタム間隔でまばたきする', () => {
+    it("カスタム間隔でまばたきする", () => {
       renderHook(() => useBlink(mockVRM, { minInterval: 100, maxInterval: 200 }));
 
       expressionManager.reset();
@@ -105,13 +105,15 @@ describe('useBlink', () => {
       });
 
       // まばたきが実行された（ アニメーション中または終了後）
-      expect(expressionManager.getValue('blink')).toBeGreaterThanOrEqual(0);
+      expect(expressionManager.getValue("blink")).toBeGreaterThanOrEqual(0);
     });
   });
 
-  describe('まばたきアニメーション', () => {
-    it('まばたき中はisBlinkingがtrue', () => {
-      const { result } = renderHook(() => useBlink(mockVRM, { minInterval: 100, maxInterval: 100, blinkDuration: 200 }));
+  describe("まばたきアニメーション", () => {
+    it("まばたき中はisBlinkingがtrue", () => {
+      const { result } = renderHook(() =>
+        useBlink(mockVRM, { minInterval: 100, maxInterval: 100, blinkDuration: 200 }),
+      );
 
       // まばたき開始まで進める
       act(() => {
@@ -126,9 +128,9 @@ describe('useBlink', () => {
       expect(result.current.isBlinking).toBe(true);
     });
 
-    it('まばたき後はisBlinkingがfalseに戻る', () => {
+    it("まばたき後はisBlinkingがfalseに戻る", () => {
       const { result } = renderHook(() =>
-        useBlink(mockVRM, { minInterval: 100, maxInterval: 100, blinkDuration: 150 })
+        useBlink(mockVRM, { minInterval: 100, maxInterval: 100, blinkDuration: 150 }),
       );
 
       // まばたき開始まで進める
@@ -141,9 +143,9 @@ describe('useBlink', () => {
       expect(result.current.isBlinking).toBe(false);
     });
 
-    it('まばたきアニメーション後にblink値が0にリセットされる', () => {
+    it("まばたきアニメーション後にblink値が0にリセットされる", () => {
       const { result } = renderHook(() =>
-        useBlink(mockVRM, { minInterval: 100, maxInterval: 100, blinkDuration: 100 })
+        useBlink(mockVRM, { minInterval: 100, maxInterval: 100, blinkDuration: 100 }),
       );
 
       // まばたき開始
@@ -164,9 +166,9 @@ describe('useBlink', () => {
       expect(result.current.isBlinking).toBe(false);
     });
 
-    it('カスタムblinkDurationでアニメーションする', () => {
+    it("カスタムblinkDurationでアニメーションする", () => {
       const { result } = renderHook(() =>
-        useBlink(mockVRM, { minInterval: 100, maxInterval: 100, blinkDuration: 100 })
+        useBlink(mockVRM, { minInterval: 100, maxInterval: 100, blinkDuration: 100 }),
       );
 
       // まばたき開始
@@ -184,11 +186,9 @@ describe('useBlink', () => {
     });
   });
 
-  describe('ランダム間隔', () => {
-    it('まばたきがランダムな間隔で発生する', () => {
-      renderHook(() =>
-        useBlink(mockVRM, { minInterval: 100, maxInterval: 500, blinkDuration: 50 })
-      );
+  describe("ランダム間隔", () => {
+    it("まばたきがランダムな間隔で発生する", () => {
+      renderHook(() => useBlink(mockVRM, { minInterval: 100, maxInterval: 500, blinkDuration: 50 }));
 
       // 最大間隔まで進める
       act(() => {
@@ -201,9 +201,9 @@ describe('useBlink', () => {
     });
   });
 
-  describe('クリーンアップ', () => {
-    it('unmount時にタイマーがクリアされる', () => {
-      const clearTimeoutSpy = vi.spyOn(globalThis, 'clearTimeout');
+  describe("クリーンアップ", () => {
+    it("unmount時にタイマーがクリアされる", () => {
+      const clearTimeoutSpy = vi.spyOn(globalThis, "clearTimeout");
 
       const { unmount } = renderHook(() => useBlink(mockVRM));
 
@@ -212,12 +212,10 @@ describe('useBlink', () => {
       expect(clearTimeoutSpy).toHaveBeenCalled();
     });
 
-    it('unmount時にアニメーションがキャンセルされる', () => {
-      const cancelAnimationFrameSpy = vi.spyOn(globalThis, 'cancelAnimationFrame');
+    it("unmount時にアニメーションがキャンセルされる", () => {
+      const cancelAnimationFrameSpy = vi.spyOn(globalThis, "cancelAnimationFrame");
 
-      const { unmount } = renderHook(() =>
-        useBlink(mockVRM, { minInterval: 100, maxInterval: 100 })
-      );
+      const { unmount } = renderHook(() => useBlink(mockVRM, { minInterval: 100, maxInterval: 100 }));
 
       // まばたき開始
       vi.advanceTimersByTime(100);
@@ -228,9 +226,9 @@ describe('useBlink', () => {
       expect(cancelAnimationFrameSpy).toHaveBeenCalled();
     });
 
-    it('unmount時にblink値が0にリセットされる', () => {
+    it("unmount時にblink値が0にリセットされる", () => {
       const { unmount } = renderHook(() =>
-        useBlink(mockVRM, { minInterval: 100, maxInterval: 100, blinkDuration: 200 })
+        useBlink(mockVRM, { minInterval: 100, maxInterval: 100, blinkDuration: 200 }),
       );
 
       // まばたき開始
@@ -240,20 +238,20 @@ describe('useBlink', () => {
       });
 
       // blink値が設定されている
-      expect(expressionManager.getValue('blink')).toBeGreaterThan(0);
+      expect(expressionManager.getValue("blink")).toBeGreaterThan(0);
 
       unmount();
 
       // blink値が0にリセット
-      expect(expressionManager.getValue('blink')).toBe(0);
+      expect(expressionManager.getValue("blink")).toBe(0);
     });
   });
 
-  describe('オプション変更', () => {
-    it('enabled が false になるとまばたきが停止する', () => {
+  describe("オプション変更", () => {
+    it("enabled が false になるとまばたきが停止する", () => {
       const { rerender } = renderHook(
         ({ enabled }) => useBlink(mockVRM, { enabled, minInterval: 100, maxInterval: 100 }),
-        { initialProps: { enabled: true } }
+        { initialProps: { enabled: true } },
       );
 
       // 最初のまばたき
@@ -266,10 +264,10 @@ describe('useBlink', () => {
       // 十分な時間経過してもまばたきしない
       vi.advanceTimersByTime(500);
 
-      expect(expressionManager.getValue('blink')).toBe(0);
+      expect(expressionManager.getValue("blink")).toBe(0);
     });
 
-    it('VRM が null になるとまばたきが停止する', () => {
+    it("VRM が null になるとまばたきが停止する", () => {
       const { rerender } = renderHook(({ vrm }) => useBlink(vrm, { minInterval: 100, maxInterval: 100 }), {
         initialProps: { vrm: mockVRM },
       });
@@ -286,7 +284,7 @@ describe('useBlink', () => {
       }).not.toThrow();
     });
 
-    it('VRM が設定されるとまばたきが開始される', () => {
+    it("VRM が設定されるとまばたきが開始される", () => {
       const { rerender } = renderHook(({ vrm }) => useBlink(vrm, { minInterval: 100, maxInterval: 100 }), {
         initialProps: { vrm: null },
       });
@@ -300,12 +298,12 @@ describe('useBlink', () => {
       // まばたきが開始される
       vi.advanceTimersByTime(150);
 
-      expect(expressionManager.getValue('blink')).toBeGreaterThanOrEqual(0);
+      expect(expressionManager.getValue("blink")).toBeGreaterThanOrEqual(0);
     });
   });
 
-  describe('エッジケース', () => {
-    it('minInterval === maxInterval でも動作する', () => {
+  describe("エッジケース", () => {
+    it("minInterval === maxInterval でも動作する", () => {
       renderHook(() => useBlink(mockVRM, { minInterval: 100, maxInterval: 100, blinkDuration: 150 }));
 
       // 正確に100msでまばたき開始
@@ -314,10 +312,10 @@ describe('useBlink', () => {
         vi.advanceTimersByTime(10); // アニメーション開始
       });
 
-      expect(expressionManager.getValue('blink')).toBeGreaterThan(0);
+      expect(expressionManager.getValue("blink")).toBeGreaterThan(0);
     });
 
-    it('非常に短い間隔でも動作する', () => {
+    it("非常に短い間隔でも動作する", () => {
       renderHook(() => useBlink(mockVRM, { minInterval: 10, maxInterval: 20, blinkDuration: 10 }));
 
       vi.advanceTimersByTime(50);
@@ -328,23 +326,21 @@ describe('useBlink', () => {
       }).not.toThrow();
     });
 
-    it('非常に長い間隔でも動作する', () => {
-      renderHook(() =>
-        useBlink(mockVRM, { minInterval: 10000, maxInterval: 20000, blinkDuration: 100 })
-      );
+    it("非常に長い間隔でも動作する", () => {
+      renderHook(() => useBlink(mockVRM, { minInterval: 10000, maxInterval: 20000, blinkDuration: 100 }));
 
       // まだまばたきしていない
       vi.advanceTimersByTime(5000);
-      expect(expressionManager.getValue('blink')).toBe(0);
+      expect(expressionManager.getValue("blink")).toBe(0);
 
       // 最大間隔まで進める
       vi.advanceTimersByTime(16000);
 
       // まばたきが発生
-      expect(expressionManager.getValue('blink')).toBeGreaterThanOrEqual(0);
+      expect(expressionManager.getValue("blink")).toBeGreaterThanOrEqual(0);
     });
 
-    it('expressionManagerがundefinedでもエラーにならない', () => {
+    it("expressionManagerがundefinedでもエラーにならない", () => {
       const vrmWithoutExpression = {} as VRM;
 
       expect(() => {
@@ -354,14 +350,14 @@ describe('useBlink', () => {
     });
   });
 
-  describe('連続まばたき', () => {
-    it('まばたきが連続して発生する', () => {
+  describe("連続まばたき", () => {
+    it("まばたきが連続して発生する", () => {
       let blinkCount = 0;
       const originalSetValue = expressionManager.setValue.bind(expressionManager);
 
       expressionManager.setValue = vi.fn((name: string, value: number) => {
         originalSetValue(name, value);
-        if (name === 'blink' && value > 0.5) {
+        if (name === "blink" && value > 0.5) {
           blinkCount++;
         }
       });

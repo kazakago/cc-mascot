@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
-import { useLipSync } from './useLipSync';
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { renderHook, act } from "@testing-library/react";
+import { useLipSync } from "./useLipSync";
 
 // AnalyserNode のモック
 class MockAnalyserNode {
@@ -22,7 +22,7 @@ class MockAnalyserNode {
   }
 }
 
-describe('useLipSync', () => {
+describe("useLipSync", () => {
   let mockOnMouthValueChange: ReturnType<typeof vi.fn>;
   let mockAnalyser: MockAnalyserNode;
 
@@ -31,36 +31,32 @@ describe('useLipSync', () => {
     mockAnalyser = new MockAnalyserNode();
 
     // requestAnimationFrame と cancelAnimationFrame のモック
-    vi.spyOn(globalThis, 'requestAnimationFrame').mockImplementation((cb) => {
+    vi.spyOn(globalThis, "requestAnimationFrame").mockImplementation((cb) => {
       // 即座に実行
       setTimeout(cb, 0);
       return 1;
     });
-    vi.spyOn(globalThis, 'cancelAnimationFrame').mockImplementation(() => {});
+    vi.spyOn(globalThis, "cancelAnimationFrame").mockImplementation(() => {});
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  describe('初期化', () => {
-    it('startLipSyncとstopLipSyncを返す', () => {
-      const { result } = renderHook(() =>
-        useLipSync({ onMouthValueChange: mockOnMouthValueChange })
-      );
+  describe("初期化", () => {
+    it("startLipSyncとstopLipSyncを返す", () => {
+      const { result } = renderHook(() => useLipSync({ onMouthValueChange: mockOnMouthValueChange }));
 
       expect(result.current.startLipSync).toBeDefined();
       expect(result.current.stopLipSync).toBeDefined();
-      expect(typeof result.current.startLipSync).toBe('function');
-      expect(typeof result.current.stopLipSync).toBe('function');
+      expect(typeof result.current.startLipSync).toBe("function");
+      expect(typeof result.current.stopLipSync).toBe("function");
     });
   });
 
-  describe('リップシンク開始', () => {
-    it('startLipSyncでアニメーションが開始される', async () => {
-      const { result } = renderHook(() =>
-        useLipSync({ onMouthValueChange: mockOnMouthValueChange })
-      );
+  describe("リップシンク開始", () => {
+    it("startLipSyncでアニメーションが開始される", async () => {
+      const { result } = renderHook(() => useLipSync({ onMouthValueChange: mockOnMouthValueChange }));
 
       act(() => {
         result.current.startLipSync(mockAnalyser as unknown as AnalyserNode);
@@ -72,14 +68,12 @@ describe('useLipSync', () => {
       expect(mockOnMouthValueChange).toHaveBeenCalled();
     });
 
-    it('無音状態では口の値が0に近い', async () => {
+    it("無音状態では口の値が0に近い", async () => {
       // 無音データ（すべて128）
       const silentData = new Uint8Array(256).fill(128);
       mockAnalyser.setMockData(silentData);
 
-      const { result } = renderHook(() =>
-        useLipSync({ onMouthValueChange: mockOnMouthValueChange })
-      );
+      const { result } = renderHook(() => useLipSync({ onMouthValueChange: mockOnMouthValueChange }));
 
       act(() => {
         result.current.startLipSync(mockAnalyser as unknown as AnalyserNode);
@@ -88,13 +82,11 @@ describe('useLipSync', () => {
       await new Promise((resolve) => setTimeout(resolve, 10));
 
       expect(mockOnMouthValueChange).toHaveBeenCalled();
-      const lastCallValue = mockOnMouthValueChange.mock.calls[
-        mockOnMouthValueChange.mock.calls.length - 1
-      ][0];
+      const lastCallValue = mockOnMouthValueChange.mock.calls[mockOnMouthValueChange.mock.calls.length - 1][0];
       expect(lastCallValue).toBeLessThan(0.1); // ほぼ0
     });
 
-    it('音声がある場合は口の値が大きくなる', async () => {
+    it("音声がある場合は口の値が大きくなる", async () => {
       // 音声データ（振幅のある波形）
       const audioData = new Uint8Array(256);
       for (let i = 0; i < audioData.length; i++) {
@@ -103,9 +95,7 @@ describe('useLipSync', () => {
       }
       mockAnalyser.setMockData(audioData);
 
-      const { result } = renderHook(() =>
-        useLipSync({ onMouthValueChange: mockOnMouthValueChange })
-      );
+      const { result } = renderHook(() => useLipSync({ onMouthValueChange: mockOnMouthValueChange }));
 
       act(() => {
         result.current.startLipSync(mockAnalyser as unknown as AnalyserNode);
@@ -114,13 +104,11 @@ describe('useLipSync', () => {
       await new Promise((resolve) => setTimeout(resolve, 10));
 
       expect(mockOnMouthValueChange).toHaveBeenCalled();
-      const lastCallValue = mockOnMouthValueChange.mock.calls[
-        mockOnMouthValueChange.mock.calls.length - 1
-      ][0];
+      const lastCallValue = mockOnMouthValueChange.mock.calls[mockOnMouthValueChange.mock.calls.length - 1][0];
       expect(lastCallValue).toBeGreaterThan(0.1); // 音声があるので大きい値
     });
 
-    it('大きな音声では口の値が1.0に制限される', async () => {
+    it("大きな音声では口の値が1.0に制限される", async () => {
       // 非常に大きな振幅のデータ
       const loudData = new Uint8Array(256);
       for (let i = 0; i < loudData.length; i++) {
@@ -129,9 +117,7 @@ describe('useLipSync', () => {
       }
       mockAnalyser.setMockData(loudData);
 
-      const { result } = renderHook(() =>
-        useLipSync({ onMouthValueChange: mockOnMouthValueChange })
-      );
+      const { result } = renderHook(() => useLipSync({ onMouthValueChange: mockOnMouthValueChange }));
 
       act(() => {
         result.current.startLipSync(mockAnalyser as unknown as AnalyserNode);
@@ -140,19 +126,15 @@ describe('useLipSync', () => {
       await new Promise((resolve) => setTimeout(resolve, 10));
 
       expect(mockOnMouthValueChange).toHaveBeenCalled();
-      const lastCallValue = mockOnMouthValueChange.mock.calls[
-        mockOnMouthValueChange.mock.calls.length - 1
-      ][0];
+      const lastCallValue = mockOnMouthValueChange.mock.calls[mockOnMouthValueChange.mock.calls.length - 1][0];
       expect(lastCallValue).toBeLessThanOrEqual(1.0); // 最大値は1.0
       expect(lastCallValue).toBeGreaterThan(0.5); // でも大きい値
     });
   });
 
-  describe('リップシンク停止', () => {
-    it('stopLipSyncでアニメーションが停止される', async () => {
-      const { result } = renderHook(() =>
-        useLipSync({ onMouthValueChange: mockOnMouthValueChange })
-      );
+  describe("リップシンク停止", () => {
+    it("stopLipSyncでアニメーションが停止される", async () => {
+      const { result } = renderHook(() => useLipSync({ onMouthValueChange: mockOnMouthValueChange }));
 
       act(() => {
         result.current.startLipSync(mockAnalyser as unknown as AnalyserNode);
@@ -173,10 +155,8 @@ describe('useLipSync', () => {
       expect(mockOnMouthValueChange.mock.calls.length).toBe(callCountBeforeStop + 1);
     });
 
-    it('stopLipSyncで口の値が0にリセットされる', () => {
-      const { result } = renderHook(() =>
-        useLipSync({ onMouthValueChange: mockOnMouthValueChange })
-      );
+    it("stopLipSyncで口の値が0にリセットされる", () => {
+      const { result } = renderHook(() => useLipSync({ onMouthValueChange: mockOnMouthValueChange }));
 
       act(() => {
         result.current.startLipSync(mockAnalyser as unknown as AnalyserNode);
@@ -191,10 +171,8 @@ describe('useLipSync', () => {
       expect(mockOnMouthValueChange).toHaveBeenCalledWith(0);
     });
 
-    it('cancelAnimationFrameが呼ばれる', () => {
-      const { result } = renderHook(() =>
-        useLipSync({ onMouthValueChange: mockOnMouthValueChange })
-      );
+    it("cancelAnimationFrameが呼ばれる", () => {
+      const { result } = renderHook(() => useLipSync({ onMouthValueChange: mockOnMouthValueChange }));
 
       act(() => {
         result.current.startLipSync(mockAnalyser as unknown as AnalyserNode);
@@ -208,13 +186,11 @@ describe('useLipSync', () => {
     });
   });
 
-  describe('アニメーションループ', () => {
-    it('requestAnimationFrameが継続的に呼ばれる', async () => {
-      const requestAnimationFrameSpy = vi.spyOn(globalThis, 'requestAnimationFrame');
+  describe("アニメーションループ", () => {
+    it("requestAnimationFrameが継続的に呼ばれる", async () => {
+      const requestAnimationFrameSpy = vi.spyOn(globalThis, "requestAnimationFrame");
 
-      const { result } = renderHook(() =>
-        useLipSync({ onMouthValueChange: mockOnMouthValueChange })
-      );
+      const { result } = renderHook(() => useLipSync({ onMouthValueChange: mockOnMouthValueChange }));
 
       act(() => {
         result.current.startLipSync(mockAnalyser as unknown as AnalyserNode);
@@ -226,10 +202,8 @@ describe('useLipSync', () => {
       expect(requestAnimationFrameSpy.mock.calls.length).toBeGreaterThan(1);
     });
 
-    it('stopLipSync後はonMouthValueChangeが呼ばれない（0以外）', async () => {
-      const { result } = renderHook(() =>
-        useLipSync({ onMouthValueChange: mockOnMouthValueChange })
-      );
+    it("stopLipSync後はonMouthValueChangeが呼ばれない（0以外）", async () => {
+      const { result } = renderHook(() => useLipSync({ onMouthValueChange: mockOnMouthValueChange }));
 
       act(() => {
         result.current.startLipSync(mockAnalyser as unknown as AnalyserNode);
@@ -250,8 +224,8 @@ describe('useLipSync', () => {
     });
   });
 
-  describe('RMS計算', () => {
-    it('異なる音量レベルで異なる口の値を返す', async () => {
+  describe("RMS計算", () => {
+    it("異なる音量レベルで異なる口の値を返す", async () => {
       const values: number[] = [];
 
       // 小さい音量
@@ -266,7 +240,7 @@ describe('useLipSync', () => {
           onMouthValueChange: (value) => {
             values.push(value);
           },
-        })
+        }),
       );
 
       act(() => {
@@ -292,7 +266,7 @@ describe('useLipSync', () => {
           onMouthValueChange: (value) => {
             values.push(value);
           },
-        })
+        }),
       );
 
       act(() => {
@@ -307,7 +281,7 @@ describe('useLipSync', () => {
       expect(loudValue).toBeGreaterThan(quietValue);
     });
 
-    it('全ての値が0-1の範囲内', async () => {
+    it("全ての値が0-1の範囲内", async () => {
       const values: number[] = [];
 
       // ランダムなデータ
@@ -322,7 +296,7 @@ describe('useLipSync', () => {
           onMouthValueChange: (value) => {
             values.push(value);
           },
-        })
+        }),
       );
 
       act(() => {
@@ -339,13 +313,11 @@ describe('useLipSync', () => {
     });
   });
 
-  describe('クリーンアップ', () => {
-    it('unmount時にcancelAnimationFrameが呼ばれる', () => {
-      const cancelAnimationFrameSpy = vi.spyOn(globalThis, 'cancelAnimationFrame');
+  describe("クリーンアップ", () => {
+    it("unmount時にcancelAnimationFrameが呼ばれる", () => {
+      const cancelAnimationFrameSpy = vi.spyOn(globalThis, "cancelAnimationFrame");
 
-      const { result, unmount } = renderHook(() =>
-        useLipSync({ onMouthValueChange: mockOnMouthValueChange })
-      );
+      const { result, unmount } = renderHook(() => useLipSync({ onMouthValueChange: mockOnMouthValueChange }));
 
       act(() => {
         result.current.startLipSync(mockAnalyser as unknown as AnalyserNode);
@@ -356,10 +328,8 @@ describe('useLipSync', () => {
       expect(cancelAnimationFrameSpy).toHaveBeenCalled();
     });
 
-    it('複数回のstart/stopサイクルが正常に動作する', async () => {
-      const { result } = renderHook(() =>
-        useLipSync({ onMouthValueChange: mockOnMouthValueChange })
-      );
+    it("複数回のstart/stopサイクルが正常に動作する", async () => {
+      const { result } = renderHook(() => useLipSync({ onMouthValueChange: mockOnMouthValueChange }));
 
       // サイクル1
       act(() => {
@@ -392,11 +362,9 @@ describe('useLipSync', () => {
     });
   });
 
-  describe('エッジケース', () => {
-    it('analyserがnullの場合でもエラーにならない', async () => {
-      const { result } = renderHook(() =>
-        useLipSync({ onMouthValueChange: mockOnMouthValueChange })
-      );
+  describe("エッジケース", () => {
+    it("analyserがnullの場合でもエラーにならない", async () => {
+      const { result } = renderHook(() => useLipSync({ onMouthValueChange: mockOnMouthValueChange }));
 
       // analyserなしでstopLipSyncを呼ぶ
       expect(() => {
@@ -408,14 +376,12 @@ describe('useLipSync', () => {
       expect(mockOnMouthValueChange).toHaveBeenCalledWith(0);
     });
 
-    it('異なるfftSizeでも動作する', async () => {
+    it("異なるfftSizeでも動作する", async () => {
       mockAnalyser.fftSize = 512;
       const largeData = new Uint8Array(512).fill(128);
       mockAnalyser.setMockData(largeData);
 
-      const { result } = renderHook(() =>
-        useLipSync({ onMouthValueChange: mockOnMouthValueChange })
-      );
+      const { result } = renderHook(() => useLipSync({ onMouthValueChange: mockOnMouthValueChange }));
 
       act(() => {
         result.current.startLipSync(mockAnalyser as unknown as AnalyserNode);
@@ -426,16 +392,13 @@ describe('useLipSync', () => {
       expect(mockOnMouthValueChange).toHaveBeenCalled();
     });
 
-    it('onMouthValueChangeが変更されても動作する', async () => {
+    it("onMouthValueChangeが変更されても動作する", async () => {
       const mockCallback1 = vi.fn();
       const mockCallback2 = vi.fn();
 
-      const { result, rerender } = renderHook(
-        ({ callback }) => useLipSync({ onMouthValueChange: callback }),
-        {
-          initialProps: { callback: mockCallback1 },
-        }
-      );
+      const { result, rerender } = renderHook(({ callback }) => useLipSync({ onMouthValueChange: callback }), {
+        initialProps: { callback: mockCallback1 },
+      });
 
       act(() => {
         result.current.startLipSync(mockAnalyser as unknown as AnalyserNode);
