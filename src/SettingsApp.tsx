@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { EngineType } from './global';
 import { getSpeakers } from './services/voicevox';
-import { saveVRMFile, loadVRMFile } from './utils/vrmStorage';
+import { saveVRMFile, loadVRMFile, deleteVRMFile } from './utils/vrmStorage';
 
 const ENGINE_PATHS = {
   aivis: '/Applications/AivisSpeech.app/Contents/Resources/AivisSpeech-Engine/run',
@@ -267,9 +267,39 @@ export default function SettingsApp() {
   const handleReset = async () => {
     if (confirm('Are you sure you want to reset all settings to defaults? This will close the settings window.')) {
       localStorage.clear();
+
+      // Delete VRM file from IndexedDB
+      try {
+        await deleteVRMFile();
+        console.log('[SettingsApp] VRM file deleted');
+        // Update UI state to reflect the deletion
+        setVrmFileName(undefined);
+        setSelectedFileName(null);
+      } catch (err) {
+        console.error('[SettingsApp] Failed to delete VRM file:', err);
+      }
+
       if (window.electron?.resetAllSettings) {
         await window.electron.resetAllSettings();
       }
+
+      // Notify main window to reload VRM (will load default)
+      if (window.electron?.notifyVRMChanged) {
+        window.electron.notifyVRMChanged();
+      }
+
+      // Reset speaker to default
+      const defaultSpeakerId = 888753760;
+      if (window.electron?.notifySpeakerChanged) {
+        window.electron.notifySpeakerChanged(defaultSpeakerId);
+      }
+
+      // Reset volume to default
+      const defaultVolume = 1.0;
+      if (window.electron?.notifyVolumeChanged) {
+        window.electron.notifyVolumeChanged(defaultVolume);
+      }
+
       // Close settings window
       if (window.electron?.closeSettingsWindow) {
         window.electron.closeSettingsWindow();

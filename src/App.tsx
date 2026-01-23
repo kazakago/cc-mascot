@@ -54,6 +54,10 @@ function App() {
             const url = createBlobURL(file);
             setVrmUrl(url);
             console.log('[App] VRM reloaded:', file.name);
+          } else {
+            // No custom VRM, load default
+            setVrmUrl(DEFAULT_VRM_URL);
+            console.log('[App] No custom VRM, using default');
           }
         }).catch((err) => {
           console.error('Failed to reload VRM file:', err);
