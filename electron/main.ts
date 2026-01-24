@@ -146,10 +146,15 @@ const createWindow = () => {
   const windowSize = (store.get("windowSize") as number) || 800;
   const clampedSize = Math.max(400, Math.min(1200, windowSize));
 
+  // Load window position from store (if exists)
+  const savedPosition = store.get("windowPosition") as { x: number; y: number } | undefined;
+
   // Create the browser window.
   mainWindow = new BrowserWindow({
     width: clampedSize,
     height: clampedSize,
+    x: savedPosition?.x,
+    y: savedPosition?.y,
     frame: false,
     transparent: true,
     alwaysOnTop: true,
@@ -180,8 +185,24 @@ const createWindow = () => {
     mainWindow.loadFile(path.join(__dirname, "../dist/index.html"));
   }
 
+  // Restore saved position after window is ready (overrides OS auto-correction)
+  mainWindow.once("ready-to-show", () => {
+    if (savedPosition && mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.setPosition(savedPosition.x, savedPosition.y);
+      console.log(`[Window] Position restored to (${savedPosition.x}, ${savedPosition.y})`);
+    }
+  });
+
   mainWindow.on("closed", () => {
     mainWindow = null;
+  });
+
+  // Save window position when moved
+  mainWindow.on("move", () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      const [x, y] = mainWindow.getPosition();
+      store.set("windowPosition", { x, y });
+    }
   });
 
   // Wait for the window to be ready before starting log monitor
@@ -351,12 +372,13 @@ ipcMain.handle("reset-window-size", () => {
   return defaultSize;
 });
 
-// Reset all settings (including window size)
+// Reset all settings (including window size and position)
 ipcMain.handle("reset-all-settings", async () => {
   // Clear engine settings
   store.delete("engineType");
   store.delete("voicevoxEnginePath");
   store.delete("windowSize");
+  store.delete("windowPosition");
 
   // Restart engine
   await stopVoicevoxEngine();
