@@ -1,4 +1,4 @@
-# Claude Code Avatar - 技術ドキュメント
+# cc-mascot - 技術ドキュメント
 
 ## プロジェクト概要
 
