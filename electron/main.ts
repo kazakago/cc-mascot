@@ -185,6 +185,14 @@ const createWindow = () => {
     mainWindow.loadFile(path.join(__dirname, "../dist/index.html"));
   }
 
+  // Restore saved position after window is ready (overrides OS auto-correction)
+  mainWindow.once("ready-to-show", () => {
+    if (savedPosition && mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.setPosition(savedPosition.x, savedPosition.y);
+      console.log(`[Window] Position restored to (${savedPosition.x}, ${savedPosition.y})`);
+    }
+  });
+
   mainWindow.on("closed", () => {
     mainWindow = null;
   });
