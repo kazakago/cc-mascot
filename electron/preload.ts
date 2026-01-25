@@ -49,6 +49,32 @@ contextBridge.exposeInMainWorld("electron", {
       ipcRenderer.removeListener("volume-changed", listener);
     };
   },
+  onCursorTrackingChanged: (
+    callback: (options: {
+      enabled: boolean;
+      eyeSensitivity: number;
+      headSensitivity: number;
+      trackingRange: number;
+    }) => void,
+  ) => {
+    const listener = (
+      _event: unknown,
+      options: {
+        enabled: boolean;
+        eyeSensitivity: number;
+        headSensitivity: number;
+        trackingRange: number;
+      },
+    ) => {
+      callback(options);
+    };
+    ipcRenderer.on("cursor-tracking-changed", listener);
+
+    // Return cleanup function
+    return () => {
+      ipcRenderer.removeListener("cursor-tracking-changed", listener);
+    };
+  },
   getVoicevoxPath: (): Promise<string | undefined> => {
     return ipcRenderer.invoke("get-voicevox-path");
   },
@@ -99,6 +125,14 @@ contextBridge.exposeInMainWorld("electron", {
   },
   notifyVolumeChanged: (volumeScale: number): void => {
     ipcRenderer.send("notify-volume-changed", volumeScale);
+  },
+  notifyCursorTrackingChanged: (options: {
+    enabled: boolean;
+    eyeSensitivity: number;
+    headSensitivity: number;
+    trackingRange: number;
+  }): void => {
+    ipcRenderer.send("notify-cursor-tracking-changed", options);
   },
   playTestSpeech: (): void => {
     ipcRenderer.send("play-test-speech");
