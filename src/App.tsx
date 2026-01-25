@@ -8,6 +8,7 @@ import { useLipSync } from "./hooks/useLipSync";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { loadVRMFile, createBlobURL } from "./utils/vrmStorage";
 import type { Emotion } from "./types/emotion";
+import type { CursorTrackingOptions } from "./hooks/useCursorTracking";
 
 // Helper function to check if point is inside ellipse
 function isInsideEllipse(
@@ -38,6 +39,25 @@ function App() {
   const [vrmUrl, setVrmUrl] = useState<string>(DEFAULT_VRM_URL);
   const [currentAnimationUrl, setCurrentAnimationUrl] = useState<string>(IDLE_ANIMATION_URL);
   const [currentEmotion, setCurrentEmotion] = useState<Emotion>("neutral");
+
+  // Cursor tracking settings
+  const [cursorTrackingEnabled, setCursorTrackingEnabled] = useLocalStorage("cursorTrackingEnabled", true);
+  const [cursorTrackingEyeSensitivity, setCursorTrackingEyeSensitivity] = useLocalStorage(
+    "cursorTrackingEyeSensitivity",
+    1.0,
+  );
+  const [cursorTrackingHeadSensitivity, setCursorTrackingHeadSensitivity] = useLocalStorage(
+    "cursorTrackingHeadSensitivity",
+    0.5,
+  );
+  const [cursorTrackingRange, setCursorTrackingRange] = useLocalStorage("cursorTrackingRange", 1.0);
+
+  const cursorTrackingOptions: Partial<CursorTrackingOptions> = {
+    enabled: cursorTrackingEnabled,
+    eyeSensitivity: cursorTrackingEyeSensitivity,
+    headSensitivity: cursorTrackingHeadSensitivity,
+    trackingRange: cursorTrackingRange,
+  };
 
   // Load VRM from IndexedDB on mount
   useEffect(() => {
@@ -102,6 +122,26 @@ function App() {
       return cleanup;
     }
   }, [setVolumeScale]);
+
+  // Listen for cursor tracking change notifications from settings window
+  useEffect(() => {
+    if (window.electron?.onCursorTrackingChanged) {
+      const cleanup = window.electron.onCursorTrackingChanged((options) => {
+        console.log("[App] Cursor tracking changed to:", options);
+        setCursorTrackingEnabled(options.enabled);
+        setCursorTrackingEyeSensitivity(options.eyeSensitivity);
+        setCursorTrackingHeadSensitivity(options.headSensitivity);
+        setCursorTrackingRange(options.trackingRange);
+      });
+
+      return cleanup;
+    }
+  }, [
+    setCursorTrackingEnabled,
+    setCursorTrackingEyeSensitivity,
+    setCursorTrackingHeadSensitivity,
+    setCursorTrackingRange,
+  ]);
 
   const handleMouthValueChange = useCallback((value: number) => {
     avatarRef.current?.setMouthOpen(value);
@@ -320,6 +360,7 @@ function App() {
             animationUrl={currentAnimationUrl}
             animationLoop={currentAnimationUrl === IDLE_ANIMATION_URL}
             onAnimationEnd={handleAnimationEnd}
+            cursorTrackingOptions={cursorTrackingOptions}
           />
         </Scene>
       </Canvas>
