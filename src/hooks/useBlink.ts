@@ -31,21 +31,13 @@ export function useBlink(vrm: VRM | null, options: UseBlinkOptions = {}) {
     return Math.random() * (maxInterval - minInterval) + minInterval;
   }, [minInterval, maxInterval]);
 
-  // 瞬きをスキップすべきか判定
-  const shouldSkipBlink = useCallback((): boolean => {
-    if (!vrm?.expressionManager) return false;
-
-    // happy表情をチェック（笑顔の時は瞬きをスキップ）
-    const happyValue = vrm.expressionManager.getValue("happy");
-    return (happyValue ?? 0) > HAPPY_EXPRESSION_THRESHOLD;
-  }, [vrm]);
-
   // なめらかなまばたきアニメーション
   const performBlink = useCallback(() => {
     if (!vrm?.expressionManager || !enabled) return;
 
-    // happy表情や目を閉じる表情が適用されている場合はスキップ
-    if (shouldSkipBlink()) {
+    // happy表情をチェック（笑顔の時は瞬きをスキップ）
+    const happyValue = vrm.expressionManager.getValue("happy");
+    if ((happyValue ?? 0) > HAPPY_EXPRESSION_THRESHOLD) {
       return;
     }
 
