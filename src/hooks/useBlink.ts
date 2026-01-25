@@ -11,6 +11,7 @@ interface UseBlinkOptions {
 const DEFAULT_MIN_INTERVAL = 2000; // 2秒
 const DEFAULT_MAX_INTERVAL = 6000; // 6秒
 const DEFAULT_BLINK_DURATION = 150; // 0.15秒
+const HAPPY_EXPRESSION_THRESHOLD = 0.1; // happy表情の適用判定閾値（0.1以下なら「適用されていない」とみなす）
 
 export function useBlink(vrm: VRM | null, options: UseBlinkOptions = {}) {
   const {
@@ -30,9 +31,23 @@ export function useBlink(vrm: VRM | null, options: UseBlinkOptions = {}) {
     return Math.random() * (maxInterval - minInterval) + minInterval;
   }, [minInterval, maxInterval]);
 
+  // 瞬きをスキップすべきか判定
+  const shouldSkipBlink = useCallback((): boolean => {
+    if (!vrm?.expressionManager) return false;
+
+    // happy表情をチェック（笑顔の時は瞬きをスキップ）
+    const happyValue = vrm.expressionManager.getValue("happy");
+    return (happyValue ?? 0) > HAPPY_EXPRESSION_THRESHOLD;
+  }, [vrm]);
+
   // なめらかなまばたきアニメーション
   const performBlink = useCallback(() => {
     if (!vrm?.expressionManager || !enabled) return;
+
+    // happy表情や目を閉じる表情が適用されている場合はスキップ
+    if (shouldSkipBlink()) {
+      return;
+    }
 
     setIsBlinking(true);
 
