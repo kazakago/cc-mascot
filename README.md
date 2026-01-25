@@ -3,7 +3,7 @@
 ![License](https://img.shields.io/badge/license-Apache%202.0-blue)
 
 Claude Codeからの返答をVRMアバターが喋ってくれるデスクトップマスコットです。  
-現時点ではMacOSでのみ動作確認しています。  
+現時点ではMacOSでのみ動作確認しています。
 
 ## 特徴
 
@@ -24,17 +24,17 @@ Claude Codeからの返答をVRMアバターが喋ってくれるデスクトッ
 以下のいずれかをインストールしてください:
 
 - AivisSpeech（デフォルト）
-    - https://aivis-project.com/
+  - https://aivis-project.com/
 - VOICEVOX
-    - https://voicevox.hiroshiba.jp/
+  - https://voicevox.hiroshiba.jp/
 
 初回起動とモデルDLまで済ませれば上記アプリケーションを起動しておく必要はありません。  
-cc-mascotが自動的にエンジンプロセスを起動します。  
+cc-mascotが自動的にエンジンプロセスを起動します。
 
 ### 2. cc-mascotアプリケーションのインストール
 
 下記から最新バイナリをインストール、起動してください。  
-https://github.com/kazakago/cc-mascot/releases  
+https://github.com/kazakago/cc-mascot/releases
 
 ### 3. Claude Codeで会話を開始
 
@@ -66,7 +66,7 @@ cc-mascotアプリを起動した状態でClaude Codeで会話すると、自動
 ## リップシンクと表情変更について
 
 音声に同期して自動的に口が動きます。  
-表情変更にはVRMファイルに表情が含まれている必要があります。  
+表情変更にはVRMファイルに表情が含まれている必要があります。
 
 ## 全体的な仕組み
 
