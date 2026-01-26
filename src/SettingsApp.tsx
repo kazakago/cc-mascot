@@ -32,6 +32,12 @@ export default function SettingsApp() {
   const [testAudioError, setTestAudioError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Cursor tracking settings
+  const [cursorTrackingEnabled, setCursorTrackingEnabled] = useState(true);
+  const [cursorTrackingEyeSensitivity, setCursorTrackingEyeSensitivity] = useState(1.0);
+  const [cursorTrackingHeadSensitivity, setCursorTrackingHeadSensitivity] = useState(0.5);
+  const [cursorTrackingRange, setCursorTrackingRange] = useState(1.0);
+
   // Fetch speakers from engine with retry logic
   const fetchSpeakers = useCallback(async (maxRetries = 10) => {
     setLoadingSpeakers(true);
@@ -76,10 +82,26 @@ export default function SettingsApp() {
       const storedSpeakerId = localStorage.getItem("speakerId");
       const storedVolumeScale = localStorage.getItem("volumeScale");
       const storedWindowSize = localStorage.getItem("windowSize");
+      const storedCursorTrackingEnabled = localStorage.getItem("cursorTrackingEnabled");
+      const storedCursorTrackingEyeSensitivity = localStorage.getItem("cursorTrackingEyeSensitivity");
+      const storedCursorTrackingHeadSensitivity = localStorage.getItem("cursorTrackingHeadSensitivity");
+      const storedCursorTrackingRange = localStorage.getItem("cursorTrackingRange");
 
       if (storedSpeakerId) setSelectedSpeakerId(Number(storedSpeakerId));
       if (storedVolumeScale) setVolumeScaleInput(Number(storedVolumeScale));
       if (storedWindowSize) setWindowSizeInput(Number(storedWindowSize));
+      if (storedCursorTrackingEnabled !== null) {
+        setCursorTrackingEnabled(storedCursorTrackingEnabled === "true");
+      }
+      if (storedCursorTrackingEyeSensitivity) {
+        setCursorTrackingEyeSensitivity(Number(storedCursorTrackingEyeSensitivity));
+      }
+      if (storedCursorTrackingHeadSensitivity) {
+        setCursorTrackingHeadSensitivity(Number(storedCursorTrackingHeadSensitivity));
+      }
+      if (storedCursorTrackingRange) {
+        setCursorTrackingRange(Number(storedCursorTrackingRange));
+      }
 
       // Load from Electron Store
       if (window.electron?.getEngineType && window.electron?.getVoicevoxPath && window.electron?.getWindowSize) {
@@ -264,6 +286,47 @@ export default function SettingsApp() {
     }
   };
 
+  const notifyCursorTrackingChanged = () => {
+    if (window.electron?.notifyCursorTrackingChanged) {
+      window.electron.notifyCursorTrackingChanged({
+        enabled: cursorTrackingEnabled,
+        eyeSensitivity: cursorTrackingEyeSensitivity,
+        headSensitivity: cursorTrackingHeadSensitivity,
+        trackingRange: cursorTrackingRange,
+      });
+      console.log("[SettingsApp] Cursor tracking changed:", {
+        enabled: cursorTrackingEnabled,
+        eyeSensitivity: cursorTrackingEyeSensitivity,
+        headSensitivity: cursorTrackingHeadSensitivity,
+        trackingRange: cursorTrackingRange,
+      });
+    }
+  };
+
+  const handleCursorTrackingEnabledChange = (enabled: boolean) => {
+    setCursorTrackingEnabled(enabled);
+    localStorage.setItem("cursorTrackingEnabled", String(enabled));
+    notifyCursorTrackingChanged();
+  };
+
+  const handleCursorTrackingEyeSensitivityChange = (value: number) => {
+    setCursorTrackingEyeSensitivity(value);
+    localStorage.setItem("cursorTrackingEyeSensitivity", String(value));
+    notifyCursorTrackingChanged();
+  };
+
+  const handleCursorTrackingHeadSensitivityChange = (value: number) => {
+    setCursorTrackingHeadSensitivity(value);
+    localStorage.setItem("cursorTrackingHeadSensitivity", String(value));
+    notifyCursorTrackingChanged();
+  };
+
+  const handleCursorTrackingRangeChange = (value: number) => {
+    setCursorTrackingRange(value);
+    localStorage.setItem("cursorTrackingRange", String(value));
+    notifyCursorTrackingChanged();
+  };
+
   const handleReset = async () => {
     if (confirm("Are you sure you want to reset all settings to defaults? This will close the settings window.")) {
       localStorage.clear();
@@ -298,6 +361,16 @@ export default function SettingsApp() {
       const defaultVolume = 1.0;
       if (window.electron?.notifyVolumeChanged) {
         window.electron.notifyVolumeChanged(defaultVolume);
+      }
+
+      // Reset cursor tracking to defaults
+      if (window.electron?.notifyCursorTrackingChanged) {
+        window.electron.notifyCursorTrackingChanged({
+          enabled: true,
+          eyeSensitivity: 1.0,
+          headSensitivity: 0.5,
+          trackingRange: 1.0,
+        });
       }
 
       // Close settings window
@@ -354,6 +427,84 @@ export default function SettingsApp() {
               <div className="flex justify-between text-sm text-gray-400">
                 <span>400px (小)</span>
                 <span>1200px (大)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Cursor Tracking Section */}
+        <div>
+          <h2 className="m-0 mb-4 text-lg font-semibold text-gray-800">カーソル追従</h2>
+          <div className="space-y-4">
+            <div className="flex flex-col gap-3">
+              <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-800">
+                <input
+                  type="checkbox"
+                  checked={cursorTrackingEnabled}
+                  onChange={(e) => handleCursorTrackingEnabledChange(e.target.checked)}
+                  className="w-4 h-4 m-0 cursor-pointer accent-primary"
+                />
+                <span className="font-normal">カーソル追従を有効にする</span>
+              </label>
+            </div>
+            <div className="flex flex-col gap-3">
+              <label htmlFor="eye-sensitivity" className="text-sm font-medium text-gray-600">
+                視線の感度: {cursorTrackingEyeSensitivity.toFixed(2)}
+              </label>
+              <input
+                type="range"
+                id="eye-sensitivity"
+                min="0"
+                max="2"
+                step="0.1"
+                value={cursorTrackingEyeSensitivity}
+                onChange={(e) => handleCursorTrackingEyeSensitivityChange(parseFloat(e.target.value))}
+                className="w-full cursor-pointer"
+                disabled={!cursorTrackingEnabled}
+              />
+              <div className="flex justify-between text-sm text-gray-400">
+                <span>0.0 (無効)</span>
+                <span>2.0 (強)</span>
+              </div>
+            </div>
+            <div className="flex flex-col gap-3">
+              <label htmlFor="head-sensitivity" className="text-sm font-medium text-gray-600">
+                顔追従の感度: {cursorTrackingHeadSensitivity.toFixed(2)}
+              </label>
+              <input
+                type="range"
+                id="head-sensitivity"
+                min="0"
+                max="2"
+                step="0.1"
+                value={cursorTrackingHeadSensitivity}
+                onChange={(e) => handleCursorTrackingHeadSensitivityChange(parseFloat(e.target.value))}
+                className="w-full cursor-pointer"
+                disabled={!cursorTrackingEnabled}
+              />
+              <div className="flex justify-between text-sm text-gray-400">
+                <span>0.0 (無効)</span>
+                <span>2.0 (強)</span>
+              </div>
+            </div>
+            <div className="flex flex-col gap-3">
+              <label htmlFor="tracking-range" className="text-sm font-medium text-gray-600">
+                追従範囲: {cursorTrackingRange.toFixed(2)}
+              </label>
+              <input
+                type="range"
+                id="tracking-range"
+                min="0"
+                max="2"
+                step="0.1"
+                value={cursorTrackingRange}
+                onChange={(e) => handleCursorTrackingRangeChange(parseFloat(e.target.value))}
+                className="w-full cursor-pointer"
+                disabled={!cursorTrackingEnabled}
+              />
+              <div className="flex justify-between text-sm text-gray-400">
+                <span>0.0 (狭い)</span>
+                <span>2.0 (広い)</span>
               </div>
             </div>
           </div>

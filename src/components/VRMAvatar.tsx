@@ -4,11 +4,14 @@ import { Group } from "three";
 import { useVRM } from "../hooks/useVRM";
 import { useVRMAnimation } from "../hooks/useVRMAnimation";
 import { useBlink } from "../hooks/useBlink";
+import { useCursorTracking } from "../hooks/useCursorTracking";
 import type { Emotion } from "../types/emotion";
+import type { CursorTrackingOptions } from "../hooks/useCursorTracking";
 
 export interface VRMAvatarHandle {
   setMouthOpen: (value: number) => void;
   setEmotion: (emotion: Emotion, value?: number) => void;
+  updateCursorTracking?: (options: Partial<CursorTrackingOptions>) => void;
 }
 
 interface VRMAvatarProps {
@@ -16,10 +19,11 @@ interface VRMAvatarProps {
   animationUrl?: string;
   animationLoop?: boolean;
   onAnimationEnd?: () => void;
+  cursorTrackingOptions?: Partial<CursorTrackingOptions>;
 }
 
 export const VRMAvatar = forwardRef<VRMAvatarHandle, VRMAvatarProps>(function VRMAvatar(
-  { url, animationUrl, animationLoop = true, onAnimationEnd },
+  { url, animationUrl, animationLoop = true, onAnimationEnd, cursorTrackingOptions },
   ref,
 ) {
   const { vrm, loading, error, setMouthOpen, setEmotion, update: updateVRM } = useVRM(url);
@@ -37,13 +41,17 @@ export const VRMAvatar = forwardRef<VRMAvatarHandle, VRMAvatarProps>(function VR
     enabled: true,
   });
 
+  // カーソル追従機能を有効化
+  const { updateOptions: updateCursorTracking } = useCursorTracking(vrm, cursorTrackingOptions);
+
   useImperativeHandle(
     ref,
     () => ({
       setMouthOpen,
       setEmotion,
+      updateCursorTracking,
     }),
-    [setMouthOpen, setEmotion],
+    [setMouthOpen, setEmotion, updateCursorTracking],
   );
 
   useFrame((_, delta) => {
