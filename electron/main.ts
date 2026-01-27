@@ -17,6 +17,15 @@ let voicevoxProcess: ChildProcess | null = null;
 
 const VOICEVOX_PORT = 8564;
 
+// Get icon path for Windows and Linux (Mac uses .icns from package.json)
+const getIconPath = () => {
+  if (process.platform === "darwin") {
+    return undefined; // Mac uses .icns from bundle
+  }
+  const ext = process.platform === "win32" ? ".ico" : ".png";
+  return path.join(__dirname, `../resources/icons/icon${ext}`);
+};
+
 // Engine type and path constants
 type EngineType = "aivis" | "voicevox" | "custom";
 const ENGINE_PATHS: Record<Exclude<EngineType, "custom">, string> = {
@@ -155,6 +164,7 @@ const createWindow = () => {
     height: clampedSize,
     x: savedPosition?.x,
     y: savedPosition?.y,
+    icon: getIconPath(),
     frame: false,
     transparent: true,
     alwaysOnTop: true,
@@ -240,6 +250,7 @@ const createSettingsWindow = () => {
   settingsWindow = new BrowserWindow({
     width: 600,
     height: 700,
+    icon: getIconPath(),
     frame: true,
     transparent: false,
     alwaysOnTop: true,
