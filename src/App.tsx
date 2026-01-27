@@ -24,10 +24,10 @@ function isInsideEllipse(
   return (dx * dx) / (radiusX * radiusX) + (dy * dy) / (radiusY * radiusY) <= 1;
 }
 
-const DEFAULT_VRM_URL = "/models/avatar.glb";
-const IDLE_ANIMATION_URL = "/animations/idle_loop.vrma";
+const DEFAULT_VRM_URL = "./models/avatar.glb";
+const IDLE_ANIMATION_URL = "./animations/idle_loop.vrma";
 const EMOTION_ANIMATION_URLS: Partial<Record<Emotion, string>> = {
-  happy: "/animations/happy.vrma",
+  happy: "./animations/happy.vrma",
 };
 const VOICEVOX_BASE_URL = "http://localhost:8564";
 
