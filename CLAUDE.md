@@ -39,6 +39,11 @@
 - IndexedDB (VRMファイル)
 - Electron Store (エンジン設定、ウィンドウサイズ)
 
+**開発ツール:**
+
+- electron-mcp-server (Electronアプリのデバッグ・操作)
+- ポート: localhost:9222 (開発モード時のみ)
+
 ## アーキテクチャ
 
 ### システム構成図
@@ -55,32 +60,48 @@
 └──────────┬───────────┘
            │ chokidar監視 (リアルタイム差分読み取り)
            ↓
-┌──────────────────────────────────────────┐
-│  Electron Main Process                    │
-│  ├─ logMonitor.ts (ファイル監視)          │
-│  ├─ claudeCodeParser.ts (JSONL解析)       │
-│  ├─ textFilter.ts (Markdown除去)          │
+┌─────────────────────────────────────────────┐
+│  Electron Main Process                      │
+│  ├─ logMonitor.ts (ファイル監視)              │
+│  ├─ claudeCodeParser.ts (JSONL解析)          │
+│  ├─ textFilter.ts (Markdown除去)             │
 │  ├─ ruleBasedEmotionClassifier.ts (感情判定) │
-│  └─ IPC送信 ('speak' イベント)            │
-└──────────┬───────────────────────────────┘
+│  └─ IPC送信 ('speak' イベント)                │
+└──────────┬──────────────────────────────────┘
            │ IPC通信
            ↓
 ┌──────────────────────────────────────────┐
 │  Electron Renderer Process (Main Window) │
-│  ├─ useSpeech (音声合成キュー)            │
-│  ├─ useLipSync (リップシンク)             │
-│  ├─ useVRM (VRMモデル読み込み)            │
-│  ├─ useVRMAnimation (アニメーション)      │
+│  ├─ useSpeech (音声合成キュー)             │
+│  ├─ useLipSync (リップシンク)              │
+│  ├─ useVRM (VRMモデル読み込み)             │
+│  ├─ useVRMAnimation (アニメーション)       │
 │  ├─ useBlink (まばたき)                   │
 │  └─ VRMAvatar (3D表示)                    │
 └──────────┬───────────────────────────────┘
            │ HTTP API
            ↓
-┌──────────────────────┐
-│  音声合成エンジン     │
-│  (AivisSpeech/VOICEVOX)│
-│  localhost:8564       │
-└──────────────────────┘
+┌─────────────────────────┐
+│  音声合成エンジン          │
+│  (AivisSpeech/VOICEVOX) │
+│  localhost:8564         │
+└─────────────────────────┘
+
+開発モード時の追加接続:
+
+┌──────────────────────────────────────────┐
+│  Claude Code (MCP Client)                │
+└──────────┬───────────────────────────────┘
+           │ WebSocket (DevTools Protocol)
+           │ localhost:9222
+           ↓
+┌──────────────────────────────────────────┐
+│  electron-mcp-server                     │
+│  ├─ ウィンドウ情報取得                      │
+│  ├─ スクリーンショット撮影                   │
+│  ├─ コンソールログ監視                      │
+│  └─ JavaScriptコマンド実行                 │
+└──────────────────────────────────────────┘
 ```
 
 ### ウィンドウ構成
@@ -308,6 +329,12 @@ IPC通信:
 - `get/set-window-size`: レンダラー↔メイン（ウィンドウサイズ）
 - `get/set-engine-settings`: レンダラー↔メイン（エンジン設定）
 
+### 8. MCPサーバー（開発用）
+
+**electron-mcp-server**
+
+開発モード時（`npm run dev`）にChrome DevTools Protocol経由でElectronアプリに接続し、デバッグ・操作を可能にします。
+
 ## データストレージ
 
 ### localStorage（Renderer Process）
@@ -373,80 +400,11 @@ cc-mascot/
 │   └── animations/
 │       ├── idle_loop.vrma       # 待機モーション
 │       └── happy.vrma           # 喜びモーション
+├── .mcp.json                    # MCPサーバー設定
+├── .claude/
+│   └── settings.json            # Claude Code設定
 └── package.json
 ```
-
-## 設計上の重要な判断
-
-### なぜプラグインではなくログ監視？
-
-- シンプル: プラグインAPIの学習コスト・保守コストが不要
-- 安定性: プラグインAPIの変更に影響されない
-- 完全性: すべてのログが記録されており、取りこぼしがない
-- 独立性: Claude Codeとアプリが疎結合
-
-### なぜルールベースの感情判定？
-
-- オフライン: ML/APIサーバー不要でローカル完結
-- 高速: リアルタイム処理可能
-- 精度: 日本語特有の表現（女性言葉、文末パターン）に最適化
-- 保守性: ルールの追加・調整が容易
-
-### なぜElectron？
-
-- ローカルファイルアクセス: `~/.claude/projects/` 直接読み取り
-- プロセス管理: エンジン自動起動・停止
-- 透過ウィンドウ: アバター表示に最適
-- クロスプラットフォーム: macOS/Windows/Linux対応
-
-### なぜAivisSpeechをデフォルトに？
-
-- 品質: 自然な日本語音声
-- ライセンス: 商用利用可能
-- VOICEVOX互換: API互換性あり
-
-## トラブルシューティング
-
-### アバターが喋らない
-
-**確認項目:**
-
-1. エンジンがインストールされているか（AivisSpeech/VOICEVOX）
-2. 設定画面で「Loading speakers...」が表示されていないか（エンジン起動待ち）
-3. `~/.claude/projects/` にログファイルがあるか
-4. Electronコンソールに `[LogMonitor]` ログが出ているか
-
-**デバッグ方法:**
-
-- メインプロセスコンソール: `[Engine]`, `[LogMonitor]` ログ確認
-- レンダラープロセスコンソール: `[App]`, `[useSpeech]` ログ確認
-- `window.electron` が定義されているか確認
-- IPC通信が正常か確認（`window.electron.onSpeak`）
-
-### リップシンクが動かない
-
-**原因:**
-
-- VRMモデルに `aa` 表情がない
-- AnalyserNodeが機能していない
-
-**デバッグ方法:**
-
-- ブラウザコンソールで `vrm.expressionManager.expressionMap` 確認
-- `aa` 表情の存在を確認
-
-### エンジンが起動しない
-
-**原因:**
-
-- エンジンパスが正しくない
-- ポート8564が既に使用中
-
-**デバッグ方法:**
-
-- 設定画面でEngine Pathを確認
-- `lsof -i :8564` でポート確認
-- メインプロセスコンソールで `[Engine]` ログ確認
 
 ## パフォーマンス最適化
 
@@ -489,6 +447,15 @@ cc-mascot/
 - [ ] 設定ウィンドウが開くか
 - [ ] テスト音声が再生されるか
 
+### MCPサーバー関連（開発モード時のみ）
+
+- [ ] リモートデバッグポート9222が有効化されているか
+- [ ] MCPサーバーがElectronアプリに接続できるか
+- [ ] ウィンドウ情報が正しく取得できるか
+- [ ] スクリーンショットが撮影できるか
+- [ ] コンソールログが監視できるか
+- [ ] JavaScriptコマンドが実行できるか
+
 ## タスク完了時のチェックリスト
 
 コード編集作業完了時は、以下を実行して品質を確認すること:
@@ -514,7 +481,7 @@ cc-mascot/
 # 依存関係インストール
 npm install
 
-# 開発モード起動（HMR有効）
+# 開発モード起動（HMR有効、MCPサーバー接続可能）
 npm run dev
 
 # Lint実行
@@ -554,6 +521,7 @@ npm run package
 **開発:**
 
 - `electron`: ^39.2.7
+- `electron-mcp-server`: ^1.5.0
 - `vite`: ^7.2.4
 - `vitest`: ^4.0.17
 
