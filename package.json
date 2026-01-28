@@ -46,6 +46,7 @@
     "autoprefixer": "^10.4.23",
     "electron": "^40.0.0",
     "electron-builder": "^26.4.0",
+    "electron-mcp-server": "^1.5.0",
     "eslint": "^9.39.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
