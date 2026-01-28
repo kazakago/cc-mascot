@@ -1,6 +1,14 @@
 {
   "permissions": {
-    "allow": ["Bash", "WebFetch", "WebSearch", "Write", "Edit", "Skill"],
+    "allow": [
+      "Bash",
+      "WebFetch",
+      "WebSearch",
+      "Write",
+      "Edit",
+      "Skill",
+      "mcp__electron"
+    ],
     "deny": [
       "Read(**/coverage/**)",
       "Read(**/dist/**)",
