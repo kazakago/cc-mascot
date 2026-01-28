@@ -67,22 +67,28 @@
   "build": {
     "appId": "com.kazakago.cc-mascot",
     "productName": "CC Mascot",
+    "icon": "resources/icons/icon.png",
     "directories": {
       "output": "release"
     },
     "files": [
       "dist/**/*",
-      "dist-electron/**/*"
+      "dist-electron/**/*",
+      "public/**/*"
     ],
     "mac": {
+      "icon": "resources/icons/icon.icns",
       "target": "dmg",
       "category": "public.app-category.entertainment"
     },
     "win": {
+      "icon": "resources/icons/icon.ico",
       "target": "nsis"
     },
     "linux": {
-      "target": "AppImage"
+      "icon": "resources/icons/icon.png",
+      "target": "AppImage",
+      "category": "Entertainment"
     }
   }
 }
