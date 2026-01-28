@@ -9,6 +9,13 @@ import Store from "electron-store";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// リモートデバッグポートを設定（開発モードのみ、アプリ起動前に実行する必要がある）
+const isDev = process.env.NODE_ENV === "development" || process.argv.includes("--dev");
+if (isDev) {
+  app.commandLine.appendSwitch("remote-debugging-port", "9222");
+  console.log("🔍 Remote debugging enabled on port 9222");
+}
+
 const store = new Store();
 let mainWindow: BrowserWindow | null = null;
 let settingsWindow: BrowserWindow | null = null;
