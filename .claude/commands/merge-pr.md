@@ -41,11 +41,12 @@ gh pr view <ターゲットブランチ> --json number,baseRefName
 2. PRがマージ可能か確認する:
 
 ```bash
-gh pr view <PR番号> --json mergeable,mergeStateStatus
+gh pr view <PR番号> --json title,state,mergeable,mergeStateStatus,statusCheckRollup,reviewDecision
 ```
 
 マージ可能なら次のステップへ、
 マージが不可能ならその旨をユーザーに示してこのコマンドは終了
+CIチェック中なら終わるまで待機し、完了してから判断。
 
 # PRをマージしてローカルに反映
 
@@ -75,4 +76,3 @@ git fetch --prune
 
 - **このコマンドは最後まで必ず実行してください。**
 - 途中でエラーなどで進行不能な状態に陥った場合はユーザーにその旨を示して終了してください
-- すべての記述は日本語で行ってください
