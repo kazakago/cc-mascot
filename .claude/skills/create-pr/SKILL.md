@@ -1,9 +1,9 @@
 ---
+name: create-pr
+description: 現在のコミットからPRを作成します。
+argument-hint: [-b <base-branch>] [-d (draft)] [-p (prompt付与)]
 model: sonnet
-description: 現在のコミットからPRを作成します。option： [-b <branch>] [-d (draft)] [-p (prompt付与)]
-argument-hint: [-b <branch>] [-d (draft)] [-p (prompt付与)]
-  
-mode: agent
+context: fork
 ---
 
 # PRを作成
@@ -14,7 +14,7 @@ mode: agent
 
 引数は以下のオプションを受け付けます:
 
-- `-b <branch>`: ベースブランチを指定（デフォルト: `main`）
+- `-b <base-branch>`: ベースブランチを指定（デフォルト: `main`）
 - `-d`: ドラフトPRとして作成
 - `-p`: セッションのプロンプトをPR本文に付与
 
