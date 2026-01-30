@@ -1,16 +1,16 @@
 ---
+name: merge-pr
+description: PRをマージして、マージ先のブランチへをチェックアウトします。
+argument-hint: [-b <target-branch>]
 model: sonnet
-description: PRをマージして、マージ先のブランチへをチェックアウトします。option：[-b <branch>]
-argument-hint: [-b <branch>]
-
-mode: agent
+context: fork
 ---
 
 ## 1. 引数のパース
 
 引数は以下のオプションを受け付けます:
 
-- `-b <branch>`: ターゲットブランチを指定（デフォルト: `$(git branch --show-current)`で取得した結果）
+- `-b <target-branch>`: ターゲットブランチを指定（デフォルト: `$(git branch --show-current)`で取得した現在のブランチ）
 
 # 未コミットな変更がないか探す
 
