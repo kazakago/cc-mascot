@@ -231,15 +231,31 @@ const createWindow = () => {
 
   // Disable always-on-top when DevTools is opened to allow switching to other apps
   mainWindow.webContents.on("devtools-opened", () => {
-    console.log("[Main] DevTools opened, disabling always-on-top");
+    console.log("[Main] DevTools opened, disabling always-on-top and resizing to avoid menu bar");
     mainWindow?.setAlwaysOnTop(false);
     mainWindow?.webContents.send("devtools-state-changed", true);
+
+    // Resize window to avoid menu bar area on macOS
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      const primaryDisplay = screen.getPrimaryDisplay();
+      const { x, y, width, height } = primaryDisplay.workArea;
+      mainWindow.setBounds({ x, y, width, height });
+      console.log(`[Main] Window resized to workArea: ${width}x${height} at (${x}, ${y})`);
+    }
   });
 
   mainWindow.webContents.on("devtools-closed", () => {
-    console.log("[Main] DevTools closed, enabling always-on-top");
+    console.log("[Main] DevTools closed, enabling always-on-top and resizing to full screen");
     mainWindow?.setAlwaysOnTop(true, "pop-up-menu");
     mainWindow?.webContents.send("devtools-state-changed", false);
+
+    // Resize window to cover menu bar area on macOS
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      const primaryDisplay = screen.getPrimaryDisplay();
+      const { x, y, width, height } = primaryDisplay.bounds;
+      mainWindow.setBounds({ x, y, width, height });
+      console.log(`[Main] Window resized to bounds: ${width}x${height} at (${x}, ${y})`);
+    }
   });
 };
 
