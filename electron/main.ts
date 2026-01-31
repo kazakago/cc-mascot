@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from "electron";
+import { app, BrowserWindow, ipcMain, screen } from "electron";
 import path from "path";
 import { fileURLToPath } from "url";
 import { spawn, ChildProcess } from "child_process";
@@ -158,19 +158,14 @@ async function stopVoicevoxEngine(): Promise<void> {
 }
 
 const createWindow = () => {
-  // Load window size from store (default: 800)
-  const windowSize = (store.get("windowSize") as number) || 800;
-  const clampedSize = Math.max(400, Math.min(1200, windowSize));
+  const primaryDisplay = screen.getPrimaryDisplay();
+  const { x: workX, y: workY, width: workW, height: workH } = primaryDisplay.bounds;
 
-  // Load window position from store (if exists)
-  const savedPosition = store.get("windowPosition") as { x: number; y: number } | undefined;
-
-  // Create the browser window.
   mainWindow = new BrowserWindow({
-    width: clampedSize,
-    height: clampedSize,
-    x: savedPosition?.x,
-    y: savedPosition?.y,
+    width: workW,
+    height: workH,
+    x: workX,
+    y: workY,
     icon: getIconPath(),
     frame: false,
     transparent: true,
@@ -180,7 +175,8 @@ const createWindow = () => {
     maximizable: false,
     hasShadow: false,
     resizable: false,
-    // hiddenInMissionControl: true,
+    skipTaskbar: true,
+    enableLargerThanScreen: true,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -192,8 +188,14 @@ const createWindow = () => {
   // 初期状態ではマウスイベントを受け取る（ドラッグ可能にするため）
   // forward: trueを指定してマウス移動イベントを常に受信
   mainWindow.setIgnoreMouseEvents(false, { forward: true });
+  mainWindow.setAlwaysOnTop(true, "pop-up-menu");
 
-  mainWindow.setAspectRatio(1);
+  // Force position to cover menu bar area on macOS
+  mainWindow.once("ready-to-show", () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.setBounds({ x: workX, y: workY, width: workW, height: workH });
+    }
+  });
 
   // Load the app
   if (process.env.VITE_DEV_SERVER_URL) {
@@ -202,23 +204,16 @@ const createWindow = () => {
     mainWindow.loadFile(path.join(__dirname, "../dist/index.html"));
   }
 
-  // Restore saved position after window is ready (overrides OS auto-correction)
-  mainWindow.once("ready-to-show", () => {
-    if (savedPosition && mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.setPosition(savedPosition.x, savedPosition.y);
-      console.log(`[Window] Position restored to (${savedPosition.x}, ${savedPosition.y})`);
-    }
-  });
-
   mainWindow.on("closed", () => {
     mainWindow = null;
   });
 
-  // Save window position when moved
-  mainWindow.on("move", () => {
+  // Resize window when display metrics change
+  screen.on("display-metrics-changed", () => {
     if (mainWindow && !mainWindow.isDestroyed()) {
-      const [x, y] = mainWindow.getPosition();
-      store.set("windowPosition", { x, y });
+      const { x, y, width, height } = screen.getPrimaryDisplay().bounds;
+      mainWindow.setSize(width, height);
+      mainWindow.setPosition(x, y);
     }
   });
 
@@ -273,6 +268,8 @@ const createSettingsWindow = () => {
       autoplayPolicy: "no-user-gesture-required",
     },
   });
+
+  settingsWindow.setAlwaysOnTop(true, "pop-up-menu", 1);
 
   // Load the settings app
   if (process.env.VITE_DEV_SERVER_URL) {
@@ -335,76 +332,68 @@ ipcMain.handle("reset-engine-settings", async () => {
   return true;
 });
 
-// Get current window size from Electron Store
-ipcMain.handle("get-window-size", () => {
-  return (store.get("windowSize") as number) || 800;
+// Get current character size from Electron Store
+ipcMain.handle("get-character-size", () => {
+  return (store.get("characterSize") as number) || 800;
 });
 
-// Set window size with validation and window resize
-ipcMain.handle("set-window-size", (_event, size: number) => {
-  // Validate and clamp size (400-1200)
+// Set character size with validation
+ipcMain.handle("set-character-size", (_event, size: number) => {
   const clampedSize = Math.max(400, Math.min(1200, Math.round(size)));
-  console.log(`[IPC] set-window-size: ${size} -> ${clampedSize}`);
+  console.log(`[IPC] set-character-size: ${size} -> ${clampedSize}`);
 
-  // Save to Electron Store
-  store.set("windowSize", clampedSize);
+  store.set("characterSize", clampedSize);
 
-  // Resize window from center (not top-left)
+  // Notify renderer of size change
   if (mainWindow && !mainWindow.isDestroyed()) {
-    const [currentWidth, currentHeight] = mainWindow.getSize();
-    const [currentX, currentY] = mainWindow.getPosition();
-
-    // Calculate position adjustment to resize from center
-    const widthDelta = clampedSize - currentWidth;
-    const heightDelta = clampedSize - currentHeight;
-    const newX = currentX - Math.round(widthDelta / 2);
-    const newY = currentY - Math.round(heightDelta / 2);
-
-    mainWindow.setSize(clampedSize, clampedSize);
-    mainWindow.setPosition(newX, newY);
-    console.log(`[IPC] Window resized to ${clampedSize}x${clampedSize} at (${newX}, ${newY})`);
+    mainWindow.webContents.send("character-size-changed", clampedSize);
   }
 
   return clampedSize;
 });
 
-// Reset window size to default
-ipcMain.handle("reset-window-size", () => {
+// Reset character size to default
+ipcMain.handle("reset-character-size", () => {
   const defaultSize = 800;
-  store.delete("windowSize");
+  store.delete("characterSize");
 
+  // Notify renderer of size change
   if (mainWindow && !mainWindow.isDestroyed()) {
-    const [currentWidth, currentHeight] = mainWindow.getSize();
-    const [currentX, currentY] = mainWindow.getPosition();
-
-    const widthDelta = defaultSize - currentWidth;
-    const heightDelta = defaultSize - currentHeight;
-    const newX = currentX - Math.round(widthDelta / 2);
-    const newY = currentY - Math.round(heightDelta / 2);
-
-    mainWindow.setSize(defaultSize, defaultSize);
-    mainWindow.setPosition(newX, newY);
-    console.log(`[IPC] Window reset to ${defaultSize}x${defaultSize} at (${newX}, ${newY})`);
+    mainWindow.webContents.send("character-size-changed", defaultSize);
   }
 
   return defaultSize;
 });
 
-// Reset all settings (including window size and position)
+// Character position persistence
+ipcMain.handle("get-character-position", () => {
+  return store.get("characterPosition") as { x: number; y: number } | undefined;
+});
+
+ipcMain.on("set-character-position", (_event, x: number, y: number) => {
+  store.set("characterPosition", { x, y });
+});
+
+// Screen size
+ipcMain.handle("get-screen-size", () => {
+  const primaryDisplay = screen.getPrimaryDisplay();
+  const { width, height } = primaryDisplay.bounds;
+  return { width, height };
+});
+
+// Reset all settings (including character size and position)
 ipcMain.handle("reset-all-settings", async () => {
-  // Clear engine settings
   store.delete("engineType");
   store.delete("voicevoxEnginePath");
-  store.delete("windowSize");
-  store.delete("windowPosition");
+  store.delete("characterSize");
+  store.delete("characterPosition");
 
-  // Restart engine
   await stopVoicevoxEngine();
   await startVoicevoxEngine();
 
-  // Reset window size
+  // Notify renderer of size reset
   if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.setSize(800, 800);
+    mainWindow.webContents.send("character-size-changed", 800);
   }
 
   return true;
@@ -459,20 +448,6 @@ ipcMain.on("set-ignore-mouse-events", (_event, ignore: boolean) => {
     // Always use forward: true to keep receiving mouse move events even when ignoring clicks
     mainWindow.setIgnoreMouseEvents(ignore, { forward: true });
     console.log("[IPC] setIgnoreMouseEvents:", ignore, "forward: true");
-  }
-});
-
-ipcMain.handle("get-window-position", () => {
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    const [x, y] = mainWindow.getPosition();
-    return { x, y };
-  }
-  return { x: 0, y: 0 };
-});
-
-ipcMain.on("set-window-position", (_event, x: number, y: number) => {
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.setPosition(Math.round(x), Math.round(y));
   }
 });
 
