@@ -67,20 +67,32 @@ contextBridge.exposeInMainWorld("electron", {
   setIgnoreMouseEvents: (ignore: boolean): void => {
     ipcRenderer.send("set-ignore-mouse-events", ignore);
   },
-  getWindowPosition: (): Promise<{ x: number; y: number }> => {
-    return ipcRenderer.invoke("get-window-position");
+  getCharacterSize: (): Promise<number> => {
+    return ipcRenderer.invoke("get-character-size");
   },
-  setWindowPosition: (x: number, y: number): void => {
-    ipcRenderer.send("set-window-position", x, y);
+  setCharacterSize: (size: number): Promise<number> => {
+    return ipcRenderer.invoke("set-character-size", size);
   },
-  getWindowSize: (): Promise<number> => {
-    return ipcRenderer.invoke("get-window-size");
+  resetCharacterSize: (): Promise<number> => {
+    return ipcRenderer.invoke("reset-character-size");
   },
-  setWindowSize: (size: number): Promise<number> => {
-    return ipcRenderer.invoke("set-window-size", size);
+  getCharacterPosition: (): Promise<{ x: number; y: number } | undefined> => {
+    return ipcRenderer.invoke("get-character-position");
   },
-  resetWindowSize: (): Promise<number> => {
-    return ipcRenderer.invoke("reset-window-size");
+  setCharacterPosition: (x: number, y: number): void => {
+    ipcRenderer.send("set-character-position", x, y);
+  },
+  onCharacterSizeChanged: (callback: (size: number) => void) => {
+    const listener = (_event: unknown, size: number) => {
+      callback(size);
+    };
+    ipcRenderer.on("character-size-changed", listener);
+    return () => {
+      ipcRenderer.removeListener("character-size-changed", listener);
+    };
+  },
+  getScreenSize: (): Promise<{ width: number; height: number }> => {
+    return ipcRenderer.invoke("get-screen-size");
   },
   resetAllSettings: (): Promise<boolean> => {
     return ipcRenderer.invoke("reset-all-settings");
