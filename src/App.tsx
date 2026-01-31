@@ -41,6 +41,7 @@ function App() {
   const [containerPos, setContainerPos] = useState({ x: 0, y: 0 });
   const [containerSize, setContainerSize] = useState(800);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [devToolsOpen, setDevToolsOpen] = useState(false);
 
   // Refs for event handlers (to avoid useEffect dependency issues)
   const containerPosRef = useRef(containerPos);
@@ -278,7 +279,6 @@ function App() {
     let containerStartX = 0;
     let containerStartY = 0;
     let lastInsideState: boolean | null = null;
-    let devToolsOpen = false;
 
     const isInsideCharacterArea = (clientX: number, clientY: number) => {
       const pos = containerPosRef.current;
@@ -343,7 +343,7 @@ function App() {
     if (electron.onDevToolsStateChanged) {
       const cleanupDevTools = electron.onDevToolsStateChanged((isOpen: boolean) => {
         console.log(`[App] DevTools state changed: ${isOpen ? "opened" : "closed"}`);
-        devToolsOpen = isOpen;
+        setDevToolsOpen(isOpen);
         if (isOpen) {
           electron.setIgnoreMouseEvents(false);
         } else if (lastInsideState !== null) {
@@ -356,7 +356,15 @@ function App() {
     return () => {
       cleanupFunctions.forEach((fn) => fn());
     };
-  }, []);
+  }, [devToolsOpen]);
+
+  // Calculate ellipse parameters for visualization
+  const ellipseParams = {
+    centerX: containerSize / 2,
+    centerY: containerSize / 2,
+    radiusX: containerSize * 0.15,
+    radiusY: containerSize * 0.45,
+  };
 
   return (
     <div className="w-screen h-screen overflow-hidden relative">
@@ -392,6 +400,32 @@ function App() {
               />
             </Scene>
           </Canvas>
+
+          {/* Visualize draggable area when DevTools is open */}
+          {devToolsOpen && (
+            <svg
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: "100%",
+                pointerEvents: "none",
+              }}
+              viewBox={`0 0 ${containerSize} ${containerSize}`}
+            >
+              <ellipse
+                cx={ellipseParams.centerX}
+                cy={ellipseParams.centerY}
+                rx={ellipseParams.radiusX}
+                ry={ellipseParams.radiusY}
+                fill="none"
+                stroke="rgba(255, 0, 0, 0.7)"
+                strokeWidth="3"
+                strokeDasharray="10, 5"
+              />
+            </svg>
+          )}
         </div>
       )}
     </div>
