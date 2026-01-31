@@ -229,14 +229,16 @@ const createWindow = () => {
     logMonitor = createLogMonitor(broadcast);
   });
 
-  // Notify renderer when DevTools is opened/closed to disable click-through
+  // Disable always-on-top when DevTools is opened to allow switching to other apps
   mainWindow.webContents.on("devtools-opened", () => {
-    console.log("[Main] DevTools opened, disabling click-through");
+    console.log("[Main] DevTools opened, disabling always-on-top");
+    mainWindow?.setAlwaysOnTop(false);
     mainWindow?.webContents.send("devtools-state-changed", true);
   });
 
   mainWindow.webContents.on("devtools-closed", () => {
-    console.log("[Main] DevTools closed, enabling click-through");
+    console.log("[Main] DevTools closed, enabling always-on-top");
+    mainWindow?.setAlwaysOnTop(true, "pop-up-menu");
     mainWindow?.webContents.send("devtools-state-changed", false);
   });
 };
