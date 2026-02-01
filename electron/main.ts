@@ -273,6 +273,15 @@ const createWindow = () => {
   mainWindow.once("ready-to-show", () => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.setBounds({ x: workX, y: workY, width: workW, height: workH });
+
+      // macOS: ウィンドウが表示された後にDockを非表示にする
+      // ※起動時にapp.dock.hide()を呼ぶとフルスクリーンSpaceで起動してしまうため
+      if (process.platform === "darwin" && app.dock) {
+        setTimeout(() => {
+          app.dock.hide();
+          console.log("[Main] Dock icon hidden after window shown");
+        }, 500);
+      }
     }
   });
 
@@ -786,11 +795,6 @@ ipcMain.on("set-ignore-mouse-events", (_event, ignore: boolean) => {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 app.whenReady().then(async () => {
-  // macOS: Dockアイコンを非表示にする（常駐アプリのため）
-  if (process.platform === "darwin" && app.dock) {
-    app.dock.hide();
-  }
-
   createTray();
   await startVoicevoxEngine();
   createWindow();
