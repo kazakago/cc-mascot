@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu, nativeImage, screen, Tray } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, screen, Tray } from "electron";
 import path from "path";
 import { fileURLToPath } from "url";
 import { spawn, ChildProcess } from "child_process";
@@ -73,6 +73,22 @@ const createTray = () => {
       click: () => createSettingsWindow(),
     },
     { type: "separator" },
+    {
+      label: "バージョン情報",
+      click: () => {
+        dialog.showMessageBox({
+          type: "info",
+          title: "CC Mascot",
+          message: `CC Mascot v${app.getVersion()}`,
+          detail: [
+            `Electron: v${process.versions.electron}`,
+            `Chrome: v${process.versions.chrome}`,
+            `Node.js: v${process.versions.node}`,
+          ].join("\n"),
+          buttons: ["OK"],
+        });
+      },
+    },
     {
       label: "終了",
       click: () => app.quit(),
