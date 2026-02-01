@@ -82,11 +82,11 @@ export default function SettingsApp() {
       if (storedWindowSize) setWindowSizeInput(Number(storedWindowSize));
 
       // Load from Electron Store
-      if (window.electron?.getEngineType && window.electron?.getVoicevoxPath && window.electron?.getWindowSize) {
+      if (window.electron?.getEngineType && window.electron?.getVoicevoxPath && window.electron?.getCharacterSize) {
         const [savedEngineType, savedCustomPath, savedWindowSize] = await Promise.all([
           window.electron.getEngineType(),
           window.electron.getVoicevoxPath(),
-          window.electron.getWindowSize(),
+          window.electron.getCharacterSize(),
         ]);
         setEngineType(savedEngineType || "aivis");
         setCustomPath(savedCustomPath || "");
@@ -227,9 +227,9 @@ export default function SettingsApp() {
   const handleWindowSizeChange = async (newSize: number) => {
     setWindowSizeInput(newSize);
 
-    if (window.electron?.setWindowSize) {
+    if (window.electron?.setCharacterSize) {
       try {
-        const clampedSize = await window.electron.setWindowSize(newSize);
+        const clampedSize = await window.electron.setCharacterSize(newSize);
         setWindowSizeInput(clampedSize);
         localStorage.setItem("windowSize", String(clampedSize));
         console.log(`[SettingsApp] Window size changed to: ${clampedSize}`);

@@ -38,6 +38,78 @@ function App() {
   const [vrmUrl, setVrmUrl] = useState<string>(DEFAULT_VRM_URL);
   const [currentAnimationUrl, setCurrentAnimationUrl] = useState<string>(IDLE_ANIMATION_URL);
   const [currentEmotion, setCurrentEmotion] = useState<Emotion>("neutral");
+  const [containerPos, setContainerPos] = useState({ x: 0, y: 0 });
+  const [containerSize, setContainerSize] = useState(800);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [devToolsOpen, setDevToolsOpen] = useState(false);
+
+  // Refs for event handlers (to avoid useEffect dependency issues)
+  const containerPosRef = useRef(containerPos);
+  const containerSizeRef = useRef(containerSize);
+
+  // Sync refs with state
+  useEffect(() => {
+    containerPosRef.current = containerPos;
+  }, [containerPos]);
+
+  useEffect(() => {
+    containerSizeRef.current = containerSize;
+  }, [containerSize]);
+
+  // Initialize character position and size from Electron Store
+  useEffect(() => {
+    const init = async () => {
+      const electron = window.electron;
+      if (!electron?.getCharacterSize || !electron?.getCharacterPosition || !electron?.getScreenSize) {
+        setIsInitialized(true);
+        return;
+      }
+
+      const [savedSize, savedPosition, screenSize] = await Promise.all([
+        electron.getCharacterSize(),
+        electron.getCharacterPosition(),
+        electron.getScreenSize(),
+      ]);
+
+      const size = savedSize || 800;
+      setContainerSize(size);
+
+      if (savedPosition) {
+        setContainerPos(savedPosition);
+      } else {
+        // Default: center-bottom of screen
+        const x = Math.round((screenSize.width - size) / 2);
+        const y = Math.round(screenSize.height - size);
+        setContainerPos({ x, y });
+      }
+
+      setIsInitialized(true);
+    };
+    init();
+  }, []);
+
+  // Listen for character size changes from settings window
+  useEffect(() => {
+    if (!window.electron?.onCharacterSizeChanged) return;
+
+    const cleanup = window.electron.onCharacterSizeChanged((newSize: number) => {
+      const oldSize = containerSizeRef.current;
+      const pos = containerPosRef.current;
+
+      // Adjust position to keep center stable
+      const delta = newSize - oldSize;
+      const newX = pos.x - Math.round(delta / 2);
+      const newY = pos.y - Math.round(delta / 2);
+
+      setContainerSize(newSize);
+      setContainerPos({ x: newX, y: newY });
+
+      // Persist position
+      window.electron?.setCharacterPosition?.(newX, newY);
+    });
+
+    return cleanup;
+  }, []);
 
   // Load VRM from IndexedDB on mount
   useEffect(() => {
@@ -194,80 +266,71 @@ function App() {
     }
   }, [speakText]);
 
-  // Custom window drag implementation
+  // Custom container drag and click-through implementation
   useEffect(() => {
     const electron = window.electron;
-    if (!electron?.setIgnoreMouseEvents || !electron?.getWindowPosition || !electron?.setWindowPosition) {
+    if (!electron?.setIgnoreMouseEvents) {
       return;
     }
 
     let isDragging = false;
     let dragStartX = 0;
     let dragStartY = 0;
-    let windowStartX = 0;
-    let windowStartY = 0;
+    let containerStartX = 0;
+    let containerStartY = 0;
     let lastInsideState: boolean | null = null;
-    let devToolsOpen = false; // Track DevTools state
-
-    const getCharacterRadii = () => {
-      // Vertical ellipse: narrow horizontally, tall vertically
-      const radiusX = window.innerWidth * 0.15; // 30% width of window
-      const radiusY = window.innerHeight * 0.45; // 90% height of window
-      return { radiusX, radiusY };
-    };
 
     const isInsideCharacterArea = (clientX: number, clientY: number) => {
-      const centerX = window.innerWidth / 2;
-      const centerY = window.innerHeight / 2;
-      const { radiusX, radiusY } = getCharacterRadii();
+      const pos = containerPosRef.current;
+      const size = containerSizeRef.current;
+      const centerX = pos.x + size / 2;
+      const centerY = pos.y + size / 2;
+      const radiusX = size * 0.15;
+      const radiusY = size * 0.45;
       return isInsideEllipse(clientX, clientY, centerX, centerY, radiusX, radiusY);
     };
 
-    const handleMouseDown = async (e: MouseEvent) => {
-      // Only start drag if inside character area and left mouse button
+    const handleMouseDown = (e: MouseEvent) => {
       if (e.button !== 0) return;
       if (!isInsideCharacterArea(e.clientX, e.clientY)) return;
 
       isDragging = true;
-      dragStartX = e.screenX;
-      dragStartY = e.screenY;
-
-      const pos = await electron.getWindowPosition();
-      windowStartX = pos.x;
-      windowStartY = pos.y;
+      dragStartX = e.clientX;
+      dragStartY = e.clientY;
+      containerStartX = containerPosRef.current.x;
+      containerStartY = containerPosRef.current.y;
     };
 
     const handleMouseMove = (e: MouseEvent) => {
       const isInside = isInsideCharacterArea(e.clientX, e.clientY);
 
-      // Update ignore mouse events state (for click-through outside character area)
-      // Disable click-through when DevTools is open
       if (isInside !== lastInsideState) {
         lastInsideState = isInside;
         electron.setIgnoreMouseEvents(devToolsOpen ? false : !isInside);
       }
 
-      // Handle dragging
       if (isDragging) {
-        const deltaX = e.screenX - dragStartX;
-        const deltaY = e.screenY - dragStartY;
-        electron.setWindowPosition(windowStartX + deltaX, windowStartY + deltaY);
+        const deltaX = e.clientX - dragStartX;
+        const deltaY = e.clientY - dragStartY;
+        const newX = containerStartX + deltaX;
+        const newY = containerStartY + deltaY;
+        setContainerPos({ x: newX, y: newY });
       }
     };
 
     const handleMouseUp = () => {
       if (isDragging) {
         isDragging = false;
+        // Persist position
+        const pos = containerPosRef.current;
+        electron.setCharacterPosition?.(pos.x, pos.y);
       }
     };
 
-    // Set initial state
     electron.setIgnoreMouseEvents(false);
 
-    // Collect all cleanup functions
     const cleanupFunctions: (() => void)[] = [];
 
-    // Add event listeners
     window.addEventListener("mousedown", handleMouseDown);
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseup", handleMouseUp);
@@ -277,52 +340,94 @@ function App() {
       window.removeEventListener("mouseup", handleMouseUp);
     });
 
-    // Listen for DevTools state changes
     if (electron.onDevToolsStateChanged) {
       const cleanupDevTools = electron.onDevToolsStateChanged((isOpen: boolean) => {
         console.log(`[App] DevTools state changed: ${isOpen ? "opened" : "closed"}`);
-        devToolsOpen = isOpen;
-        // Update click-through state immediately when DevTools state changes
+        setDevToolsOpen(isOpen);
         if (isOpen) {
-          // Enable mouse events when DevTools is open
           electron.setIgnoreMouseEvents(false);
         } else if (lastInsideState !== null) {
-          // Restore previous state when DevTools is closed
           electron.setIgnoreMouseEvents(!lastInsideState);
         }
       });
       cleanupFunctions.push(cleanupDevTools);
     }
 
-    // Return combined cleanup function
     return () => {
       cleanupFunctions.forEach((fn) => fn());
     };
-  }, []);
+  }, [devToolsOpen]);
+
+  // Calculate ellipse parameters for visualization
+  const ellipseParams = {
+    centerX: containerSize / 2,
+    centerY: containerSize / 2,
+    radiusX: containerSize * 0.15,
+    radiusY: containerSize * 0.45,
+  };
 
   return (
     <div className="w-screen h-screen overflow-hidden relative">
-      <Canvas
-        camera={{ position: [0, 0.2, 3.2], fov: 30 }}
-        style={{ width: "100vw", height: "100vh" }}
-        onContextMenu={(e) => {
-          e.preventDefault();
-          // Open settings window
-          if (window.electron?.openSettingsWindow) {
-            window.electron.openSettingsWindow();
-          }
-        }}
-      >
-        <Scene>
-          <VRMAvatar
-            ref={avatarRef}
-            url={vrmUrl}
-            animationUrl={currentAnimationUrl}
-            animationLoop={currentAnimationUrl === IDLE_ANIMATION_URL}
-            onAnimationEnd={handleAnimationEnd}
-          />
-        </Scene>
-      </Canvas>
+      {isInitialized && (
+        <div
+          style={{
+            position: "absolute",
+            left: 0,
+            top: 0,
+            width: `${containerSize}px`,
+            height: `${containerSize}px`,
+            transform: `translate(${containerPos.x}px, ${containerPos.y}px)`,
+            willChange: "transform",
+          }}
+        >
+          <Canvas
+            camera={{ position: [0, 0.2, 3.2], fov: 30 }}
+            style={{ width: "100%", height: "100%" }}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              if (window.electron?.openSettingsWindow) {
+                window.electron.openSettingsWindow();
+              }
+            }}
+          >
+            <Scene>
+              <VRMAvatar
+                ref={avatarRef}
+                url={vrmUrl}
+                animationUrl={currentAnimationUrl}
+                animationLoop={currentAnimationUrl === IDLE_ANIMATION_URL}
+                onAnimationEnd={handleAnimationEnd}
+              />
+            </Scene>
+          </Canvas>
+
+          {/* Visualize draggable area when DevTools is open */}
+          {devToolsOpen && (
+            <svg
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: "100%",
+                pointerEvents: "none",
+              }}
+              viewBox={`0 0 ${containerSize} ${containerSize}`}
+            >
+              <ellipse
+                cx={ellipseParams.centerX}
+                cy={ellipseParams.centerY}
+                rx={ellipseParams.radiusX}
+                ry={ellipseParams.radiusY}
+                fill="none"
+                stroke="rgba(255, 0, 0, 0.7)"
+                strokeWidth="3"
+                strokeDasharray="10, 5"
+              />
+            </svg>
+          )}
+        </div>
+      )}
     </div>
   );
 }

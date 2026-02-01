@@ -15,11 +15,13 @@ declare global {
       setEngineSettings: (engineType: EngineType, customPath?: string) => Promise<boolean>;
       resetEngineSettings: () => Promise<boolean>;
       setIgnoreMouseEvents: (ignore: boolean) => void;
-      getWindowPosition: () => Promise<{ x: number; y: number }>;
-      setWindowPosition: (x: number, y: number) => void;
-      getWindowSize: () => Promise<number>;
-      setWindowSize: (size: number) => Promise<number>;
-      resetWindowSize: () => Promise<number>;
+      getCharacterSize: () => Promise<number>;
+      setCharacterSize: (size: number) => Promise<number>;
+      resetCharacterSize: () => Promise<number>;
+      getCharacterPosition: () => Promise<{ x: number; y: number } | undefined>;
+      setCharacterPosition: (x: number, y: number) => void;
+      onCharacterSizeChanged: (callback: (size: number) => void) => () => void;
+      getScreenSize: () => Promise<{ width: number; height: number }>;
       resetAllSettings: () => Promise<boolean>;
       openSettingsWindow: () => void;
       closeSettingsWindow: () => void;

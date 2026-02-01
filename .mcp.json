@@ -2,10 +2,7 @@
   "mcpServers": {
     "electron": {
       "command": "npx",
-      "args": [
-        "-y",
-        "electron-mcp-server"
-      ],
+      "args": ["-y", "electron-mcp-server"],
       "env": {
         "SECURITY_LEVEL": "development",
         "SCREENSHOT_ENCRYPTION_KEY": "e1414e178896247edce2eac531330081a4273b1809750a39712365f47e9f6974"
