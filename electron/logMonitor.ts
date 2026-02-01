@@ -28,7 +28,7 @@ export function createLogMonitor(broadcast: BroadcastFn) {
       stabilityThreshold: 100,
       pollInterval: 50,
     },
-    depth: 1, // Only main agent.
+    depth: 3, // main & sub agent.
   });
 
   watcher.on("add", (filePath: string) => {
