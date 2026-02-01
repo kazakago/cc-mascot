@@ -71,6 +71,7 @@
     "appId": "com.kazakago.cc-mascot",
     "productName": "CC Mascot",
     "icon": "resources/icons/icon.png",
+    "publish": null,
     "directories": {
       "output": "release"
     },
