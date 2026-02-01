@@ -1,4 +1,4 @@
-import { useRef, useCallback, useState, useEffect } from "react";
+import { useRef, useCallback, useState, useEffect, useMemo } from "react";
 import { Canvas } from "@react-three/fiber";
 import { Scene } from "./components/Scene";
 import { VRMAvatar } from "./components/VRMAvatar";
@@ -8,6 +8,7 @@ import { useLipSync } from "./hooks/useLipSync";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { loadVRMFile, createBlobURL } from "./utils/vrmStorage";
 import type { Emotion } from "./types/emotion";
+import type { CursorTrackingOptions } from "./hooks/useCursorTracking";
 
 // Helper function to check if point is inside ellipse
 function isInsideEllipse(
@@ -42,6 +43,20 @@ function App() {
   const [containerSize, setContainerSize] = useState(800);
   const [isInitialized, setIsInitialized] = useState(false);
   const [devToolsOpen, setDevToolsOpen] = useState(false);
+  const [headPosition, setHeadPosition] = useState<{ x: number; y: number } | null>(null);
+
+  // Cursor tracking settings (fixed values)
+  const cursorTrackingOptions: Partial<CursorTrackingOptions> = useMemo(
+    () => ({
+      enabled: true,
+      eyeSensitivity: 0.4,
+      headSensitivity: 0.1,
+      containerSize: containerSize,
+      containerX: containerPos.x,
+      containerY: containerPos.y,
+    }),
+    [containerSize, containerPos.x, containerPos.y],
+  );
 
   // Refs for event handlers (to avoid useEffect dependency issues)
   const containerPosRef = useRef(containerPos);
@@ -55,6 +70,17 @@ function App() {
   useEffect(() => {
     containerSizeRef.current = containerSize;
   }, [containerSize]);
+
+  // Update cursor tracking when container position or size changes
+  useEffect(() => {
+    if (avatarRef.current?.updateCursorTracking) {
+      avatarRef.current.updateCursorTracking({
+        containerSize: containerSize,
+        containerX: containerPos.x,
+        containerY: containerPos.y,
+      });
+    }
+  }, [containerSize, containerPos.x, containerPos.y]);
 
   // Initialize character position and size from Electron Store
   useEffect(() => {
@@ -397,6 +423,12 @@ function App() {
                 animationUrl={currentAnimationUrl}
                 animationLoop={currentAnimationUrl === IDLE_ANIMATION_URL}
                 onAnimationEnd={handleAnimationEnd}
+                cursorTrackingOptions={cursorTrackingOptions}
+                containerSize={containerSize}
+                onHeadPositionUpdate={(containerX, containerY) => {
+                  // containerX and containerY are already in container coordinates (0 to containerSize)
+                  setHeadPosition({ x: containerX, y: containerY });
+                }}
               />
             </Scene>
           </Canvas>
@@ -424,6 +456,50 @@ function App() {
                 strokeWidth="3"
                 strokeDasharray="10, 5"
               />
+              {/* Visualize cursor tracking origin (head position) */}
+              {headPosition && (
+                <>
+                  {/* Horizontal line through head position */}
+                  <line
+                    x1="0"
+                    y1={headPosition.y}
+                    x2={containerSize}
+                    y2={headPosition.y}
+                    stroke="rgba(0, 255, 0, 0.5)"
+                    strokeWidth="2"
+                    strokeDasharray="5, 5"
+                  />
+                  {/* Vertical line through head position */}
+                  <line
+                    x1={headPosition.x}
+                    y1="0"
+                    x2={headPosition.x}
+                    y2={containerSize}
+                    stroke="rgba(0, 255, 0, 0.5)"
+                    strokeWidth="2"
+                    strokeDasharray="5, 5"
+                  />
+                  {/* Head position point */}
+                  <circle
+                    cx={headPosition.x}
+                    cy={headPosition.y}
+                    r="8"
+                    fill="rgba(0, 255, 0, 0.8)"
+                    stroke="rgba(0, 255, 0, 1)"
+                    strokeWidth="2"
+                  />
+                  {/* Label for head position */}
+                  <text
+                    x={headPosition.x + 15}
+                    y={headPosition.y - 10}
+                    fill="rgba(0, 255, 0, 0.9)"
+                    fontSize="14"
+                    fontWeight="bold"
+                  >
+                    視線の原点
+                  </text>
+                </>
+              )}
             </svg>
           )}
         </div>
