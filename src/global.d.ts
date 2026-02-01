@@ -20,6 +20,8 @@ declare global {
       resetCharacterSize: () => Promise<number>;
       getCharacterPosition: () => Promise<{ x: number; y: number } | undefined>;
       setCharacterPosition: (x: number, y: number) => void;
+      resetCharacterPosition: () => Promise<boolean>;
+      onCharacterPositionReset: (callback: () => void) => () => void;
       onCharacterSizeChanged: (callback: (size: number) => void) => () => void;
       getScreenSize: () => Promise<{ width: number; height: number }>;
       resetAllSettings: () => Promise<boolean>;

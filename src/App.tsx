@@ -148,6 +148,26 @@ function App() {
     };
   }, []);
 
+  // Listen for character position reset from settings window
+  useEffect(() => {
+    if (!window.electron?.onCharacterPositionReset || !window.electron?.getScreenSize) return;
+
+    const cleanup = window.electron.onCharacterPositionReset(async () => {
+      const screenSize = await window.electron!.getScreenSize();
+      const size = containerSizeRef.current;
+      const center = {
+        x: Math.round(screenSize.width / 2),
+        y: Math.round(screenSize.height - size / 2),
+      };
+      setContainerCenter(center);
+      containerCenterRef.current = center;
+    });
+
+    return () => {
+      cleanup?.();
+    };
+  }, []);
+
   // Load VRM from IndexedDB on mount
   useEffect(() => {
     loadVRMFile()
