@@ -224,20 +224,15 @@ export default function SettingsApp() {
     console.log(`[SettingsApp] Volume saved to localStorage: ${volumeScaleInput}`);
   };
 
-  const handleWindowSizeChange = async (newSize: number) => {
+  const handleWindowSizeChange = (newSize: number) => {
     setWindowSizeInput(newSize);
+    localStorage.setItem("windowSize", String(newSize));
 
-    if (window.electron?.setCharacterSize) {
-      try {
-        const clampedSize = await window.electron.setCharacterSize(newSize);
-        setWindowSizeInput(clampedSize);
-        localStorage.setItem("windowSize", String(clampedSize));
-        console.log(`[SettingsApp] Window size changed to: ${clampedSize}`);
-      } catch (err) {
-        console.error("Failed to change window size:", err);
-        setError("Failed to change window size");
-      }
-    }
+    // Fire and forget - don't await to prevent slider value reset during rapid dragging
+    window.electron?.setCharacterSize?.(newSize).catch((err: unknown) => {
+      console.error("Failed to change window size:", err);
+      setError("Failed to change window size");
+    });
   };
 
   const handleTestSpeech = () => {
