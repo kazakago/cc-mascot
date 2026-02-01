@@ -499,12 +499,22 @@ export default function SettingsApp() {
         {/* Reset Section */}
         <div>
           <h2 className="m-0 mb-4 text-lg font-semibold text-gray-800">リセット</h2>
-          <button
-            className="px-4 py-2 rounded-md text-sm font-medium cursor-pointer transition-all duration-200 border-0 bg-danger text-white w-fit hover:bg-danger-dark"
-            onClick={handleReset}
-          >
-            全ての設定をリセット
-          </button>
+          <div className="flex flex-col gap-3">
+            <button
+              className="px-4 py-2 rounded-md text-sm font-medium cursor-pointer transition-all duration-200 border border-solid border-gray-300 bg-white text-gray-700 w-fit hover:bg-gray-100"
+              onClick={() => {
+                window.electron?.resetCharacterPosition?.();
+              }}
+            >
+              キャラクター位置をリセット
+            </button>
+            <button
+              className="px-4 py-2 rounded-md text-sm font-medium cursor-pointer transition-all duration-200 border-0 bg-danger text-white w-fit hover:bg-danger-dark"
+              onClick={handleReset}
+            >
+              全ての設定をリセット
+            </button>
+          </div>
         </div>
       </div>
     </div>

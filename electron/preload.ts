@@ -82,6 +82,18 @@ contextBridge.exposeInMainWorld("electron", {
   setCharacterPosition: (x: number, y: number): void => {
     ipcRenderer.send("set-character-position", x, y);
   },
+  resetCharacterPosition: (): Promise<boolean> => {
+    return ipcRenderer.invoke("reset-character-position");
+  },
+  onCharacterPositionReset: (callback: () => void) => {
+    const listener = () => {
+      callback();
+    };
+    ipcRenderer.on("character-position-reset", listener);
+    return () => {
+      ipcRenderer.removeListener("character-position-reset", listener);
+    };
+  },
   onCharacterSizeChanged: (callback: (size: number) => void) => {
     const listener = (_event: unknown, size: number) => {
       callback(size);

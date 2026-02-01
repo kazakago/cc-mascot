@@ -439,6 +439,17 @@ ipcMain.handle("reset-character-size", () => {
   return defaultSize;
 });
 
+// Reset character position to default (center-bottom)
+ipcMain.handle("reset-character-position", () => {
+  store.delete("characterPosition");
+
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send("character-position-reset");
+  }
+
+  return true;
+});
+
 // Character position persistence
 ipcMain.handle("get-character-position", () => {
   return store.get("characterPosition") as { x: number; y: number } | undefined;
