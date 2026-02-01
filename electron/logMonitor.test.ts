@@ -54,7 +54,7 @@ describe("logMonitor", () => {
       expect(chokidarMod.watch).toHaveBeenCalled();
       const watchCall = (chokidarMod.watch as any).mock.calls[0];
       expect(watchCall[1]).toMatchObject({
-        depth: 1,
+        depth: 3, // サブエージェントのログも監視
         awaitWriteFinish: {
           stabilityThreshold: 100,
           pollInterval: 50,
