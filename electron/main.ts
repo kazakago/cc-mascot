@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, screen, Tray } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, screen, shell, Tray } from "electron";
 import path from "path";
 import { fileURLToPath } from "url";
 import { spawn, ChildProcess } from "child_process";
@@ -20,6 +20,7 @@ if (isDev) {
 const store = new Store();
 let mainWindow: BrowserWindow | null = null;
 let settingsWindow: BrowserWindow | null = null;
+let licenseWindow: BrowserWindow | null = null;
 let logMonitor: { close: () => void } | null = null;
 let voicevoxProcess: ChildProcess | null = null;
 let tray: Tray | null = null;
@@ -33,6 +34,16 @@ const getIconPath = () => {
   }
   const ext = process.platform === "win32" ? ".ico" : ".png";
   return path.join(__dirname, `../resources/icons/icon${ext}`);
+};
+
+// HTML escape helper for XSS prevention
+const escapeHtml = (text: string): string => {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 };
 
 // Get tray icon path based on platform
@@ -75,8 +86,8 @@ const createTray = () => {
     { type: "separator" },
     {
       label: "バージョン情報",
-      click: () => {
-        dialog.showMessageBox({
+      click: async () => {
+        const { response } = await dialog.showMessageBox({
           type: "info",
           title: "CC Mascot",
           message: `CC Mascot v${app.getVersion()}`,
@@ -85,8 +96,11 @@ const createTray = () => {
             `Chrome: v${process.versions.chrome}`,
             `Node.js: v${process.versions.node}`,
           ].join("\n"),
-          buttons: ["OK"],
+          buttons: ["ライセンス情報", "OK"],
         });
+        if (response === 0) {
+          createLicenseWindow();
+        }
       },
     },
     {
@@ -384,6 +398,176 @@ const createSettingsWindow = () => {
     // mainWindow?.webContents.openDevTools();
     // settingsWindow.webContents.openDevTools();
   }
+};
+
+// Create license window
+const createLicenseWindow = () => {
+  if (licenseWindow && !licenseWindow.isDestroyed()) {
+    licenseWindow.focus();
+    return;
+  }
+
+  // Read licenses.json
+  const licensesPath = process.env.VITE_DEV_SERVER_URL
+    ? path.join(__dirname, "../public/licenses.json")
+    : path.join(__dirname, "../dist/licenses.json");
+
+  let licensesData: Record<
+    string,
+    {
+      licenses?: string;
+      licenseText?: string;
+      repository?: string;
+      publisher?: string;
+    }
+  > = {};
+
+  try {
+    const fileContent = fs.readFileSync(licensesPath, "utf-8");
+    licensesData = JSON.parse(fileContent);
+  } catch (error) {
+    console.error("[License] Failed to load licenses.json:", error);
+    dialog.showErrorBox(
+      "ライセンス情報の読み込みエラー",
+      "ライセンス情報ファイルが見つかりませんでした。\nビルドを実行してください。",
+    );
+    return;
+  }
+
+  // Generate HTML content
+  const licensesHtml = Object.entries(licensesData)
+    .map(([name, info]) => {
+      const licenseType = info.licenses || "Unknown";
+      const licenseText = info.licenseText || "License text not available";
+      const repository = info.repository || "";
+      const publisher = info.publisher || "";
+
+      return `
+        <details>
+          <summary>
+            <strong>${escapeHtml(name)}</strong> - ${escapeHtml(licenseType)}
+            ${publisher ? `<span class="publisher">(${escapeHtml(publisher)})</span>` : ""}
+          </summary>
+          <div class="license-content">
+            ${repository ? `<p class="repository">Repository: <a href="${escapeHtml(repository)}" target="_blank">${escapeHtml(repository)}</a></p>` : ""}
+            <pre>${escapeHtml(licenseText)}</pre>
+          </div>
+        </details>
+      `;
+    })
+    .join("");
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>OSSライセンス情報</title>
+      <style>
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          margin: 0;
+          padding: 20px;
+          background-color: #f5f5f5;
+        }
+        h1 {
+          font-size: 24px;
+          margin: 0 0 20px 0;
+          color: #333;
+        }
+        details {
+          background: white;
+          border-radius: 4px;
+          margin-bottom: 8px;
+          padding: 12px;
+          border: 1px solid #e0e0e0;
+        }
+        summary {
+          cursor: pointer;
+          font-size: 14px;
+          outline: none;
+          user-select: none;
+          color: #333;
+        }
+        summary:hover {
+          color: #0066cc;
+        }
+        .publisher {
+          color: #666;
+          font-size: 13px;
+        }
+        .license-content {
+          margin-top: 12px;
+          padding-top: 12px;
+          border-top: 1px solid #e0e0e0;
+        }
+        .repository {
+          font-size: 13px;
+          color: #666;
+          margin: 0 0 12px 0;
+        }
+        .repository a {
+          color: #0066cc;
+          text-decoration: none;
+        }
+        .repository a:hover {
+          text-decoration: underline;
+        }
+        pre {
+          background-color: #f9f9f9;
+          border: 1px solid #e0e0e0;
+          border-radius: 4px;
+          padding: 12px;
+          font-size: 12px;
+          line-height: 1.5;
+          overflow-x: auto;
+          white-space: pre-wrap;
+          word-wrap: break-word;
+          margin: 0;
+        }
+      </style>
+    </head>
+    <body>
+      <h1>OSSライセンス情報</h1>
+      ${licensesHtml}
+    </body>
+    </html>
+  `;
+
+  licenseWindow = new BrowserWindow({
+    width: 700,
+    height: 600,
+    icon: getIconPath(),
+    alwaysOnTop: true,
+    resizable: true,
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+
+  licenseWindow.setAlwaysOnTop(true, "pop-up-menu", 1);
+
+  // Load HTML from data URI
+  licenseWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+
+  // Open links in external browser
+  licenseWindow.webContents.setWindowOpenHandler(({ url }) => {
+    shell.openExternal(url);
+    return { action: "deny" };
+  });
+
+  licenseWindow.webContents.on("will-navigate", (event, url) => {
+    if (!url.startsWith("data:")) {
+      event.preventDefault();
+      shell.openExternal(url);
+    }
+  });
+
+  licenseWindow.on("closed", () => {
+    licenseWindow = null;
+  });
 };
 
 // IPC handlers
