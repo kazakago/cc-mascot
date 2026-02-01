@@ -39,7 +39,7 @@ function App() {
   const [vrmUrl, setVrmUrl] = useState<string>(DEFAULT_VRM_URL);
   const [currentAnimationUrl, setCurrentAnimationUrl] = useState<string>(IDLE_ANIMATION_URL);
   const [currentEmotion, setCurrentEmotion] = useState<Emotion>("neutral");
-  const [containerPos, setContainerPos] = useState({ x: 0, y: 0 });
+  const [containerCenter, setContainerCenter] = useState({ x: 0, y: 0 });
   const [containerSize, setContainerSize] = useState(800);
   const [isInitialized, setIsInitialized] = useState(false);
   const [devToolsOpen, setDevToolsOpen] = useState(false);
@@ -52,35 +52,26 @@ function App() {
       eyeSensitivity: 0.4,
       headSensitivity: 0.1,
       containerSize: containerSize,
-      containerX: containerPos.x,
-      containerY: containerPos.y,
+      containerX: containerCenter.x - containerSize / 2,
+      containerY: containerCenter.y - containerSize / 2,
     }),
-    [containerSize, containerPos.x, containerPos.y],
+    [containerSize, containerCenter.x, containerCenter.y],
   );
 
-  // Refs for event handlers (to avoid useEffect dependency issues)
-  const containerPosRef = useRef(containerPos);
+  // Refs for event handlers (updated immediately on state changes)
+  const containerCenterRef = useRef(containerCenter);
   const containerSizeRef = useRef(containerSize);
-
-  // Sync refs with state
-  useEffect(() => {
-    containerPosRef.current = containerPos;
-  }, [containerPos]);
-
-  useEffect(() => {
-    containerSizeRef.current = containerSize;
-  }, [containerSize]);
 
   // Update cursor tracking when container position or size changes
   useEffect(() => {
     if (avatarRef.current?.updateCursorTracking) {
       avatarRef.current.updateCursorTracking({
         containerSize: containerSize,
-        containerX: containerPos.x,
-        containerY: containerPos.y,
+        containerX: containerCenter.x - containerSize / 2,
+        containerY: containerCenter.y - containerSize / 2,
       });
     }
-  }, [containerSize, containerPos.x, containerPos.y]);
+  }, [containerSize, containerCenter.x, containerCenter.y]);
 
   // Initialize character position and size from Electron Store
   useEffect(() => {
@@ -99,14 +90,24 @@ function App() {
 
       const size = savedSize || 800;
       setContainerSize(size);
+      containerSizeRef.current = size;
 
       if (savedPosition) {
-        setContainerPos(savedPosition);
+        // savedPosition is top-left, convert to center
+        const center = {
+          x: savedPosition.x + size / 2,
+          y: savedPosition.y + size / 2,
+        };
+        setContainerCenter(center);
+        containerCenterRef.current = center;
       } else {
         // Default: center-bottom of screen
-        const x = Math.round((screenSize.width - size) / 2);
-        const y = Math.round(screenSize.height - size);
-        setContainerPos({ x, y });
+        const center = {
+          x: Math.round(screenSize.width / 2),
+          y: Math.round(screenSize.height - size / 2),
+        };
+        setContainerCenter(center);
+        containerCenterRef.current = center;
       }
 
       setIsInitialized(true);
@@ -118,23 +119,33 @@ function App() {
   useEffect(() => {
     if (!window.electron?.onCharacterSizeChanged) return;
 
+    let positionPersistTimer: ReturnType<typeof setTimeout> | null = null;
+
     const cleanup = window.electron.onCharacterSizeChanged((newSize: number) => {
-      const oldSize = containerSizeRef.current;
-      const pos = containerPosRef.current;
-
-      // Adjust position to keep center stable
-      const delta = newSize - oldSize;
-      const newX = pos.x - Math.round(delta / 2);
-      const newY = pos.y - Math.round(delta / 2);
-
+      containerSizeRef.current = newSize;
       setContainerSize(newSize);
-      setContainerPos({ x: newX, y: newY });
 
-      // Persist position
-      window.electron?.setCharacterPosition?.(newX, newY);
+      // Debounce position persistence to reduce IPC traffic during rapid slider events
+      if (positionPersistTimer) clearTimeout(positionPersistTimer);
+      positionPersistTimer = setTimeout(() => {
+        const center = containerCenterRef.current;
+        const topLeftX = Math.round(center.x - containerSizeRef.current / 2);
+        const topLeftY = Math.round(center.y - containerSizeRef.current / 2);
+        window.electron?.setCharacterPosition?.(topLeftX, topLeftY);
+      }, 300);
     });
 
-    return cleanup;
+    return () => {
+      cleanup?.();
+      if (positionPersistTimer) {
+        clearTimeout(positionPersistTimer);
+        // Persist final position on cleanup
+        const center = containerCenterRef.current;
+        const topLeftX = Math.round(center.x - containerSizeRef.current / 2);
+        const topLeftY = Math.round(center.y - containerSizeRef.current / 2);
+        window.electron?.setCharacterPosition?.(topLeftX, topLeftY);
+      }
+    };
   }, []);
 
   // Load VRM from IndexedDB on mount
@@ -302,18 +313,16 @@ function App() {
     let isDragging = false;
     let dragStartX = 0;
     let dragStartY = 0;
-    let containerStartX = 0;
-    let containerStartY = 0;
+    let containerStartCenterX = 0;
+    let containerStartCenterY = 0;
     let lastInsideState: boolean | null = null;
 
     const isInsideCharacterArea = (clientX: number, clientY: number) => {
-      const pos = containerPosRef.current;
+      const center = containerCenterRef.current;
       const size = containerSizeRef.current;
-      const centerX = pos.x + size / 2;
-      const centerY = pos.y + size / 2;
       const radiusX = size * 0.15;
       const radiusY = size * 0.45;
-      return isInsideEllipse(clientX, clientY, centerX, centerY, radiusX, radiusY);
+      return isInsideEllipse(clientX, clientY, center.x, center.y, radiusX, radiusY);
     };
 
     const handleMouseDown = (e: MouseEvent) => {
@@ -323,8 +332,8 @@ function App() {
       isDragging = true;
       dragStartX = e.clientX;
       dragStartY = e.clientY;
-      containerStartX = containerPosRef.current.x;
-      containerStartY = containerPosRef.current.y;
+      containerStartCenterX = containerCenterRef.current.x;
+      containerStartCenterY = containerCenterRef.current.y;
     };
 
     const handleMouseMove = (e: MouseEvent) => {
@@ -338,18 +347,22 @@ function App() {
       if (isDragging) {
         const deltaX = e.clientX - dragStartX;
         const deltaY = e.clientY - dragStartY;
-        const newX = containerStartX + deltaX;
-        const newY = containerStartY + deltaY;
-        setContainerPos({ x: newX, y: newY });
+        const newCenterX = containerStartCenterX + deltaX;
+        const newCenterY = containerStartCenterY + deltaY;
+        containerCenterRef.current = { x: newCenterX, y: newCenterY };
+        setContainerCenter({ x: newCenterX, y: newCenterY });
       }
     };
 
     const handleMouseUp = () => {
       if (isDragging) {
         isDragging = false;
-        // Persist position
-        const pos = containerPosRef.current;
-        electron.setCharacterPosition?.(pos.x, pos.y);
+        // Persist position (convert center to top-left)
+        const center = containerCenterRef.current;
+        const size = containerSizeRef.current;
+        const topLeftX = Math.round(center.x - size / 2);
+        const topLeftY = Math.round(center.y - size / 2);
+        electron.setCharacterPosition?.(topLeftX, topLeftY);
       }
     };
 
@@ -384,12 +397,22 @@ function App() {
     };
   }, [devToolsOpen]);
 
-  // Calculate ellipse parameters for visualization
+  // Debounced render size: actual canvas/div dimensions.
+  // During rapid slider movement, only CSS scale() changes (GPU-only, no layout reflow).
+  // When slider stops, renderSize catches up and canvas resizes to correct resolution.
+  const [renderSize, setRenderSize] = useState(containerSize);
+  useEffect(() => {
+    if (renderSize === containerSize) return;
+    const timer = setTimeout(() => setRenderSize(containerSize), 150);
+    return () => clearTimeout(timer);
+  }, [containerSize, renderSize]);
+
+  // Calculate ellipse parameters for visualization (in renderSize coordinate space)
   const ellipseParams = {
-    centerX: containerSize / 2,
-    centerY: containerSize / 2,
-    radiusX: containerSize * 0.15,
-    radiusY: containerSize * 0.45,
+    centerX: renderSize / 2,
+    centerY: renderSize / 2,
+    radiusX: renderSize * 0.15,
+    radiusY: renderSize * 0.45,
   };
 
   return (
@@ -400,9 +423,10 @@ function App() {
             position: "absolute",
             left: 0,
             top: 0,
-            width: `${containerSize}px`,
-            height: `${containerSize}px`,
-            transform: `translate(${containerPos.x}px, ${containerPos.y}px)`,
+            width: `${renderSize}px`,
+            height: `${renderSize}px`,
+            transform: `translate(${containerCenter.x - containerSize / 2}px, ${containerCenter.y - containerSize / 2}px) scale(${containerSize / renderSize})`,
+            transformOrigin: "0 0",
             willChange: "transform",
           }}
         >
@@ -424,14 +448,50 @@ function App() {
                 animationLoop={currentAnimationUrl === IDLE_ANIMATION_URL}
                 onAnimationEnd={handleAnimationEnd}
                 cursorTrackingOptions={cursorTrackingOptions}
-                containerSize={containerSize}
+                containerSize={renderSize}
                 onHeadPositionUpdate={(containerX, containerY) => {
-                  // containerX and containerY are already in container coordinates (0 to containerSize)
+                  // containerX and containerY are in container coordinates (0 to renderSize)
                   setHeadPosition({ x: containerX, y: containerY });
                 }}
               />
             </Scene>
           </Canvas>
+
+          {/* TEST: Local size slider with mode toggle - only shown when DevTools is open */}
+          {devToolsOpen && (
+            <div
+              style={{
+                position: "absolute",
+                bottom: 10,
+                left: "50%",
+                transform: "translateX(-50%)",
+                zIndex: 9999,
+                background: "rgba(0,0,0,0.7)",
+                padding: "8px 16px",
+                borderRadius: 8,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 6,
+                pointerEvents: "auto",
+              }}
+            >
+              <span style={{ color: "white", fontSize: 12 }}>{containerSize}px</span>
+              <input
+                type="range"
+                min={400}
+                max={1200}
+                step={10}
+                value={containerSize}
+                onChange={(e) => {
+                  const newSize = Number(e.target.value);
+                  containerSizeRef.current = newSize;
+                  setContainerSize(newSize);
+                }}
+                style={{ width: 250 }}
+              />
+            </div>
+          )}
 
           {/* Visualize draggable area when DevTools is open */}
           {devToolsOpen && (
@@ -444,7 +504,7 @@ function App() {
                 height: "100%",
                 pointerEvents: "none",
               }}
-              viewBox={`0 0 ${containerSize} ${containerSize}`}
+              viewBox={`0 0 ${renderSize} ${renderSize}`}
             >
               <ellipse
                 cx={ellipseParams.centerX}
@@ -463,7 +523,7 @@ function App() {
                   <line
                     x1="0"
                     y1={headPosition.y}
-                    x2={containerSize}
+                    x2={renderSize}
                     y2={headPosition.y}
                     stroke="rgba(0, 255, 0, 0.5)"
                     strokeWidth="2"
@@ -474,7 +534,7 @@ function App() {
                     x1={headPosition.x}
                     y1="0"
                     x2={headPosition.x}
-                    y2={containerSize}
+                    y2={renderSize}
                     stroke="rgba(0, 255, 0, 0.5)"
                     strokeWidth="2"
                     strokeDasharray="5, 5"
