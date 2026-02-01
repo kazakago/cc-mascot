@@ -1,8 +1,9 @@
-import { app, BrowserWindow, ipcMain, screen } from "electron";
+import { app, BrowserWindow, ipcMain, Menu, nativeImage, screen, Tray } from "electron";
 import path from "path";
 import { fileURLToPath } from "url";
 import { spawn, ChildProcess } from "child_process";
 import { createLogMonitor } from "./logMonitor";
+import fs from "fs";
 import net from "net";
 import Store from "electron-store";
 
@@ -21,6 +22,7 @@ let mainWindow: BrowserWindow | null = null;
 let settingsWindow: BrowserWindow | null = null;
 let logMonitor: { close: () => void } | null = null;
 let voicevoxProcess: ChildProcess | null = null;
+let tray: Tray | null = null;
 
 const VOICEVOX_PORT = 8564;
 
@@ -31,6 +33,53 @@ const getIconPath = () => {
   }
   const ext = process.platform === "win32" ? ".ico" : ".png";
   return path.join(__dirname, `../resources/icons/icon${ext}`);
+};
+
+// Get tray icon path based on platform
+const getTrayIconPath = (): string => {
+  const iconsDir = app.isPackaged
+    ? path.join(process.resourcesPath, "icons")
+    : path.join(__dirname, "../resources/icons");
+
+  if (process.platform === "darwin") {
+    // テンプレートアイコンがあればそれを使う（ダーク/ライトモード自動対応）
+    // ファイル名にTemplateを含めるとElectronが自動認識し、@2xも自動読み込み
+    const templatePath = path.join(iconsDir, "trayTemplate.png");
+    if (fs.existsSync(templatePath)) return templatePath;
+    // フォールバック: 既存アイコンを使用
+    return path.join(iconsDir, "icon.png");
+  }
+  // Windows: .ico、Linux: .png
+  const ext = process.platform === "win32" ? "icon.ico" : "tray.png";
+  return path.join(iconsDir, ext);
+};
+
+// Create system tray icon with context menu
+const createTray = () => {
+  const iconPath = getTrayIconPath();
+  let icon = nativeImage.createFromPath(iconPath);
+
+  // テンプレートアイコンが見つからなかった場合、既存アイコンをリサイズ
+  if (!iconPath.includes("Template") && process.platform === "darwin") {
+    icon = icon.resize({ width: 16, height: 16 });
+  }
+
+  tray = new Tray(icon);
+  tray.setToolTip("CC Mascot");
+
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: "設定を開く",
+      click: () => createSettingsWindow(),
+    },
+    { type: "separator" },
+    {
+      label: "終了",
+      click: () => app.quit(),
+    },
+  ]);
+
+  tray.setContextMenu(contextMenu);
 };
 
 // Engine type and path constants
@@ -483,25 +532,25 @@ ipcMain.on("set-ignore-mouse-events", (_event, ignore: boolean) => {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 app.whenReady().then(async () => {
-  // Start VOICEVOX Engine first
-  await startVoicevoxEngine();
+  // macOS: Dockアイコンを非表示にする（常駐アプリのため）
+  if (process.platform === "darwin" && app.dock) {
+    app.dock.hide();
+  }
 
+  createTray();
+  await startVoicevoxEngine();
   createWindow();
 
   app.on("activate", () => {
-    // On macOS it's common to re-create a window in the app when the
-    // dock icon is clicked and there are no other windows open.
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow();
     }
   });
 });
 
-// Quit when all windows are closed, except on macOS.
+// 常駐アプリなので、ウィンドウが全て閉じてもアプリは終了しない
 app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") {
-    app.quit();
-  }
+  // noop: trayから終了する
 });
 
 // Clean up on quit
@@ -514,6 +563,10 @@ app.on("before-quit", async (event) => {
 
   if (logMonitor) {
     logMonitor.close();
+  }
+  if (tray) {
+    tray.destroy();
+    tray = null;
   }
   await stopVoicevoxEngine();
 
