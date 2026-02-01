@@ -8,8 +8,9 @@
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite --mode electron",
-    "build": "tsc -b && vite build --mode electron",
+    "build": "npm run generate-licenses && tsc -b && vite build --mode electron",
     "package": "npm run build && electron-builder",
+    "generate-licenses": "license-checker-rseidelsohn --json --production --customPath license-format.json > public/licenses.json",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -55,6 +56,7 @@
     "fake-indexeddb": "^6.2.5",
     "globals": "^17.1.0",
     "jsdom": "^27.4.0",
+    "license-checker-rseidelsohn": "^4.4.2",
     "postcss": "^8.5.6",
     "prettier": "^3.8.1",
     "tailwindcss": "^4.1.18",
