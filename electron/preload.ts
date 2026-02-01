@@ -149,4 +149,28 @@ contextBridge.exposeInMainWorld("electron", {
       ipcRenderer.removeListener("devtools-state-changed", listener);
     };
   },
+  toggleDevTools: (target: "main" | "settings"): Promise<boolean> => {
+    return ipcRenderer.invoke("toggle-devtools", target);
+  },
+  getDevToolsState: (target: "main" | "settings"): Promise<boolean> => {
+    return ipcRenderer.invoke("get-devtools-state", target);
+  },
+  onMainDevToolsStateChanged: (callback: (isOpen: boolean) => void) => {
+    const listener = (_event: unknown, isOpen: boolean) => {
+      callback(isOpen);
+    };
+    ipcRenderer.on("main-devtools-state-changed", listener);
+    return () => {
+      ipcRenderer.removeListener("main-devtools-state-changed", listener);
+    };
+  },
+  onSettingsDevToolsStateChanged: (callback: (isOpen: boolean) => void) => {
+    const listener = (_event: unknown, isOpen: boolean) => {
+      callback(isOpen);
+    };
+    ipcRenderer.on("settings-devtools-state-changed", listener);
+    return () => {
+      ipcRenderer.removeListener("settings-devtools-state-changed", listener);
+    };
+  },
 });

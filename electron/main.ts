@@ -283,6 +283,7 @@ const createWindow = () => {
     console.log("[Main] DevTools opened, disabling always-on-top and resizing to avoid menu bar");
     mainWindow?.setAlwaysOnTop(false);
     mainWindow?.webContents.send("devtools-state-changed", true);
+    settingsWindow?.webContents.send("main-devtools-state-changed", true);
 
     // Resize window to avoid menu bar area on macOS
     if (mainWindow && !mainWindow.isDestroyed()) {
@@ -297,6 +298,7 @@ const createWindow = () => {
     console.log("[Main] DevTools closed, enabling always-on-top and resizing to full screen");
     mainWindow?.setAlwaysOnTop(true, "pop-up-menu");
     mainWindow?.webContents.send("devtools-state-changed", false);
+    settingsWindow?.webContents.send("main-devtools-state-changed", false);
 
     // Resize window to cover menu bar area on macOS
     if (mainWindow && !mainWindow.isDestroyed()) {
@@ -350,6 +352,15 @@ const createSettingsWindow = () => {
 
   settingsWindow.on("closed", () => {
     settingsWindow = null;
+  });
+
+  // Notify settings window of its own DevTools state changes
+  settingsWindow.webContents.on("devtools-opened", () => {
+    settingsWindow?.webContents.send("settings-devtools-state-changed", true);
+  });
+
+  settingsWindow.webContents.on("devtools-closed", () => {
+    settingsWindow?.webContents.send("settings-devtools-state-changed", false);
   });
 
   // Open DevTools in development
@@ -530,6 +541,38 @@ ipcMain.on("play-test-speech", () => {
     console.log("[IPC] Playing test speech on main window");
     mainWindow.webContents.send("play-test-speech");
   }
+});
+
+// Toggle DevTools for main or settings window
+ipcMain.handle("toggle-devtools", (_event, target: "main" | "settings") => {
+  if (target === "main") {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      if (mainWindow.webContents.isDevToolsOpened()) {
+        mainWindow.webContents.closeDevTools();
+      } else {
+        mainWindow.webContents.openDevTools();
+      }
+      return mainWindow.webContents.isDevToolsOpened();
+    }
+  } else {
+    if (settingsWindow && !settingsWindow.isDestroyed()) {
+      if (settingsWindow.webContents.isDevToolsOpened()) {
+        settingsWindow.webContents.closeDevTools();
+      } else {
+        settingsWindow.webContents.openDevTools();
+      }
+      return settingsWindow.webContents.isDevToolsOpened();
+    }
+  }
+  return false;
+});
+
+// Get DevTools state for main or settings window
+ipcMain.handle("get-devtools-state", (_event, target: "main" | "settings") => {
+  if (target === "main") {
+    return mainWindow?.webContents.isDevToolsOpened() ?? false;
+  }
+  return settingsWindow?.webContents.isDevToolsOpened() ?? false;
 });
 
 ipcMain.on("set-ignore-mouse-events", (_event, ignore: boolean) => {

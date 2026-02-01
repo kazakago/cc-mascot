@@ -30,6 +30,8 @@ export default function SettingsApp() {
   const [loadingSpeakers, setLoadingSpeakers] = useState(false);
   const [isPlayingTest, setIsPlayingTest] = useState(false);
   const [testAudioError, setTestAudioError] = useState("");
+  const [mainDevToolsOpen, setMainDevToolsOpen] = useState(false);
+  const [settingsDevToolsOpen, setSettingsDevToolsOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch speakers from engine with retry logic
@@ -106,6 +108,26 @@ export default function SettingsApp() {
       }
     };
     loadInitialValues();
+  }, []);
+
+  // Load DevTools state and listen for changes
+  useEffect(() => {
+    if (window.electron?.getDevToolsState) {
+      window.electron.getDevToolsState("main").then(setMainDevToolsOpen);
+      window.electron.getDevToolsState("settings").then(setSettingsDevToolsOpen);
+    }
+
+    const cleanupMain = window.electron?.onMainDevToolsStateChanged?.((isOpen) => {
+      setMainDevToolsOpen(isOpen);
+    });
+    const cleanupSettings = window.electron?.onSettingsDevToolsStateChanged?.((isOpen) => {
+      setSettingsDevToolsOpen(isOpen);
+    });
+
+    return () => {
+      cleanupMain?.();
+      cleanupSettings?.();
+    };
   }, []);
 
   // Fetch speakers on mount
@@ -514,6 +536,39 @@ export default function SettingsApp() {
             >
               全ての設定をリセット
             </button>
+          </div>
+        </div>
+
+        {/* Developer Section */}
+        <div>
+          <h2 className="m-0 mb-4 text-lg font-semibold text-gray-800">デベロッパー</h2>
+          <div className="space-y-4">
+            <div className="flex flex-col gap-3">
+              <label className="text-sm font-medium text-gray-600">DevTools</label>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  className="px-4 py-2 rounded-md text-sm font-medium cursor-pointer transition-all duration-200 border border-solid border-gray-300 bg-white text-gray-700 w-fit hover:bg-gray-100"
+                  onClick={() => {
+                    window.electron?.toggleDevTools?.("main").then(setMainDevToolsOpen);
+                  }}
+                >
+                  メインウィンドウ DevTools を{mainDevToolsOpen ? "閉じる" : "開く"}
+                </button>
+                <button
+                  type="button"
+                  className="px-4 py-2 rounded-md text-sm font-medium cursor-pointer transition-all duration-200 border border-solid border-gray-300 bg-white text-gray-700 w-fit hover:bg-gray-100"
+                  onClick={() => {
+                    window.electron?.toggleDevTools?.("settings").then(setSettingsDevToolsOpen);
+                  }}
+                >
+                  設定ウィンドウ DevTools を{settingsDevToolsOpen ? "閉じる" : "開く"}
+                </button>
+              </div>
+              <p className="text-sm text-gray-500 m-0">
+                ショートカット: {navigator.platform.includes("Mac") ? "⌘ Command + ⌥ Option + I" : "Ctrl + Shift + I"}
+              </p>
+            </div>
           </div>
         </div>
       </div>

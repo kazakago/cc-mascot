@@ -33,6 +33,10 @@ declare global {
       playTestSpeech: () => void;
       onPlayTestSpeech: (callback: () => void) => () => void;
       onDevToolsStateChanged: (callback: (isOpen: boolean) => void) => () => void;
+      toggleDevTools: (target: "main" | "settings") => Promise<boolean>;
+      getDevToolsState: (target: "main" | "settings") => Promise<boolean>;
+      onMainDevToolsStateChanged: (callback: (isOpen: boolean) => void) => () => void;
+      onSettingsDevToolsStateChanged: (callback: (isOpen: boolean) => void) => () => void;
     };
   }
 }
