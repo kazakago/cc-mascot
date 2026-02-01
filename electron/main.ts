@@ -355,17 +355,24 @@ ipcMain.handle("get-character-size", () => {
   return (store.get("characterSize") as number) || 800;
 });
 
+// Debounce timers for disk persistence during rapid slider/drag events
+let characterSizeDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+let characterPositionDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+
 // Set character size with validation
 ipcMain.handle("set-character-size", (_event, size: number) => {
   const clampedSize = Math.max(400, Math.min(1200, Math.round(size)));
-  console.log(`[IPC] set-character-size: ${size} -> ${clampedSize}`);
 
-  store.set("characterSize", clampedSize);
-
-  // Notify renderer of size change
+  // Notify renderer immediately (before any disk I/O)
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send("character-size-changed", clampedSize);
   }
+
+  // Debounce disk persistence to avoid blocking main process during rapid slider events
+  if (characterSizeDebounceTimer) clearTimeout(characterSizeDebounceTimer);
+  characterSizeDebounceTimer = setTimeout(() => {
+    store.set("characterSize", clampedSize);
+  }, 300);
 
   return clampedSize;
 });
@@ -389,7 +396,11 @@ ipcMain.handle("get-character-position", () => {
 });
 
 ipcMain.on("set-character-position", (_event, x: number, y: number) => {
-  store.set("characterPosition", { x, y });
+  // Debounce disk persistence to avoid blocking main process during rapid events
+  if (characterPositionDebounceTimer) clearTimeout(characterPositionDebounceTimer);
+  characterPositionDebounceTimer = setTimeout(() => {
+    store.set("characterPosition", { x, y });
+  }, 300);
 });
 
 // Screen size
