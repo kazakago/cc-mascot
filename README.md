@@ -28,6 +28,9 @@ Claude Codeからの返答をVRMアバターが喋ってくれるデスクトッ
 - VOICEVOX
   - https://voicevox.hiroshiba.jp/
 
+cc-mascot側で設定変更が簡単になるためインストーラー版を推奨します。  
+デフォルト設定ではAivisSpeechが使われるため、VOICEVOXを利用する場合はcc-mascot上で設定変更が必要です。  
+
 初回起動とモデルDLまで済ませれば上記アプリケーションを起動しておく必要はありません。  
 cc-mascotが自動的にエンジンプロセスを起動します。
 
