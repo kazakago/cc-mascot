@@ -19,7 +19,7 @@ export default async function notarizing(context) {
 
   await notarize({
     appPath,
-    appleApiKey: process.env.APPLE_API_KEY_PATH,
+    appleApiKey: process.env.APPLE_API_KEY,
     appleApiKeyId: process.env.APPLE_API_KEY_ID,
     appleApiIssuer: process.env.APPLE_API_ISSUER,
   });
