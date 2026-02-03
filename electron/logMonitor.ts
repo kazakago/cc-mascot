@@ -38,7 +38,7 @@ export function createLogMonitor(broadcast: BroadcastFn, includeSubAgents = fals
 
   watcher.on("change", (filePath: string) => {
     console.log(`[LogMonitor] File changes detected: ${filePath}`);
-    processFileChanges(filePath, broadcast);
+    processFileChanges(filePath, broadcast, includeSubAgents);
   });
 
   watcher.on("error", (error: unknown) => {
@@ -67,7 +67,7 @@ function initializeFilePosition(filePath: string) {
   }
 }
 
-async function processFileChanges(filePath: string, broadcast: BroadcastFn) {
+async function processFileChanges(filePath: string, broadcast: BroadcastFn, includeSubAgents: boolean) {
   // Debounce check
   const now = Date.now();
   const lastTime = lastProcessed.get(filePath) || 0;
@@ -99,7 +99,7 @@ async function processFileChanges(filePath: string, broadcast: BroadcastFn) {
 
     // Process each new line
     for (const line of newContent) {
-      processLogLine(line, broadcast);
+      processLogLine(line, broadcast, includeSubAgents);
     }
   } catch (err) {
     console.error(`[LogMonitor] Error processing ${filePath}:`, err);
@@ -135,10 +135,11 @@ async function readNewLines(filePath: string, startPosition: number, endPosition
  * Process a single log line and broadcast speak messages
  * @param line - A single line from the JSONL log file
  * @param broadcast - Callback function to send messages to the renderer process
+ * @param includeSubAgents - Whether to include sub-agent messages
  */
-function processLogLine(line: string, broadcast: BroadcastFn) {
+function processLogLine(line: string, broadcast: BroadcastFn, includeSubAgents: boolean) {
   // Parse the log line using Claude Code parser
-  const messages: SpeakMessage[] = parseClaudeCodeLog(line);
+  const messages: SpeakMessage[] = parseClaudeCodeLog(line, includeSubAgents);
 
   // Process each message
   for (const message of messages) {
