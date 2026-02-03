@@ -411,8 +411,8 @@ Electronとの統合（electron/main.ts）:
 
 ### Electron Store（Main Process）
 
-| キー                 | 型     | デフォルト | 説明                                    |
-| -------------------- | ------ | ---------- | --------------------------------------- |
+| キー                 | 型      | デフォルト | 説明                                    |
+| -------------------- | ------- | ---------- | --------------------------------------- |
 | `engineType`         | string  | "aivis"    | エンジンタイプ（aivis/voicevox/custom） |
 | `voicevoxEnginePath` | string  | undefined  | カスタムエンジンパス                    |
 | `windowSize`         | number  | 800        | ウィンドウサイズ（400〜1200）           |
