@@ -18,8 +18,9 @@ type BroadcastFn = (message: string) => void;
 /**
  * Create a log monitor that watches Claude Code session logs
  * @param broadcast - Callback function to send messages to the renderer process
+ * @param includeSubAgents - Whether to monitor sub-agent logs (depth: 3) or only main agent (depth: 1)
  */
-export function createLogMonitor(broadcast: BroadcastFn) {
+export function createLogMonitor(broadcast: BroadcastFn, includeSubAgents = false) {
   const claudeProjectsDir = path.join(os.homedir(), ".claude", "projects");
 
   const watcher = chokidar.watch(claudeProjectsDir, {
@@ -28,7 +29,7 @@ export function createLogMonitor(broadcast: BroadcastFn) {
       stabilityThreshold: 100,
       pollInterval: 50,
     },
-    depth: 3, // main & sub agent.
+    depth: includeSubAgents ? 3 : 1, // Sub-agents (depth: 3) or main agent only (depth: 1)
   });
 
   watcher.on("add", (filePath: string) => {

@@ -42,7 +42,7 @@ describe("logMonitor", () => {
   });
 
   describe("createLogMonitor", () => {
-    it("chokidar.watchを正しいオプションで呼び出す", () => {
+    it("chokidar.watchをデフォルトオプション（メインエージェントのみ）で呼び出す", () => {
       const mockWatcher = {
         on: vi.fn(),
         close: vi.fn(),
@@ -54,7 +54,28 @@ describe("logMonitor", () => {
       expect(chokidarMod.watch).toHaveBeenCalled();
       const watchCall = (chokidarMod.watch as any).mock.calls[0];
       expect(watchCall[1]).toMatchObject({
-        depth: 3, // サブエージェントのログも監視
+        depth: 1, // デフォルト: メインエージェントのみ
+        awaitWriteFinish: {
+          stabilityThreshold: 100,
+          pollInterval: 50,
+        },
+      });
+      expect(watchCall[1]?.ignored).toBeTypeOf("function");
+    });
+
+    it("includeSubAgents=trueでサブエージェントも監視する", () => {
+      const mockWatcher = {
+        on: vi.fn(),
+        close: vi.fn(),
+      };
+      (chokidarMod.watch as any).mockReturnValue(mockWatcher as any);
+
+      createLogMonitor(mockBroadcast, true);
+
+      expect(chokidarMod.watch).toHaveBeenCalled();
+      const watchCall = (chokidarMod.watch as any).mock.calls[0];
+      expect(watchCall[1]).toMatchObject({
+        depth: 3, // サブエージェントも含める
         awaitWriteFinish: {
           stabilityThreshold: 100,
           pollInterval: 50,

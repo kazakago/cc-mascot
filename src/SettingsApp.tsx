@@ -26,8 +26,9 @@ export default function SettingsApp() {
   const [loadingSpeakers, setLoadingSpeakers] = useState(false);
   const [isPlayingTest, setIsPlayingTest] = useState(false);
   const [testAudioError, setTestAudioError] = useState("");
-  const [muteOnMicActive, setMuteOnMicActive] = useState(true);
+  const [muteOnMicActive, setMuteOnMicActive] = useState(false);
   const [micMonitorAvailable, setMicMonitorAvailable] = useState(false);
+  const [includeSubAgents, setIncludeSubAgents] = useState(false);
   const [mainDevToolsOpen, setMainDevToolsOpen] = useState(false);
   const [settingsDevToolsOpen, setSettingsDevToolsOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -110,6 +111,12 @@ export default function SettingsApp() {
       if (window.electron?.getMuteOnMicActive) {
         const muted = await window.electron.getMuteOnMicActive();
         setMuteOnMicActive(muted);
+      }
+
+      // Load sub-agent monitoring settings
+      if (window.electron?.getIncludeSubAgents) {
+        const include = await window.electron.getIncludeSubAgents();
+        setIncludeSubAgents(include);
       }
 
       // Load VRM file name from IndexedDB
@@ -267,6 +274,11 @@ export default function SettingsApp() {
     await window.electron?.setMuteOnMicActive?.(value);
   };
 
+  const handleIncludeSubAgentsChange = async (value: boolean) => {
+    setIncludeSubAgents(value);
+    await window.electron?.setIncludeSubAgents?.(value);
+  };
+
   const handleVolumeChangeComplete = () => {
     localStorage.setItem("volumeScale", String(volumeScaleInput));
     console.log(`[SettingsApp] Volume saved to localStorage: ${volumeScaleInput}`);
@@ -347,7 +359,10 @@ export default function SettingsApp() {
       window.electron?.resetCharacterPosition?.();
 
       // Reset mic mute setting
-      setMuteOnMicActive(true);
+      setMuteOnMicActive(false);
+
+      // Reset sub-agent monitoring setting
+      setIncludeSubAgents(false);
 
       // Close settings window
       if (window.electron?.closeSettingsWindow) {
@@ -550,6 +565,20 @@ export default function SettingsApp() {
                 </p>
               </div>
             )}
+            <div className="flex flex-col gap-3">
+              <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-800">
+                <input
+                  type="checkbox"
+                  checked={includeSubAgents}
+                  onChange={(e) => handleIncludeSubAgentsChange(e.target.checked)}
+                  className="w-4 h-4 m-0 cursor-pointer accent-primary"
+                />
+                <span className="font-normal">サブエージェントの発言も含める</span>
+              </label>
+              <p className="text-sm text-gray-400 m-0">
+                Claudeが実行するサブエージェント（ファイル検索など）の発言も音声化します
+              </p>
+            </div>
             <div className="flex flex-col gap-3">
               <label className="text-sm font-medium text-gray-600">テスト音声</label>
               <button
