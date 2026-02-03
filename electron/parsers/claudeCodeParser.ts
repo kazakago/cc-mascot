@@ -22,7 +22,7 @@ interface ContentItem {
 interface AssistantMessage {
   type: string;
   role: string;
-  content: ContentItem[];
+  content: ContentItem[] | string;
 }
 
 interface LogEntry {
@@ -69,29 +69,26 @@ export function parseClaudeCodeLog(line: string, includeSubAgents = false): Spea
     // as user role messages wrapped in <local-command-stdout> tags.
     // This behavior may be specific to the current version and could change.
     // Only process when sub-agents are excluded (includeSubAgents === false).
-    else if (!includeSubAgents && entry.message?.role === "user" && entry.message?.type === "message") {
-      if (Array.isArray(entry.message.content)) {
-        for (const item of entry.message.content) {
-          if (item.type === "text" && item.text) {
-            const text = item.text.trim();
-            // Check if content is wrapped in <local-command-stdout> tags
-            if (text.startsWith("<local-command-stdout>") && text.endsWith("</local-command-stdout>")) {
-              // Extract content between tags
-              const content = text
-                .replace(/^<local-command-stdout>/, "")
-                .replace(/<\/local-command-stdout>$/, "")
-                .trim();
+    else if (!includeSubAgents && entry.message?.role === "user") {
+      // Check if content is a string (not an array)
+      if (typeof entry.message.content === "string") {
+        const text = entry.message.content.trim();
+        // Check if content is wrapped in <local-command-stdout> tags
+        if (text.startsWith("<local-command-stdout>") && text.endsWith("</local-command-stdout>")) {
+          // Extract content between tags
+          const content = text
+            .replace(/^<local-command-stdout>/, "")
+            .replace(/<\/local-command-stdout>$/, "")
+            .trim();
 
-              if (content) {
-                // 感情分類器でテキストから感情を自動判定
-                const emotion = emotionClassifier.classify(content);
-                messages.push({
-                  type: "speak",
-                  text: content,
-                  emotion: emotion,
-                });
-              }
-            }
+          if (content) {
+            // 感情分類器でテキストから感情を自動判定
+            const emotion = emotionClassifier.classify(content);
+            messages.push({
+              type: "speak",
+              text: content,
+              emotion: emotion,
+            });
           }
         }
       }
