@@ -150,6 +150,12 @@ contextBridge.exposeInMainWorld("electron", {
   getMicMonitorAvailable: (): Promise<boolean> => {
     return ipcRenderer.invoke("get-mic-monitor-available");
   },
+  getIncludeSubAgents: (): Promise<boolean> => {
+    return ipcRenderer.invoke("get-include-sub-agents");
+  },
+  setIncludeSubAgents: (value: boolean): Promise<boolean> => {
+    return ipcRenderer.invoke("set-include-sub-agents", value);
+  },
   onMicActiveChanged: (callback: (active: boolean) => void) => {
     const listener = (_event: unknown, active: boolean) => {
       callback(active);
