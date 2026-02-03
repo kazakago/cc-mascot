@@ -132,8 +132,7 @@ jobs:
 
   create-release:
     name: Create release
-    needs: [
-      check-version, build-macos, build-windows, build-linux]
+    needs: [check-version, build-macos, build-windows, build-linux]
     runs-on: ubuntu-latest
 
     steps:

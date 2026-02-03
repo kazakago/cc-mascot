@@ -9,7 +9,8 @@
   "scripts": {
     "dev": "vite --mode electron",
     "build": "npm run generate-licenses && tsc -b && vite build --mode electron",
-    "package": "npm run build && electron-builder",
+    "build:mic-monitor": "node scripts/build-mic-monitor.mjs",
+    "package": "npm run build:mic-monitor && npm run build && electron-builder",
     "generate-licenses": "license-checker-rseidelsohn --json --production --customPath license-format.json > public/licenses.json",
     "lint": "eslint .",
     "format": "prettier --write .",
@@ -85,6 +86,13 @@
       {
         "from": "resources/icons/",
         "to": "icons/"
+      },
+      {
+        "from": "resources/mic-monitor",
+        "to": "mic-monitor",
+        "filter": [
+          "**/*"
+        ]
       }
     ],
     "mac": {

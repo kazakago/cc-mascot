@@ -30,6 +30,8 @@ export default function SettingsApp() {
   const [loadingSpeakers, setLoadingSpeakers] = useState(false);
   const [isPlayingTest, setIsPlayingTest] = useState(false);
   const [testAudioError, setTestAudioError] = useState("");
+  const [muteOnMicActive, setMuteOnMicActive] = useState(true);
+  const [micMonitorAvailable, setMicMonitorAvailable] = useState(false);
   const [mainDevToolsOpen, setMainDevToolsOpen] = useState(false);
   const [settingsDevToolsOpen, setSettingsDevToolsOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -95,6 +97,16 @@ export default function SettingsApp() {
         if (savedWindowSize) {
           setWindowSizeInput(savedWindowSize);
         }
+      }
+
+      // Load mic monitor settings
+      if (window.electron?.getMicMonitorAvailable) {
+        const available = await window.electron.getMicMonitorAvailable();
+        setMicMonitorAvailable(available);
+      }
+      if (window.electron?.getMuteOnMicActive) {
+        const muted = await window.electron.getMuteOnMicActive();
+        setMuteOnMicActive(muted);
       }
 
       // Load VRM file name from IndexedDB
@@ -241,6 +253,11 @@ export default function SettingsApp() {
     }
   };
 
+  const handleMuteOnMicActiveChange = async (value: boolean) => {
+    setMuteOnMicActive(value);
+    await window.electron?.setMuteOnMicActive?.(value);
+  };
+
   const handleVolumeChangeComplete = () => {
     localStorage.setItem("volumeScale", String(volumeScaleInput));
     console.log(`[SettingsApp] Volume saved to localStorage: ${volumeScaleInput}`);
@@ -316,6 +333,12 @@ export default function SettingsApp() {
       if (window.electron?.notifyVolumeChanged) {
         window.electron.notifyVolumeChanged(defaultVolume);
       }
+
+      // Reset character position
+      window.electron?.resetCharacterPosition?.();
+
+      // Reset mic mute setting
+      setMuteOnMicActive(true);
 
       // Close settings window
       if (window.electron?.closeSettingsWindow) {
@@ -502,6 +525,22 @@ export default function SettingsApp() {
                 className="w-full cursor-pointer"
               />
             </div>
+            {micMonitorAvailable && (
+              <div className="flex flex-col gap-3">
+                <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-800">
+                  <input
+                    type="checkbox"
+                    checked={muteOnMicActive}
+                    onChange={(e) => handleMuteOnMicActiveChange(e.target.checked)}
+                    className="w-4 h-4 m-0 cursor-pointer accent-primary"
+                  />
+                  <span className="font-normal">マイク使用中はミュートにする</span>
+                </label>
+                <p className="text-sm text-gray-400 m-0">
+                  他のアプリがマイクを使用中は、キャラクターの発話音声をミュートにします
+                </p>
+              </div>
+            )}
             <div className="flex flex-col gap-3">
               <label className="text-sm font-medium text-gray-600">テスト音声</label>
               <button
@@ -534,7 +573,7 @@ export default function SettingsApp() {
               className="px-4 py-2 rounded-md text-sm font-medium cursor-pointer transition-all duration-200 border-0 bg-danger text-white w-fit hover:bg-danger-dark"
               onClick={handleReset}
             >
-              全ての設定をリセット
+              すべての設定をリセット
             </button>
           </div>
         </div>
