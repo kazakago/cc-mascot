@@ -34,6 +34,7 @@ declare global {
       onPlayTestSpeech: (callback: () => void) => () => void;
       getMuteOnMicActive: () => Promise<boolean>;
       setMuteOnMicActive: (value: boolean) => Promise<boolean>;
+      getDefaultEnginePath: (engineType: "aivis" | "voicevox") => Promise<string>;
       getMicMonitorAvailable: () => Promise<boolean>;
       onMicActiveChanged: (callback: (active: boolean) => void) => () => void;
       onMuteOnMicActiveChanged: (callback: (value: boolean) => void) => () => void;

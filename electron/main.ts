@@ -1,7 +1,7 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, screen, shell, Tray } from "electron";
 import path from "path";
 import { fileURLToPath } from "url";
-import { spawn, ChildProcess } from "child_process";
+import { spawn, execSync, ChildProcess } from "child_process";
 import { createLogMonitor } from "./logMonitor";
 import fs from "fs";
 import net from "net";
@@ -304,6 +304,15 @@ async function waitForPortRelease(port: number, maxAttempts: number = 30): Promi
   return false;
 }
 
+// Kill process tree on Windows (taskkill /T terminates child processes)
+function killProcessTree(pid: number): void {
+  try {
+    execSync(`taskkill /PID ${pid} /T /F`, { stdio: "ignore" });
+  } catch {
+    // Process may have already exited
+  }
+}
+
 // Stop VOICEVOX Engine
 async function stopVoicevoxEngine(): Promise<void> {
   if (voicevoxProcess) {
@@ -311,22 +320,26 @@ async function stopVoicevoxEngine(): Promise<void> {
     const proc = voicevoxProcess;
     voicevoxProcess = null;
 
-    // Try graceful shutdown first
-    proc.kill("SIGTERM");
+    if (process.platform === "win32" && proc.pid) {
+      killProcessTree(proc.pid);
+    } else {
+      // Try graceful shutdown first
+      proc.kill("SIGTERM");
 
-    // Wait for process to exit
-    await new Promise<void>((resolve) => {
-      const timeout = setTimeout(() => {
-        console.log("[Engine] Force killing engine...");
-        proc.kill("SIGKILL");
-        resolve();
-      }, 5000);
+      // Wait for process to exit
+      await new Promise<void>((resolve) => {
+        const timeout = setTimeout(() => {
+          console.log("[Engine] Force killing engine...");
+          proc.kill("SIGKILL");
+          resolve();
+        }, 5000);
 
-      proc.once("exit", () => {
-        clearTimeout(timeout);
-        resolve();
+        proc.once("exit", () => {
+          clearTimeout(timeout);
+          resolve();
+        });
       });
-    });
+    }
 
     // Wait for port to be released
     console.log("[Engine] Waiting for port to be released...");
@@ -909,6 +922,18 @@ ipcMain.handle("set-mute-on-mic-active", (_event, value: boolean) => {
     settingsWindow.webContents.send("mute-on-mic-active-changed", value);
   }
   return true;
+});
+
+ipcMain.handle("get-default-engine-path", (_event, engineType: Exclude<EngineType, "custom">) => {
+  let enginePaths: Record<Exclude<EngineType, "custom">, string>;
+  if (process.platform === "win32") {
+    enginePaths = WINDOWS_ENGINE_PATHS;
+  } else if (process.platform === "darwin") {
+    enginePaths = MAC_ENGINE_PATHS;
+  } else {
+    enginePaths = LINUX_ENGINE_PATHS;
+  }
+  return enginePaths[engineType];
 });
 
 ipcMain.handle("get-mic-monitor-available", () => {

@@ -3,11 +3,6 @@ import type { EngineType } from "./global";
 import { getSpeakers } from "./services/voicevox";
 import { saveVRMFile, loadVRMFile, deleteVRMFile } from "./utils/vrmStorage";
 
-const ENGINE_PATHS = {
-  aivis: "/Applications/AivisSpeech.app/Contents/Resources/AivisSpeech-Engine/run",
-  voicevox: "/Applications/VOICEVOX.app/Contents/Resources/vv-engine/run",
-} as const;
-
 const VOICEVOX_BASE_URL = "http://localhost:8564";
 
 interface SpeakerOption {
@@ -23,6 +18,7 @@ export default function SettingsApp() {
   const [volumeScaleInput, setVolumeScaleInput] = useState(1.0);
   const [windowSizeInput, setWindowSizeInput] = useState(800);
   const [engineType, setEngineType] = useState<EngineType>("aivis");
+  const [defaultEnginePath, setDefaultEnginePath] = useState("");
   const [customPath, setCustomPath] = useState("");
   const [error, setError] = useState("");
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
@@ -92,10 +88,17 @@ export default function SettingsApp() {
           window.electron.getVoicevoxPath(),
           window.electron.getCharacterSize(),
         ]);
-        setEngineType(savedEngineType || "aivis");
+        const effectiveEngineType = savedEngineType || "aivis";
+        setEngineType(effectiveEngineType);
         setCustomPath(savedCustomPath || "");
         if (savedWindowSize) {
           setWindowSizeInput(savedWindowSize);
+        }
+
+        // Load default engine path for current engine type
+        if (effectiveEngineType !== "custom" && window.electron?.getDefaultEnginePath) {
+          const path = await window.electron.getDefaultEnginePath(effectiveEngineType);
+          setDefaultEnginePath(path);
         }
       }
 
@@ -188,6 +191,12 @@ export default function SettingsApp() {
 
   const handleEngineTypeChange = async (newEngineType: EngineType) => {
     setEngineType(newEngineType);
+
+    // Update default engine path display
+    if (newEngineType !== "custom" && window.electron?.getDefaultEnginePath) {
+      const path = await window.electron.getDefaultEnginePath(newEngineType);
+      setDefaultEnginePath(path);
+    }
 
     if (newEngineType === "custom") {
       if (!customPath.trim()) {
@@ -449,7 +458,7 @@ export default function SettingsApp() {
                 <input
                   type="text"
                   id="engine-path"
-                  value={engineType === "custom" ? customPath : ENGINE_PATHS[engineType]}
+                  value={engineType === "custom" ? customPath : defaultEnginePath}
                   onChange={(e) => setCustomPath(e.target.value)}
                   disabled={engineType !== "custom"}
                   placeholder={engineType === "custom" ? "カスタムエンジンパスを入力" : ""}
