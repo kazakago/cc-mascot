@@ -26,7 +26,7 @@ export default function SettingsApp() {
   const [loadingSpeakers, setLoadingSpeakers] = useState(false);
   const [isPlayingTest, setIsPlayingTest] = useState(false);
   const [testAudioError, setTestAudioError] = useState("");
-  const [muteOnMicActive, setMuteOnMicActive] = useState(true);
+  const [muteOnMicActive, setMuteOnMicActive] = useState(false);
   const [micMonitorAvailable, setMicMonitorAvailable] = useState(false);
   const [includeSubAgents, setIncludeSubAgents] = useState(false);
   const [mainDevToolsOpen, setMainDevToolsOpen] = useState(false);
@@ -359,7 +359,7 @@ export default function SettingsApp() {
       window.electron?.resetCharacterPosition?.();
 
       // Reset mic mute setting
-      setMuteOnMicActive(true);
+      setMuteOnMicActive(false);
 
       // Reset sub-agent monitoring setting
       setIncludeSubAgents(false);

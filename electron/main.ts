@@ -920,7 +920,7 @@ ipcMain.handle("get-devtools-state", (_event, target: "main" | "settings") => {
 // Mic monitor settings
 ipcMain.handle("get-mute-on-mic-active", () => {
   const value = store.get("muteOnMicActive");
-  return value === undefined ? true : (value as boolean);
+  return value === undefined ? false : (value as boolean);
 });
 
 ipcMain.handle("set-mute-on-mic-active", (_event, value: boolean) => {
@@ -982,8 +982,8 @@ app.whenReady().then(async () => {
   createTray();
   await startVoicevoxEngine();
 
-  // Start mic monitor if enabled (default: true)
-  if (store.get("muteOnMicActive") !== false) {
+  // Start mic monitor if enabled (default: false)
+  if (store.get("muteOnMicActive") === true) {
     startMicMonitor();
   }
 
