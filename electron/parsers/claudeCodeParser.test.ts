@@ -307,12 +307,7 @@ describe("parseClaudeCodeLog", () => {
         message: {
           type: "message",
           role: "user",
-          content: [
-            {
-              type: "text",
-              text: "<local-command-stdout>コマンドの出力結果</local-command-stdout>",
-            },
-          ],
+          content: "<local-command-stdout>コマンドの出力結果</local-command-stdout>",
         },
       });
 
@@ -331,12 +326,7 @@ describe("parseClaudeCodeLog", () => {
         message: {
           type: "message",
           role: "user",
-          content: [
-            {
-              type: "text",
-              text: "<local-command-stdout>コマンドの出力結果</local-command-stdout>",
-            },
-          ],
+          content: "<local-command-stdout>コマンドの出力結果</local-command-stdout>",
         },
       });
 
@@ -350,12 +340,7 @@ describe("parseClaudeCodeLog", () => {
         message: {
           type: "message",
           role: "user",
-          content: [
-            {
-              type: "text",
-              text: "<local-command-stdout>テスト実行が成功しました</local-command-stdout>",
-            },
-          ],
+          content: "<local-command-stdout>テスト実行が成功しました</local-command-stdout>",
         },
       });
 
@@ -372,12 +357,7 @@ describe("parseClaudeCodeLog", () => {
         message: {
           type: "message",
           role: "user",
-          content: [
-            {
-              type: "text",
-              text: "<local-command-stdout>成功しました！</local-command-stdout>",
-            },
-          ],
+          content: "<local-command-stdout>成功しました！</local-command-stdout>",
         },
       });
 
@@ -392,12 +372,7 @@ describe("parseClaudeCodeLog", () => {
         message: {
           type: "message",
           role: "user",
-          content: [
-            {
-              type: "text",
-              text: "<local-command-stdout>  空白あり  </local-command-stdout>",
-            },
-          ],
+          content: "<local-command-stdout>  空白あり  </local-command-stdout>",
         },
       });
 
@@ -412,12 +387,7 @@ describe("parseClaudeCodeLog", () => {
         message: {
           type: "message",
           role: "user",
-          content: [
-            {
-              type: "text",
-              text: "<local-command-stdout>タグが閉じていない",
-            },
-          ],
+          content: "<local-command-stdout>タグが閉じていない",
         },
       });
 
@@ -431,12 +401,7 @@ describe("parseClaudeCodeLog", () => {
         message: {
           type: "message",
           role: "user",
-          content: [
-            {
-              type: "text",
-              text: "タグが開いていない</local-command-stdout>",
-            },
-          ],
+          content: "タグが開いていない</local-command-stdout>",
         },
       });
 
@@ -450,12 +415,7 @@ describe("parseClaudeCodeLog", () => {
         message: {
           type: "message",
           role: "user",
-          content: [
-            {
-              type: "text",
-              text: "<local-command-stdout></local-command-stdout>",
-            },
-          ],
+          content: "<local-command-stdout></local-command-stdout>",
         },
       });
 
@@ -469,12 +429,7 @@ describe("parseClaudeCodeLog", () => {
         message: {
           type: "message",
           role: "user",
-          content: [
-            {
-              type: "text",
-              text: "<local-command-stdout>   </local-command-stdout>",
-            },
-          ],
+          content: "<local-command-stdout>   </local-command-stdout>",
         },
       });
 
@@ -483,7 +438,7 @@ describe("parseClaudeCodeLog", () => {
       expect(result).toHaveLength(0);
     });
 
-    it("複数のlocal-command-stdoutメッセージを処理する", () => {
+    it("contentが配列の場合は無視する", () => {
       const line = JSON.stringify({
         message: {
           type: "message",
@@ -491,11 +446,7 @@ describe("parseClaudeCodeLog", () => {
           content: [
             {
               type: "text",
-              text: "<local-command-stdout>最初の出力</local-command-stdout>",
-            },
-            {
-              type: "text",
-              text: "<local-command-stdout>2番目の出力</local-command-stdout>",
+              text: "<local-command-stdout>配列形式</local-command-stdout>",
             },
           ],
         },
@@ -503,9 +454,7 @@ describe("parseClaudeCodeLog", () => {
 
       const result = parseClaudeCodeLog(line);
 
-      expect(result).toHaveLength(2);
-      expect(result[0].text).toBe("最初の出力");
-      expect(result[1].text).toBe("2番目の出力");
+      expect(result).toHaveLength(0);
     });
 
     it("assistantメッセージとlocal-command-stdoutメッセージの両方が正しく処理される", () => {
@@ -521,12 +470,7 @@ describe("parseClaudeCodeLog", () => {
         message: {
           type: "message",
           role: "user",
-          content: [
-            {
-              type: "text",
-              text: "<local-command-stdout>テスト実行が成功しました！</local-command-stdout>",
-            },
-          ],
+          content: "<local-command-stdout>テスト実行が成功しました！</local-command-stdout>",
         },
       });
 
