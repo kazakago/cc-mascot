@@ -1,6 +1,6 @@
 # cc-mascot
 
-![License](https://img.shields.io/badge/license-Apache%202.0-blue)
+![License](https://img.shields.io/badge/license-Apache%202.0-blue) [![Validate](https://github.com/kazakago/cc-mascot/actions/workflows/validate.yml/badge.svg)](https://github.com/kazakago/cc-mascot/actions/workflows/validate.yml)
 
 Claude Codeからの返答をVRMアバターが喋ってくれるデスクトップマスコットです。  
 現時点ではMacOSでのみ動作確認しています。
@@ -21,15 +21,19 @@ Claude Codeからの返答をVRMアバターが喋ってくれるデスクトッ
 
 ### 1. 音声合成エンジンのインストール
 
-以下のいずれかをインストールしてください:
+以下の音声合成エンジンをインストールしてください。
 
-- AivisSpeech（デフォルト）
-  - https://aivis-project.com/
-- VOICEVOX
-  - https://voicevox.hiroshiba.jp/
+**[AivisSpeech](https://aivis-project.com/)**
+
+設定が不要となるためインストーラー版によるグローバルインストールを推奨します。  
+デフォルトパス以外に音声合成エンジンを配置した場合、設定変更でパスを指定してください。
 
 初回起動とモデルDLまで済ませれば上記アプリケーションを起動しておく必要はありません。  
 cc-mascotが自動的にエンジンプロセスを起動します。
+
+> [!TIP]
+> 本アプリケーションはVOICEVOX API互換のエンジンを利用して動作します。  
+> 設定変更することで **[VOICEVOX](https://voicevox.hiroshiba.jp/)** も利用可能です。
 
 ### 2. cc-mascotアプリケーションのインストール
 

@@ -73,18 +73,12 @@ export function useVRM(url: string) {
 
   const setMouthOpen = useCallback(
     (value: number) => {
-      console.log(
-        `[setMouthOpen] called with value=${value}, vrm=${!!vrm}, expressionManager=${!!vrm?.expressionManager}`,
-      );
       if (vrm?.expressionManager) {
         const happyValue = currentEmotionValues.current.happy;
         // happyが強いほどリップシンクを弱く（0.2〜1.0の範囲）
         // 笑顔時に口が開きすぎてメッシュからはみ出るのを防ぐ
         const scale = 1.0 - happyValue * 0.8;
         const adjustedValue = value * scale;
-        console.log(
-          `[LipSync] raw=${value.toFixed(2)}, happy=${happyValue.toFixed(2)}, scale=${scale.toFixed(2)}, adjusted=${adjustedValue.toFixed(2)}`,
-        );
         vrm.expressionManager.setValue("aa", adjustedValue);
       }
     },

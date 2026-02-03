@@ -1,7 +1,7 @@
 {
   "name": "cc-mascot",
   "private": true,
-  "version": "0.2.4",
+  "version": "0.3.0",
   "description": "Claude Codeからの返答をVRMアバターが喋ってくれるデスクトップマスコット",
   "author": "kazakago",
   "type": "module",
@@ -9,7 +9,8 @@
   "scripts": {
     "dev": "vite --mode electron",
     "build": "npm run generate-licenses && tsc -b && vite build --mode electron",
-    "package": "npm run build && electron-builder",
+    "build:mic-monitor": "node scripts/build-mic-monitor.mjs",
+    "package": "npm run build:mic-monitor && npm run build && electron-builder",
     "generate-licenses": "license-checker-rseidelsohn --json --production --customPath license-format.json > public/licenses.json",
     "lint": "eslint .",
     "format": "prettier --write .",
@@ -94,7 +95,16 @@
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
       "entitlements": "build/entitlements.mac.plist",
-      "entitlementsInherit": "build/entitlements.mac.plist"
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "extraResources": [
+        {
+          "from": "resources/mic-monitor",
+          "to": "mic-monitor",
+          "filter": [
+            "**/*"
+          ]
+        }
+      ]
     },
     "win": {
       "icon": "resources/icons/icon.ico",
