@@ -29,6 +29,26 @@ let tray: Tray | null = null;
 
 const VOICEVOX_PORT = 8564;
 
+// Start or restart log monitor with current settings
+function startLogMonitor(): void {
+  // Close existing monitor if any
+  if (logMonitor) {
+    logMonitor.close();
+    logMonitor = null;
+  }
+
+  // Initialize log monitor with IPC broadcast function
+  const broadcast = (message: string) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send("speak", message);
+    }
+  };
+
+  const includeSubAgents = (store.get("includeSubAgents") as boolean | undefined) ?? false;
+  console.log(`[LogMonitor] Starting with includeSubAgents=${includeSubAgents}`);
+  logMonitor = createLogMonitor(broadcast, includeSubAgents);
+}
+
 // Get mic-monitor binary path
 function getMicMonitorPath(): string | undefined {
   if (process.platform !== "darwin") return undefined;
@@ -421,14 +441,7 @@ const createWindow = () => {
 
   // Wait for the window to be ready before starting log monitor
   mainWindow.webContents.on("did-finish-load", () => {
-    // Initialize log monitor with IPC broadcast function
-    const broadcast = (message: string) => {
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send("speak", message);
-      }
-    };
-
-    logMonitor = createLogMonitor(broadcast);
+    startLogMonitor();
   });
 
   // Disable always-on-top when DevTools is opened to allow switching to other apps
@@ -811,10 +824,14 @@ ipcMain.handle("reset-all-settings", async () => {
   store.delete("characterSize");
   store.delete("characterPosition");
   store.delete("muteOnMicActive");
+  store.delete("includeSubAgents");
   stopMicMonitor();
 
   await stopVoicevoxEngine();
   await startVoicevoxEngine();
+
+  // Restart log monitor with default settings
+  startLogMonitor();
 
   // Notify renderer of size reset
   if (mainWindow && !mainWindow.isDestroyed()) {
@@ -938,6 +955,18 @@ ipcMain.handle("get-default-engine-path", (_event, engineType: Exclude<EngineTyp
 
 ipcMain.handle("get-mic-monitor-available", () => {
   return getMicMonitorPath() !== undefined;
+});
+
+ipcMain.handle("get-include-sub-agents", () => {
+  const value = store.get("includeSubAgents");
+  return value === undefined ? false : (value as boolean);
+});
+
+ipcMain.handle("set-include-sub-agents", (_event, value: boolean) => {
+  store.set("includeSubAgents", value);
+  console.log(`[IPC] includeSubAgents set to ${value}, restarting log monitor`);
+  startLogMonitor();
+  return true;
 });
 
 ipcMain.on("set-ignore-mouse-events", (_event, ignore: boolean) => {
