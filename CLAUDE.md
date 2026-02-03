@@ -33,6 +33,11 @@
 - chokidar (ログファイル監視)
 - 対象: `~/.claude/projects/**/*.jsonl`
 
+**ネイティブヘルパー（macOS専用）:**
+
+- Swift CLI バイナリ (CoreAudio API)
+- マイク使用状態の検出
+
 **データ永続化:**
 
 - localStorage (音声設定)
@@ -119,6 +124,7 @@
 - エンジン選択（AivisSpeech/VOICEVOX/Custom）
 - スピーカー選択
 - 音量調整
+- マイク使用中ミュート設定（macOSのみ）
 - ウィンドウサイズ調整
 - VRMファイル選択
 - テスト音声再生
@@ -328,8 +334,58 @@ IPC通信:
 - `get/set-window-position`: レンダラー↔メイン（ウィンドウ位置）
 - `get/set-window-size`: レンダラー↔メイン（ウィンドウサイズ）
 - `get/set-engine-settings`: レンダラー↔メイン（エンジン設定）
+- `get/set-mute-on-mic-active`: レンダラー↔メイン（ミュート設定）
+- `mic-active-changed`: メイン→レンダラー（マイク使用状態変化）
+- `get-mic-monitor-available`: レンダラー→メイン（機能利用可否）
 
-### 8. MCPサーバー（開発用）
+### 8. マイク使用中ミュート（macOS専用）
+
+**helpers/mic-monitor.swift**
+
+macOSのCoreAudio HAL APIを使用してマイクの使用状態をリアルタイム監視するSwift CLIツール。
+
+仕組み:
+
+- `kAudioDevicePropertyDeviceIsRunningSomewhere` リスナーで全入力デバイスを監視
+- デバイスの追加/削除（ホットプラグ）にも対応
+- 状態変化時のみ stdout に JSON 行を出力: `{"micActive":true}` / `{"micActive":false}`
+- `RunLoop.main.run()` で常駐
+
+ビルド方法:
+
+```bash
+# macOSでのみ動作。swiftcでコンパイル
+npm run build:mic-monitor
+# → resources/mic-monitor にバイナリが出力される
+```
+
+ビルドスクリプト: `scripts/build-mic-monitor.mjs`
+
+- macOS以外ではスキップ（Windows/Linuxではバイナリ不要）
+- `swiftc -O -framework CoreAudio` でリリースビルド
+- 出力先: `resources/mic-monitor`
+
+Electronとの統合（electron/main.ts）:
+
+- `muteOnMicActive` 設定が有効な場合のみヘルパーを起動（プライバシー配慮）
+- `child_process.spawn()` で起動、stdout を行単位でパース
+- アプリ終了時に SIGTERM で停止
+- バイナリが見つからない場合（Windows/Linux）は機能を無効化
+- 設定画面の `getMicMonitorAvailable` IPC で UI 表示を制御
+
+パッケージング:
+
+- `package.json` の `extraResources` でアプリバンドルに含める
+- パッケージ時: `resources/mic-monitor` → `process.resourcesPath/mic-monitor`
+- 開発時: `resources/mic-monitor` を直接参照
+
+レンダラー側:
+
+- `useSpeech` hook に `isMicMuted` prop を追加
+- ミュート時は `gainNode.gain.value = 0`（発話処理・リップシンク・アニメーションは継続）
+- `volumeScale` と `isMicMuted` の両方をリアルタイム監視
+
+### 9. MCPサーバー（開発用）
 
 **electron-mcp-server**
 
@@ -357,9 +413,10 @@ IPC通信:
 
 | キー                 | 型     | デフォルト | 説明                                    |
 | -------------------- | ------ | ---------- | --------------------------------------- |
-| `engineType`         | string | "aivis"    | エンジンタイプ（aivis/voicevox/custom） |
-| `voicevoxEnginePath` | string | undefined  | カスタムエンジンパス                    |
-| `windowSize`         | number | 800        | ウィンドウサイズ（400〜1200）           |
+| `engineType`         | string  | "aivis"    | エンジンタイプ（aivis/voicevox/custom） |
+| `voicevoxEnginePath` | string  | undefined  | カスタムエンジンパス                    |
+| `windowSize`         | number  | 800        | ウィンドウサイズ（400〜1200）           |
+| `muteOnMicActive`    | boolean | false      | マイク使用中にミュートするか            |
 
 ## ディレクトリ構造
 
@@ -375,6 +432,13 @@ cc-mascot/
 │   │   └── textFilter.ts        # テキストフィルタリング
 │   └── services/
 │       └── ruleBasedEmotionClassifier.ts  # 感情判定
+├── helpers/                     # ネイティブヘルパーソース
+│   └── mic-monitor.swift        # マイク監視 Swift CLI（CoreAudio）
+├── scripts/                     # ビルドスクリプト
+│   └── build-mic-monitor.mjs    # Swift ヘルパーのコンパイル
+├── resources/                   # パッケージングリソース
+│   ├── icons/                   # アプリアイコン
+│   └── mic-monitor              # コンパイル済みバイナリ（.gitignore対象）
 ├── src/                         # Electronレンダラープロセス
 │   ├── App.tsx                  # メインウィンドウ
 │   ├── SettingsApp.tsx          # 設定ウィンドウ
@@ -447,6 +511,16 @@ cc-mascot/
 - [ ] 設定ウィンドウが開くか
 - [ ] テスト音声が再生されるか
 
+### マイクミュート関連（macOSのみ）
+
+- [ ] `npm run build:mic-monitor` でSwiftバイナリがコンパイルされるか
+- [ ] 設定画面に「マイク使用中はミュートにする」チェックボックスが表示されるか
+- [ ] チェックを入れるとmic-monitorヘルパーが起動するか（mainプロセスログで確認）
+- [ ] 他アプリがマイク使用中に発話音声がミュートになるか（リップシンクは継続）
+- [ ] マイク使用終了でミュートが解除されるか
+- [ ] チェックを外すとmic-monitorヘルパーが停止するか
+- [ ] 設定がアプリ再起動後も保持されるか
+
 ### MCPサーバー関連（開発モード時のみ）
 
 - [ ] リモートデバッグポート9222が有効化されているか
@@ -499,10 +573,14 @@ npm test:run
 # テストカバレッジ
 npm run test:coverage
 
+# Swiftヘルパービルド（macOSのみ、要Xcode CLT）
+npm run build:mic-monitor
+
 # ビルド
 npm run build
 
 # パッケージング（dmg/exe/AppImage）
+# ※macOSではSwiftヘルパーのビルドも自動実行される
 npm run package
 ```
 

@@ -138,6 +138,33 @@ contextBridge.exposeInMainWorld("electron", {
       ipcRenderer.removeListener("play-test-speech", listener);
     };
   },
+  getMuteOnMicActive: (): Promise<boolean> => {
+    return ipcRenderer.invoke("get-mute-on-mic-active");
+  },
+  setMuteOnMicActive: (value: boolean): Promise<boolean> => {
+    return ipcRenderer.invoke("set-mute-on-mic-active", value);
+  },
+  getMicMonitorAvailable: (): Promise<boolean> => {
+    return ipcRenderer.invoke("get-mic-monitor-available");
+  },
+  onMicActiveChanged: (callback: (active: boolean) => void) => {
+    const listener = (_event: unknown, active: boolean) => {
+      callback(active);
+    };
+    ipcRenderer.on("mic-active-changed", listener);
+    return () => {
+      ipcRenderer.removeListener("mic-active-changed", listener);
+    };
+  },
+  onMuteOnMicActiveChanged: (callback: (value: boolean) => void) => {
+    const listener = (_event: unknown, value: boolean) => {
+      callback(value);
+    };
+    ipcRenderer.on("mute-on-mic-active-changed", listener);
+    return () => {
+      ipcRenderer.removeListener("mute-on-mic-active-changed", listener);
+    };
+  },
   onDevToolsStateChanged: (callback: (isOpen: boolean) => void) => {
     const listener = (_event: unknown, isOpen: boolean) => {
       callback(isOpen);

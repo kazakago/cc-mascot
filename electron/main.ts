@@ -23,9 +23,87 @@ let settingsWindow: BrowserWindow | null = null;
 let licenseWindow: BrowserWindow | null = null;
 let logMonitor: { close: () => void } | null = null;
 let voicevoxProcess: ChildProcess | null = null;
+let micMonitorProcess: ChildProcess | null = null;
+let micActive = false;
 let tray: Tray | null = null;
 
 const VOICEVOX_PORT = 8564;
+
+// Get mic-monitor binary path
+function getMicMonitorPath(): string | undefined {
+  if (process.platform !== "darwin") return undefined;
+
+  const devPath = path.join(__dirname, "../resources/mic-monitor");
+  if (app.isPackaged) {
+    const prodPath = path.join(process.resourcesPath, "mic-monitor");
+    return fs.existsSync(prodPath) ? prodPath : undefined;
+  }
+  return fs.existsSync(devPath) ? devPath : undefined;
+}
+
+// Start mic-monitor helper process
+function startMicMonitor(): void {
+  if (micMonitorProcess) return;
+
+  const monitorPath = getMicMonitorPath();
+  if (!monitorPath) {
+    console.log("[MicMonitor] Binary not found, feature disabled");
+    return;
+  }
+
+  try {
+    console.log(`[MicMonitor] Starting: ${monitorPath}`);
+    micMonitorProcess = spawn(monitorPath);
+
+    let buffer = "";
+    micMonitorProcess.stdout?.on("data", (data) => {
+      buffer += data.toString();
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        try {
+          const parsed = JSON.parse(line) as { micActive: boolean };
+          micActive = parsed.micActive;
+          console.log(`[MicMonitor] Mic active: ${micActive}`);
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send("mic-active-changed", micActive);
+          }
+        } catch {
+          console.warn("[MicMonitor] Failed to parse:", line);
+        }
+      }
+    });
+
+    micMonitorProcess.stderr?.on("data", (data) => {
+      console.error(`[MicMonitor] ${data.toString().trim()}`);
+    });
+
+    micMonitorProcess.on("error", (error) => {
+      console.error("[MicMonitor] Failed to start:", error);
+      micMonitorProcess = null;
+    });
+
+    micMonitorProcess.on("exit", (code) => {
+      console.log(`[MicMonitor] Exited with code ${code}`);
+      micMonitorProcess = null;
+    });
+  } catch (error) {
+    console.error("[MicMonitor] Error starting:", error);
+    micMonitorProcess = null;
+  }
+}
+
+// Stop mic-monitor helper process
+function stopMicMonitor(): void {
+  if (micMonitorProcess) {
+    console.log("[MicMonitor] Stopping...");
+    micMonitorProcess.kill("SIGTERM");
+    micMonitorProcess = null;
+    micActive = false;
+  }
+}
 
 // Get icon path for Windows and Linux (Mac uses .icns from package.json)
 const getIconPath = () => {
@@ -696,6 +774,8 @@ ipcMain.handle("reset-all-settings", async () => {
   store.delete("voicevoxEnginePath");
   store.delete("characterSize");
   store.delete("characterPosition");
+  store.delete("muteOnMicActive");
+  stopMicMonitor();
 
   await stopVoicevoxEngine();
   await startVoicevoxEngine();
@@ -784,6 +864,34 @@ ipcMain.handle("get-devtools-state", (_event, target: "main" | "settings") => {
   return settingsWindow?.webContents.isDevToolsOpened() ?? false;
 });
 
+// Mic monitor settings
+ipcMain.handle("get-mute-on-mic-active", () => {
+  const value = store.get("muteOnMicActive");
+  return value === undefined ? true : (value as boolean);
+});
+
+ipcMain.handle("set-mute-on-mic-active", (_event, value: boolean) => {
+  store.set("muteOnMicActive", value);
+  if (value) {
+    startMicMonitor();
+  } else {
+    stopMicMonitor();
+    // Notify renderer that mic is no longer active
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send("mic-active-changed", false);
+    }
+  }
+  // Notify settings window of the change
+  if (settingsWindow && !settingsWindow.isDestroyed()) {
+    settingsWindow.webContents.send("mute-on-mic-active-changed", value);
+  }
+  return true;
+});
+
+ipcMain.handle("get-mic-monitor-available", () => {
+  return getMicMonitorPath() !== undefined;
+});
+
 ipcMain.on("set-ignore-mouse-events", (_event, ignore: boolean) => {
   if (mainWindow && !mainWindow.isDestroyed()) {
     // Always use forward: true to keep receiving mouse move events even when ignoring clicks
@@ -796,6 +904,12 @@ ipcMain.on("set-ignore-mouse-events", (_event, ignore: boolean) => {
 app.whenReady().then(async () => {
   createTray();
   await startVoicevoxEngine();
+
+  // Start mic monitor if enabled (default: true)
+  if (store.get("muteOnMicActive") !== false) {
+    startMicMonitor();
+  }
+
   createWindow();
 
   app.on("activate", () => {
@@ -825,6 +939,7 @@ app.on("before-quit", async (event) => {
     tray.destroy();
     tray = null;
   }
+  stopMicMonitor();
   await stopVoicevoxEngine();
 
   app.quit();
