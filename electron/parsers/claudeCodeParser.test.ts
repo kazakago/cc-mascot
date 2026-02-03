@@ -75,7 +75,7 @@ describe("parseClaudeCodeLog", () => {
   });
 
   describe("フィルタリング - 除外すべきメッセージ", () => {
-    it("userメッセージは無視する", () => {
+    it("通常のuserメッセージは無視する", () => {
       const line = JSON.stringify({
         message: {
           type: "message",
@@ -298,6 +298,249 @@ describe("parseClaudeCodeLog", () => {
       expect(result).toHaveLength(1);
       expect(result[0].text).toBe("TypeScriptの型定義を追加しました。インターフェースとクラスを実装しています。");
       expect(result[0].emotion).toBe("neutral");
+    });
+  });
+
+  describe("local-command-stdout メッセージの処理", () => {
+    it("サブエージェント無効時: <local-command-stdout>タグで囲まれたuserメッセージを抽出する", () => {
+      const line = JSON.stringify({
+        message: {
+          type: "message",
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: "<local-command-stdout>コマンドの出力結果</local-command-stdout>",
+            },
+          ],
+        },
+      });
+
+      const result = parseClaudeCodeLog(line, false);
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toMatchObject({
+        type: "speak",
+        text: "コマンドの出力結果",
+        emotion: "neutral",
+      });
+    });
+
+    it("サブエージェント有効時: <local-command-stdout>メッセージは無視される", () => {
+      const line = JSON.stringify({
+        message: {
+          type: "message",
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: "<local-command-stdout>コマンドの出力結果</local-command-stdout>",
+            },
+          ],
+        },
+      });
+
+      const result = parseClaudeCodeLog(line, true);
+
+      expect(result).toHaveLength(0);
+    });
+
+    it("タグを正しく除去する", () => {
+      const line = JSON.stringify({
+        message: {
+          type: "message",
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: "<local-command-stdout>テスト実行が成功しました</local-command-stdout>",
+            },
+          ],
+        },
+      });
+
+      const result = parseClaudeCodeLog(line);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].text).toBe("テスト実行が成功しました");
+      expect(result[0].text).not.toContain("<local-command-stdout>");
+      expect(result[0].text).not.toContain("</local-command-stdout>");
+    });
+
+    it("感情が自動的に分類される", () => {
+      const line = JSON.stringify({
+        message: {
+          type: "message",
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: "<local-command-stdout>成功しました！</local-command-stdout>",
+            },
+          ],
+        },
+      });
+
+      const result = parseClaudeCodeLog(line);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].emotion).toBe("happy");
+    });
+
+    it("タグ内の前後の空白をトリムする", () => {
+      const line = JSON.stringify({
+        message: {
+          type: "message",
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: "<local-command-stdout>  空白あり  </local-command-stdout>",
+            },
+          ],
+        },
+      });
+
+      const result = parseClaudeCodeLog(line);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].text).toBe("空白あり");
+    });
+
+    it("開始タグのみの場合は無視する", () => {
+      const line = JSON.stringify({
+        message: {
+          type: "message",
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: "<local-command-stdout>タグが閉じていない",
+            },
+          ],
+        },
+      });
+
+      const result = parseClaudeCodeLog(line);
+
+      expect(result).toHaveLength(0);
+    });
+
+    it("終了タグのみの場合は無視する", () => {
+      const line = JSON.stringify({
+        message: {
+          type: "message",
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: "タグが開いていない</local-command-stdout>",
+            },
+          ],
+        },
+      });
+
+      const result = parseClaudeCodeLog(line);
+
+      expect(result).toHaveLength(0);
+    });
+
+    it("タグ内が空の場合は無視する", () => {
+      const line = JSON.stringify({
+        message: {
+          type: "message",
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: "<local-command-stdout></local-command-stdout>",
+            },
+          ],
+        },
+      });
+
+      const result = parseClaudeCodeLog(line);
+
+      expect(result).toHaveLength(0);
+    });
+
+    it("タグ内が空白のみの場合は無視する", () => {
+      const line = JSON.stringify({
+        message: {
+          type: "message",
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: "<local-command-stdout>   </local-command-stdout>",
+            },
+          ],
+        },
+      });
+
+      const result = parseClaudeCodeLog(line);
+
+      expect(result).toHaveLength(0);
+    });
+
+    it("複数のlocal-command-stdoutメッセージを処理する", () => {
+      const line = JSON.stringify({
+        message: {
+          type: "message",
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: "<local-command-stdout>最初の出力</local-command-stdout>",
+            },
+            {
+              type: "text",
+              text: "<local-command-stdout>2番目の出力</local-command-stdout>",
+            },
+          ],
+        },
+      });
+
+      const result = parseClaudeCodeLog(line);
+
+      expect(result).toHaveLength(2);
+      expect(result[0].text).toBe("最初の出力");
+      expect(result[1].text).toBe("2番目の出力");
+    });
+
+    it("assistantメッセージとlocal-command-stdoutメッセージの両方が正しく処理される", () => {
+      const assistantLine = JSON.stringify({
+        message: {
+          type: "message",
+          role: "assistant",
+          content: [{ type: "text", text: "処理を開始します。" }],
+        },
+      });
+
+      const userLine = JSON.stringify({
+        message: {
+          type: "message",
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: "<local-command-stdout>テスト実行が成功しました！</local-command-stdout>",
+            },
+          ],
+        },
+      });
+
+      const assistantResult = parseClaudeCodeLog(assistantLine, false);
+      const userResult = parseClaudeCodeLog(userLine, false);
+
+      // 両方とも正しく処理される
+      expect(assistantResult).toHaveLength(1);
+      expect(assistantResult[0].text).toBe("処理を開始します。");
+      expect(assistantResult[0].emotion).toBeDefined();
+
+      expect(userResult).toHaveLength(1);
+      expect(userResult[0].text).toBe("テスト実行が成功しました！");
+      expect(userResult[0].emotion).toBe("happy");
     });
   });
 
