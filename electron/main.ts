@@ -788,7 +788,6 @@ ipcMain.on("set-ignore-mouse-events", (_event, ignore: boolean) => {
   if (mainWindow && !mainWindow.isDestroyed()) {
     // Always use forward: true to keep receiving mouse move events even when ignoring clicks
     mainWindow.setIgnoreMouseEvents(ignore, { forward: true });
-    console.log("[IPC] setIgnoreMouseEvents:", ignore, "forward: true");
   }
 });
 
