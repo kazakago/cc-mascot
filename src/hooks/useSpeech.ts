@@ -8,6 +8,7 @@ interface UseSpeechOptions {
   speakerId: number;
   baseUrl: string;
   volumeScale: number;
+  isMicMuted: boolean;
 }
 
 interface QueueItem {
@@ -19,7 +20,7 @@ interface QueueItem {
   promise?: Promise<AudioBuffer>;
 }
 
-export function useSpeech({ onStart, onEnd, speakerId, baseUrl, volumeScale }: UseSpeechOptions) {
+export function useSpeech({ onStart, onEnd, speakerId, baseUrl, volumeScale, isMicMuted }: UseSpeechOptions) {
   const audioContextRef = useRef<AudioContext | null>(null);
   const [isReady, setIsReady] = useState(false);
   const isSpeakingRef = useRef(false);
@@ -122,7 +123,7 @@ export function useSpeech({ onStart, onEnd, speakerId, baseUrl, volumeScale }: U
       const gainNode = ctx.createGain();
 
       analyser.fftSize = 256;
-      gainNode.gain.value = volumeScale;
+      gainNode.gain.value = isMicMuted ? 0 : volumeScale;
 
       source.buffer = nextItem.audioBuffer!;
       // Audio graph: source -> analyser -> gain -> destination
@@ -154,18 +155,19 @@ export function useSpeech({ onStart, onEnd, speakerId, baseUrl, volumeScale }: U
       onEnd();
       processQueueRef.current?.();
     }
-  }, [onStart, onEnd, isReady, volumeScale]);
+  }, [onStart, onEnd, isReady, volumeScale, isMicMuted]);
 
   useEffect(() => {
     processQueueRef.current = processQueue;
   }, [processQueue]);
 
-  // Real-time volume update: update current gain node when volumeScale changes
+  // Real-time volume update: update current gain node when volumeScale or mute state changes
   useEffect(() => {
     if (currentGainNodeRef.current) {
-      currentGainNodeRef.current.gain.setValueAtTime(volumeScale, currentGainNodeRef.current.context.currentTime);
+      const value = isMicMuted ? 0 : volumeScale;
+      currentGainNodeRef.current.gain.setValueAtTime(value, currentGainNodeRef.current.context.currentTime);
     }
-  }, [volumeScale]);
+  }, [volumeScale, isMicMuted]);
 
   const speakText = useCallback(
     (text: string, emotion: Emotion = "neutral") => {

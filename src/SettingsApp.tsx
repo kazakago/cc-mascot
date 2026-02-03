@@ -3,11 +3,6 @@ import type { EngineType } from "./global";
 import { getSpeakers } from "./services/voicevox";
 import { saveVRMFile, loadVRMFile, deleteVRMFile } from "./utils/vrmStorage";
 
-const ENGINE_PATHS = {
-  aivis: "/Applications/AivisSpeech.app/Contents/Resources/AivisSpeech-Engine/run",
-  voicevox: "/Applications/VOICEVOX.app/Contents/Resources/vv-engine/run",
-} as const;
-
 const VOICEVOX_BASE_URL = "http://localhost:8564";
 
 interface SpeakerOption {
@@ -23,6 +18,7 @@ export default function SettingsApp() {
   const [volumeScaleInput, setVolumeScaleInput] = useState(1.0);
   const [windowSizeInput, setWindowSizeInput] = useState(800);
   const [engineType, setEngineType] = useState<EngineType>("aivis");
+  const [defaultEnginePath, setDefaultEnginePath] = useState("");
   const [customPath, setCustomPath] = useState("");
   const [error, setError] = useState("");
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
@@ -30,6 +26,8 @@ export default function SettingsApp() {
   const [loadingSpeakers, setLoadingSpeakers] = useState(false);
   const [isPlayingTest, setIsPlayingTest] = useState(false);
   const [testAudioError, setTestAudioError] = useState("");
+  const [muteOnMicActive, setMuteOnMicActive] = useState(true);
+  const [micMonitorAvailable, setMicMonitorAvailable] = useState(false);
   const [mainDevToolsOpen, setMainDevToolsOpen] = useState(false);
   const [settingsDevToolsOpen, setSettingsDevToolsOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -90,11 +88,28 @@ export default function SettingsApp() {
           window.electron.getVoicevoxPath(),
           window.electron.getCharacterSize(),
         ]);
-        setEngineType(savedEngineType || "aivis");
+        const effectiveEngineType = savedEngineType || "aivis";
+        setEngineType(effectiveEngineType);
         setCustomPath(savedCustomPath || "");
         if (savedWindowSize) {
           setWindowSizeInput(savedWindowSize);
         }
+
+        // Load default engine path for current engine type
+        if (effectiveEngineType !== "custom" && window.electron?.getDefaultEnginePath) {
+          const path = await window.electron.getDefaultEnginePath(effectiveEngineType);
+          setDefaultEnginePath(path);
+        }
+      }
+
+      // Load mic monitor settings
+      if (window.electron?.getMicMonitorAvailable) {
+        const available = await window.electron.getMicMonitorAvailable();
+        setMicMonitorAvailable(available);
+      }
+      if (window.electron?.getMuteOnMicActive) {
+        const muted = await window.electron.getMuteOnMicActive();
+        setMuteOnMicActive(muted);
       }
 
       // Load VRM file name from IndexedDB
@@ -177,6 +192,12 @@ export default function SettingsApp() {
   const handleEngineTypeChange = async (newEngineType: EngineType) => {
     setEngineType(newEngineType);
 
+    // Update default engine path display
+    if (newEngineType !== "custom" && window.electron?.getDefaultEnginePath) {
+      const path = await window.electron.getDefaultEnginePath(newEngineType);
+      setDefaultEnginePath(path);
+    }
+
     if (newEngineType === "custom") {
       if (!customPath.trim()) {
         console.log("[SettingsApp] Custom engine selected but path is empty, skipping restart");
@@ -239,6 +260,11 @@ export default function SettingsApp() {
     if (window.electron?.notifyVolumeChanged) {
       window.electron.notifyVolumeChanged(newVolume);
     }
+  };
+
+  const handleMuteOnMicActiveChange = async (value: boolean) => {
+    setMuteOnMicActive(value);
+    await window.electron?.setMuteOnMicActive?.(value);
   };
 
   const handleVolumeChangeComplete = () => {
@@ -316,6 +342,12 @@ export default function SettingsApp() {
       if (window.electron?.notifyVolumeChanged) {
         window.electron.notifyVolumeChanged(defaultVolume);
       }
+
+      // Reset character position
+      window.electron?.resetCharacterPosition?.();
+
+      // Reset mic mute setting
+      setMuteOnMicActive(true);
 
       // Close settings window
       if (window.electron?.closeSettingsWindow) {
@@ -426,7 +458,7 @@ export default function SettingsApp() {
                 <input
                   type="text"
                   id="engine-path"
-                  value={engineType === "custom" ? customPath : ENGINE_PATHS[engineType]}
+                  value={engineType === "custom" ? customPath : defaultEnginePath}
                   onChange={(e) => setCustomPath(e.target.value)}
                   disabled={engineType !== "custom"}
                   placeholder={engineType === "custom" ? "カスタムエンジンパスを入力" : ""}
@@ -502,6 +534,22 @@ export default function SettingsApp() {
                 className="w-full cursor-pointer"
               />
             </div>
+            {micMonitorAvailable && (
+              <div className="flex flex-col gap-3">
+                <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-800">
+                  <input
+                    type="checkbox"
+                    checked={muteOnMicActive}
+                    onChange={(e) => handleMuteOnMicActiveChange(e.target.checked)}
+                    className="w-4 h-4 m-0 cursor-pointer accent-primary"
+                  />
+                  <span className="font-normal">マイク使用中はミュートにする</span>
+                </label>
+                <p className="text-sm text-gray-400 m-0">
+                  他のアプリがマイクを使用中は、キャラクターの発話音声をミュートにします
+                </p>
+              </div>
+            )}
             <div className="flex flex-col gap-3">
               <label className="text-sm font-medium text-gray-600">テスト音声</label>
               <button
@@ -534,7 +582,7 @@ export default function SettingsApp() {
               className="px-4 py-2 rounded-md text-sm font-medium cursor-pointer transition-all duration-200 border-0 bg-danger text-white w-fit hover:bg-danger-dark"
               onClick={handleReset}
             >
-              全ての設定をリセット
+              すべての設定をリセット
             </button>
           </div>
         </div>

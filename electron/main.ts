@@ -1,7 +1,7 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, screen, shell, Tray } from "electron";
 import path from "path";
 import { fileURLToPath } from "url";
-import { spawn, ChildProcess } from "child_process";
+import { spawn, execSync, ChildProcess } from "child_process";
 import { createLogMonitor } from "./logMonitor";
 import fs from "fs";
 import net from "net";
@@ -23,9 +23,87 @@ let settingsWindow: BrowserWindow | null = null;
 let licenseWindow: BrowserWindow | null = null;
 let logMonitor: { close: () => void } | null = null;
 let voicevoxProcess: ChildProcess | null = null;
+let micMonitorProcess: ChildProcess | null = null;
+let micActive = false;
 let tray: Tray | null = null;
 
 const VOICEVOX_PORT = 8564;
+
+// Get mic-monitor binary path
+function getMicMonitorPath(): string | undefined {
+  if (process.platform !== "darwin") return undefined;
+
+  const devPath = path.join(__dirname, "../resources/mic-monitor");
+  if (app.isPackaged) {
+    const prodPath = path.join(process.resourcesPath, "mic-monitor");
+    return fs.existsSync(prodPath) ? prodPath : undefined;
+  }
+  return fs.existsSync(devPath) ? devPath : undefined;
+}
+
+// Start mic-monitor helper process
+function startMicMonitor(): void {
+  if (micMonitorProcess) return;
+
+  const monitorPath = getMicMonitorPath();
+  if (!monitorPath) {
+    console.log("[MicMonitor] Binary not found, feature disabled");
+    return;
+  }
+
+  try {
+    console.log(`[MicMonitor] Starting: ${monitorPath}`);
+    micMonitorProcess = spawn(monitorPath);
+
+    let buffer = "";
+    micMonitorProcess.stdout?.on("data", (data) => {
+      buffer += data.toString();
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        try {
+          const parsed = JSON.parse(line) as { micActive: boolean };
+          micActive = parsed.micActive;
+          console.log(`[MicMonitor] Mic active: ${micActive}`);
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send("mic-active-changed", micActive);
+          }
+        } catch {
+          console.warn("[MicMonitor] Failed to parse:", line);
+        }
+      }
+    });
+
+    micMonitorProcess.stderr?.on("data", (data) => {
+      console.error(`[MicMonitor] ${data.toString().trim()}`);
+    });
+
+    micMonitorProcess.on("error", (error) => {
+      console.error("[MicMonitor] Failed to start:", error);
+      micMonitorProcess = null;
+    });
+
+    micMonitorProcess.on("exit", (code) => {
+      console.log(`[MicMonitor] Exited with code ${code}`);
+      micMonitorProcess = null;
+    });
+  } catch (error) {
+    console.error("[MicMonitor] Error starting:", error);
+    micMonitorProcess = null;
+  }
+}
+
+// Stop mic-monitor helper process
+function stopMicMonitor(): void {
+  if (micMonitorProcess) {
+    console.log("[MicMonitor] Stopping...");
+    micMonitorProcess.kill("SIGTERM");
+    micMonitorProcess = null;
+    micActive = false;
+  }
+}
 
 // Get icon path for Windows and Linux (Mac uses .icns from package.json)
 const getIconPath = () => {
@@ -114,21 +192,44 @@ const createTray = () => {
 
 // Engine type and path constants
 type EngineType = "aivis" | "voicevox" | "custom";
-const ENGINE_PATHS: Record<Exclude<EngineType, "custom">, string> = {
+
+// Platform-specific engine paths
+const MAC_ENGINE_PATHS: Record<Exclude<EngineType, "custom">, string> = {
   aivis: "/Applications/AivisSpeech.app/Contents/Resources/AivisSpeech-Engine/run",
   voicevox: "/Applications/VOICEVOX.app/Contents/Resources/vv-engine/run",
 };
 
-// Get the actual engine path based on engine type
+const WINDOWS_ENGINE_PATHS: Record<Exclude<EngineType, "custom">, string> = {
+  aivis: "C:\\Program Files\\AivisSpeech\\AivisSpeech-Engine\\run.exe",
+  voicevox: "C:\\Program Files\\VOICEVOX\\vv-engine\\run.exe",
+};
+
+const LINUX_ENGINE_PATHS: Record<Exclude<EngineType, "custom">, string> = {
+  aivis: "/opt/AivisSpeech/AivisSpeech-Engine/run",
+  voicevox: "/opt/VOICEVOX/vv-engine/run",
+};
+
+// Get the actual engine path based on engine type and platform
 function getEnginePath(): string | undefined {
   const engineType = (store.get("engineType") as EngineType | undefined) || "aivis"; // Default to AivisSpeech
-  console.log(`[getEnginePath] Engine type: ${engineType}`);
+  console.log(`[getEnginePath] Engine type: ${engineType}, platform: ${process.platform}`);
   if (engineType === "custom") {
     const customPath = store.get("voicevoxEnginePath") as string | undefined;
     console.log(`[getEnginePath] Custom path: ${customPath}`);
     return customPath;
   }
-  const path = ENGINE_PATHS[engineType];
+
+  // Select path based on platform
+  let enginePaths: Record<Exclude<EngineType, "custom">, string>;
+  if (process.platform === "win32") {
+    enginePaths = WINDOWS_ENGINE_PATHS;
+  } else if (process.platform === "darwin") {
+    enginePaths = MAC_ENGINE_PATHS;
+  } else {
+    enginePaths = LINUX_ENGINE_PATHS;
+  }
+
+  const path = enginePaths[engineType];
   console.log(`[getEnginePath] Predefined path for ${engineType}: ${path}`);
   return path;
 }
@@ -203,6 +304,15 @@ async function waitForPortRelease(port: number, maxAttempts: number = 30): Promi
   return false;
 }
 
+// Kill process tree on Windows (taskkill /T terminates child processes)
+function killProcessTree(pid: number): void {
+  try {
+    execSync(`taskkill /PID ${pid} /T /F`, { stdio: "ignore" });
+  } catch {
+    // Process may have already exited
+  }
+}
+
 // Stop VOICEVOX Engine
 async function stopVoicevoxEngine(): Promise<void> {
   if (voicevoxProcess) {
@@ -210,22 +320,26 @@ async function stopVoicevoxEngine(): Promise<void> {
     const proc = voicevoxProcess;
     voicevoxProcess = null;
 
-    // Try graceful shutdown first
-    proc.kill("SIGTERM");
+    if (process.platform === "win32" && proc.pid) {
+      killProcessTree(proc.pid);
+    } else {
+      // Try graceful shutdown first
+      proc.kill("SIGTERM");
 
-    // Wait for process to exit
-    await new Promise<void>((resolve) => {
-      const timeout = setTimeout(() => {
-        console.log("[Engine] Force killing engine...");
-        proc.kill("SIGKILL");
-        resolve();
-      }, 5000);
+      // Wait for process to exit
+      await new Promise<void>((resolve) => {
+        const timeout = setTimeout(() => {
+          console.log("[Engine] Force killing engine...");
+          proc.kill("SIGKILL");
+          resolve();
+        }, 5000);
 
-      proc.once("exit", () => {
-        clearTimeout(timeout);
-        resolve();
+        proc.once("exit", () => {
+          clearTimeout(timeout);
+          resolve();
+        });
       });
-    });
+    }
 
     // Wait for port to be released
     console.log("[Engine] Waiting for port to be released...");
@@ -696,6 +810,8 @@ ipcMain.handle("reset-all-settings", async () => {
   store.delete("voicevoxEnginePath");
   store.delete("characterSize");
   store.delete("characterPosition");
+  store.delete("muteOnMicActive");
+  stopMicMonitor();
 
   await stopVoicevoxEngine();
   await startVoicevoxEngine();
@@ -784,11 +900,50 @@ ipcMain.handle("get-devtools-state", (_event, target: "main" | "settings") => {
   return settingsWindow?.webContents.isDevToolsOpened() ?? false;
 });
 
+// Mic monitor settings
+ipcMain.handle("get-mute-on-mic-active", () => {
+  const value = store.get("muteOnMicActive");
+  return value === undefined ? true : (value as boolean);
+});
+
+ipcMain.handle("set-mute-on-mic-active", (_event, value: boolean) => {
+  store.set("muteOnMicActive", value);
+  if (value) {
+    startMicMonitor();
+  } else {
+    stopMicMonitor();
+    // Notify renderer that mic is no longer active
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send("mic-active-changed", false);
+    }
+  }
+  // Notify settings window of the change
+  if (settingsWindow && !settingsWindow.isDestroyed()) {
+    settingsWindow.webContents.send("mute-on-mic-active-changed", value);
+  }
+  return true;
+});
+
+ipcMain.handle("get-default-engine-path", (_event, engineType: Exclude<EngineType, "custom">) => {
+  let enginePaths: Record<Exclude<EngineType, "custom">, string>;
+  if (process.platform === "win32") {
+    enginePaths = WINDOWS_ENGINE_PATHS;
+  } else if (process.platform === "darwin") {
+    enginePaths = MAC_ENGINE_PATHS;
+  } else {
+    enginePaths = LINUX_ENGINE_PATHS;
+  }
+  return enginePaths[engineType];
+});
+
+ipcMain.handle("get-mic-monitor-available", () => {
+  return getMicMonitorPath() !== undefined;
+});
+
 ipcMain.on("set-ignore-mouse-events", (_event, ignore: boolean) => {
   if (mainWindow && !mainWindow.isDestroyed()) {
     // Always use forward: true to keep receiving mouse move events even when ignoring clicks
     mainWindow.setIgnoreMouseEvents(ignore, { forward: true });
-    console.log("[IPC] setIgnoreMouseEvents:", ignore, "forward: true");
   }
 });
 
@@ -797,6 +952,12 @@ ipcMain.on("set-ignore-mouse-events", (_event, ignore: boolean) => {
 app.whenReady().then(async () => {
   createTray();
   await startVoicevoxEngine();
+
+  // Start mic monitor if enabled (default: true)
+  if (store.get("muteOnMicActive") !== false) {
+    startMicMonitor();
+  }
+
   createWindow();
 
   app.on("activate", () => {
@@ -826,6 +987,7 @@ app.on("before-quit", async (event) => {
     tray.destroy();
     tray = null;
   }
+  stopMicMonitor();
   await stopVoicevoxEngine();
 
   app.quit();

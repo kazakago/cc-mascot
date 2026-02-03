@@ -44,6 +44,8 @@ function App() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [devToolsOpen, setDevToolsOpen] = useState(false);
   const [headPosition, setHeadPosition] = useState<{ x: number; y: number } | null>(null);
+  const [muteOnMicActive, setMuteOnMicActive] = useState(true);
+  const [micActive, setMicActive] = useState(false);
 
   // Cursor tracking settings (fixed values)
   const cursorTrackingOptions: Partial<CursorTrackingOptions> = useMemo(
@@ -232,6 +234,27 @@ function App() {
     }
   }, [setVolumeScale]);
 
+  // Load muteOnMicActive setting and listen for changes
+  useEffect(() => {
+    window.electron?.getMuteOnMicActive?.().then(setMuteOnMicActive);
+
+    const cleanups: (() => void)[] = [];
+
+    const cleanupMic = window.electron?.onMicActiveChanged?.((active) => {
+      console.log(`[App] Mic active: ${active}`);
+      setMicActive(active);
+    });
+    if (cleanupMic) cleanups.push(cleanupMic);
+
+    const cleanupSetting = window.electron?.onMuteOnMicActiveChanged?.((value) => {
+      console.log(`[App] Mute on mic active changed: ${value}`);
+      setMuteOnMicActive(value);
+    });
+    if (cleanupSetting) cleanups.push(cleanupSetting);
+
+    return () => cleanups.forEach((fn) => fn());
+  }, []);
+
   const handleMouthValueChange = useCallback((value: number) => {
     avatarRef.current?.setMouthOpen(value);
   }, []);
@@ -276,6 +299,7 @@ function App() {
     speakerId,
     baseUrl: VOICEVOX_BASE_URL,
     volumeScale,
+    isMicMuted: micActive && muteOnMicActive,
   });
 
   // Debug: Log when speakerId changes
@@ -316,7 +340,7 @@ function App() {
     if (window.electron?.onPlayTestSpeech) {
       const cleanup = window.electron.onPlayTestSpeech(() => {
         console.log("[App] Playing test speech");
-        speakText("こんにちは。お役に立てることはありますか", "happy");
+        speakText("こんにちは。お役に立てることはありますか？", "happy");
       });
 
       return cleanup;
