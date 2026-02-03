@@ -1,6 +1,6 @@
 # cc-mascot
 
-![License](https://img.shields.io/badge/license-Apache%202.0-blue)
+![License](https://img.shields.io/badge/license-Apache%202.0-blue) [![Validate](https://github.com/kazakago/cc-mascot/actions/workflows/validate.yml/badge.svg)](https://github.com/kazakago/cc-mascot/actions/workflows/validate.yml)
 
 Claude Codeからの返答をVRMアバターが喋ってくれるデスクトップマスコットです。  
 現時点ではMacOSでのみ動作確認しています。
