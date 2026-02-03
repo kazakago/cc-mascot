@@ -132,7 +132,7 @@ jobs:
 
   create-release:
     name: Create release
-    needs: 
+    needs:
       - check-version
       - build-macos
       - build-windows

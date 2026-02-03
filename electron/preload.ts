@@ -144,6 +144,9 @@ contextBridge.exposeInMainWorld("electron", {
   setMuteOnMicActive: (value: boolean): Promise<boolean> => {
     return ipcRenderer.invoke("set-mute-on-mic-active", value);
   },
+  getDefaultEnginePath: (engineType: "aivis" | "voicevox"): Promise<string> => {
+    return ipcRenderer.invoke("get-default-engine-path", engineType);
+  },
   getMicMonitorAvailable: (): Promise<boolean> => {
     return ipcRenderer.invoke("get-mic-monitor-available");
   },

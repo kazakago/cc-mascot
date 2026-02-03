@@ -86,13 +86,6 @@
       {
         "from": "resources/icons/",
         "to": "icons/"
-      },
-      {
-        "from": "resources/mic-monitor",
-        "to": "mic-monitor",
-        "filter": [
-          "**/*"
-        ]
       }
     ],
     "mac": {
@@ -102,7 +95,16 @@
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
       "entitlements": "build/entitlements.mac.plist",
-      "entitlementsInherit": "build/entitlements.mac.plist"
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "extraResources": [
+        {
+          "from": "resources/mic-monitor",
+          "to": "mic-monitor",
+          "filter": [
+            "**/*"
+          ]
+        }
+      ]
     },
     "win": {
       "icon": "resources/icons/icon.ico",

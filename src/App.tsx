@@ -340,7 +340,7 @@ function App() {
     if (window.electron?.onPlayTestSpeech) {
       const cleanup = window.electron.onPlayTestSpeech(() => {
         console.log("[App] Playing test speech");
-        speakText("こんにちは。お役に立てることはありますか", "happy");
+        speakText("こんにちは。お役に立てることはありますか？", "happy");
       });
 
       return cleanup;
