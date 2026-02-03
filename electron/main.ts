@@ -192,21 +192,44 @@ const createTray = () => {
 
 // Engine type and path constants
 type EngineType = "aivis" | "voicevox" | "custom";
-const ENGINE_PATHS: Record<Exclude<EngineType, "custom">, string> = {
+
+// Platform-specific engine paths
+const MAC_ENGINE_PATHS: Record<Exclude<EngineType, "custom">, string> = {
   aivis: "/Applications/AivisSpeech.app/Contents/Resources/AivisSpeech-Engine/run",
   voicevox: "/Applications/VOICEVOX.app/Contents/Resources/vv-engine/run",
 };
 
-// Get the actual engine path based on engine type
+const WINDOWS_ENGINE_PATHS: Record<Exclude<EngineType, "custom">, string> = {
+  aivis: "C:\\Program Files\\AivisSpeech\\AivisSpeech-Engine\\run.exe",
+  voicevox: "C:\\Program Files\\VOICEVOX\\vv-engine\\run.exe",
+};
+
+const LINUX_ENGINE_PATHS: Record<Exclude<EngineType, "custom">, string> = {
+  aivis: "/opt/AivisSpeech/AivisSpeech-Engine/run",
+  voicevox: "/opt/VOICEVOX/vv-engine/run",
+};
+
+// Get the actual engine path based on engine type and platform
 function getEnginePath(): string | undefined {
   const engineType = (store.get("engineType") as EngineType | undefined) || "aivis"; // Default to AivisSpeech
-  console.log(`[getEnginePath] Engine type: ${engineType}`);
+  console.log(`[getEnginePath] Engine type: ${engineType}, platform: ${process.platform}`);
   if (engineType === "custom") {
     const customPath = store.get("voicevoxEnginePath") as string | undefined;
     console.log(`[getEnginePath] Custom path: ${customPath}`);
     return customPath;
   }
-  const path = ENGINE_PATHS[engineType];
+
+  // Select path based on platform
+  let enginePaths: Record<Exclude<EngineType, "custom">, string>;
+  if (process.platform === "win32") {
+    enginePaths = WINDOWS_ENGINE_PATHS;
+  } else if (process.platform === "darwin") {
+    enginePaths = MAC_ENGINE_PATHS;
+  } else {
+    enginePaths = LINUX_ENGINE_PATHS;
+  }
+
+  const path = enginePaths[engineType];
   console.log(`[getEnginePath] Predefined path for ${engineType}: ${path}`);
   return path;
 }
