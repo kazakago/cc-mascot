@@ -2,7 +2,7 @@
   "name": "cc-mascot",
   "private": true,
   "version": "0.3.0",
-  "description": "Claude Codeからの返答をVRMアバターが喋ってくれるデスクトップマスコット",
+  "description": "Claude Codeからの返答をVRMキャラクターが喋ってくれるデスクトップマスコット",
   "author": "kazakago",
   "type": "module",
   "main": "dist-electron/main.js",
