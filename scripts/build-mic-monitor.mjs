@@ -97,7 +97,11 @@ function buildWin32() {
 
   try {
     console.log("[build-mic-monitor] Compiling C++ helper with MSVC...");
-    execSync(`cmd /c ""${vcvarsall}" x64 && cl /O2 /EHsc ${source} Ole32.lib /Fe:${output}"`, { stdio: "inherit" });
+    const objFile = source.replace(".cpp", ".obj");
+    execSync(
+      `cmd /c ""${vcvarsall}" x64 && cl /O2 /EHsc ${source} Ole32.lib /Fe:${output} && del ${objFile}"`,
+      { stdio: "inherit" },
+    );
     console.log(`[build-mic-monitor] Built: ${output}`);
   } catch (error) {
     console.error("[build-mic-monitor] Compilation failed:", error.message);

@@ -28,6 +28,7 @@ public/licenses.json
 
 # Native helpers (built per-platform)
 resources/mic-monitor.exe
+mic-monitor.obj
 
 # Claude
 .claude/plans
