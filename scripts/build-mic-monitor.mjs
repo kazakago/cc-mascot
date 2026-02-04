@@ -51,8 +51,10 @@ function buildWin32() {
   ensureOutputDir(output);
 
   // Find Visual Studio installation using vswhere.exe
+  const programFilesX86 =
+    process.env["ProgramFiles(x86)"] || "C:\\Program Files (x86)";
   const vswhere = join(
-    process.env.ProgramFiles || "C:\\Program Files",
+    programFilesX86,
     "Microsoft Visual Studio",
     "Installer",
     "vswhere.exe",
@@ -65,11 +67,25 @@ function buildWin32() {
 
   let vsPath;
   try {
-    vsPath = execSync(`"${vswhere}" -latest -property installationPath`, {
-      encoding: "utf8",
-    }).trim();
+    console.log("[build-mic-monitor] Querying Visual Studio installation...");
+    vsPath = execSync(
+      `"${vswhere}" -products Microsoft.VisualStudio.Product.BuildTools -latest -property installationPath`,
+      {
+        encoding: "utf8",
+      },
+    ).trim();
+    console.log(`[build-mic-monitor] VS Path: ${vsPath}`);
   } catch {
-    console.error("[build-mic-monitor] Failed to find Visual Studio installation.");
+    console.error(
+      "[build-mic-monitor] Failed to find Visual Studio installation.",
+    );
+    process.exit(1);
+  }
+
+  if (!vsPath) {
+    console.error(
+      '[build-mic-monitor] Visual Studio Build Tools not found. Install with: winget install --id Microsoft.VisualStudio.2022.BuildTools --override "--passive --wait --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"',
+    );
     process.exit(1);
   }
 
