@@ -108,7 +108,16 @@
     },
     "win": {
       "icon": "resources/icons/icon.ico",
-      "target": "nsis"
+      "target": "nsis",
+      "extraResources": [
+        {
+          "from": "resources/mic-monitor.exe",
+          "to": "mic-monitor.exe",
+          "filter": [
+            "**/*"
+          ]
+        }
+      ]
     },
     "linux": {
       "icon": "resources/icons/icon.png",
