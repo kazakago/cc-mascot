@@ -2,7 +2,7 @@
 
 ![License](https://img.shields.io/badge/license-Apache%202.0-blue) [![Validate](https://github.com/kazakago/cc-mascot/actions/workflows/validate.yml/badge.svg)](https://github.com/kazakago/cc-mascot/actions/workflows/validate.yml)
 
-Claude Codeからの返答をVRMキャラクターが喋ってくれるデスクトップマスコットです。  
+Claude Codeからの返答をVRMキャラクターが喋ってくれるデスクトップマスコットです。
 
 ## 特徴
 

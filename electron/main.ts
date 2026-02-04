@@ -3,6 +3,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { spawn, execSync, ChildProcess } from "child_process";
 import { createLogMonitor } from "./logMonitor";
+import { initAutoUpdater, checkForUpdatesManually } from "./autoUpdater";
 import fs from "fs";
 import net from "net";
 import Store from "electron-store";
@@ -195,10 +196,12 @@ const createTray = () => {
             `Chrome: v${process.versions.chrome}`,
             `Node.js: v${process.versions.node}`,
           ].join("\n"),
-          buttons: ["ライセンス情報", "OK"],
+          buttons: ["ライセンス情報", "アップデートを確認", "OK"],
         });
         if (response === 0) {
           createLicenseWindow();
+        } else if (response === 1) {
+          checkForUpdatesManually();
         }
       },
     },
@@ -1013,6 +1016,7 @@ app.whenReady().then(async () => {
   }
 
   createWindow();
+  initAutoUpdater();
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {

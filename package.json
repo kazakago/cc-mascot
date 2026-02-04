@@ -27,6 +27,7 @@
     "@react-three/fiber": "^9.5.0",
     "chokidar": "^5.0.0",
     "electron-store": "^11.0.2",
+    "electron-updater": "^6.7.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "three": "^0.182.0"
@@ -72,7 +73,11 @@
     "appId": "com.kazakago.cc-mascot",
     "productName": "CC Mascot",
     "icon": "resources/icons/icon.png",
-    "publish": null,
+    "publish": {
+      "provider": "github",
+      "owner": "kazakago",
+      "repo": "cc-mascot"
+    },
     "afterSign": "scripts/notarize.js",
     "directories": {
       "output": "release"
@@ -90,7 +95,10 @@
     ],
     "mac": {
       "icon": "resources/icons/icon.icns",
-      "target": "dmg",
+      "target": [
+        "dmg",
+        "zip"
+      ],
       "category": "public.app-category.entertainment",
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
@@ -108,7 +116,10 @@
     },
     "win": {
       "icon": "resources/icons/icon.ico",
-      "target": "nsis",
+      "target": [
+        "nsis",
+        "zip"
+      ],
       "extraResources": [
         {
           "from": "resources/mic-monitor.exe",

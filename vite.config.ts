@@ -12,7 +12,7 @@ export default defineConfig({
         vite: {
           build: {
             rollupOptions: {
-              external: ["chokidar", "fsevents"],
+              external: ["chokidar", "fsevents", "electron-updater"],
             },
           },
         },

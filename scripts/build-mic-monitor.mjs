@@ -51,14 +51,8 @@ function buildWin32() {
   ensureOutputDir(output);
 
   // Find Visual Studio installation using vswhere.exe
-  const programFilesX86 =
-    process.env["ProgramFiles(x86)"] || "C:\\Program Files (x86)";
-  const vswhere = join(
-    programFilesX86,
-    "Microsoft Visual Studio",
-    "Installer",
-    "vswhere.exe",
-  );
+  const programFilesX86 = process.env["ProgramFiles(x86)"] || "C:\\Program Files (x86)";
+  const vswhere = join(programFilesX86, "Microsoft Visual Studio", "Installer", "vswhere.exe");
 
   if (!existsSync(vswhere)) {
     console.error("[build-mic-monitor] vswhere.exe not found. Visual Studio Build Tools required.");
@@ -76,9 +70,7 @@ function buildWin32() {
     ).trim();
     console.log(`[build-mic-monitor] VS Path: ${vsPath}`);
   } catch {
-    console.error(
-      "[build-mic-monitor] Failed to find Visual Studio installation.",
-    );
+    console.error("[build-mic-monitor] Failed to find Visual Studio installation.");
     process.exit(1);
   }
 
@@ -98,10 +90,9 @@ function buildWin32() {
   try {
     console.log("[build-mic-monitor] Compiling C++ helper with MSVC...");
     const objFile = source.replace(".cpp", ".obj");
-    execSync(
-      `cmd /c ""${vcvarsall}" x64 && cl /O2 /EHsc ${source} Ole32.lib /Fe:${output} && del ${objFile}"`,
-      { stdio: "inherit" },
-    );
+    execSync(`cmd /c ""${vcvarsall}" x64 && cl /O2 /EHsc ${source} Ole32.lib /Fe:${output} && del ${objFile}"`, {
+      stdio: "inherit",
+    });
     console.log(`[build-mic-monitor] Built: ${output}`);
   } catch (error) {
     console.error("[build-mic-monitor] Compilation failed:", error.message);

@@ -74,7 +74,11 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: release-macos
-          path: release/*.dmg
+          path: |
+            release/*.dmg
+            release/*.zip
+            release/*.yml
+            release/*.blockmap
 
   build-windows:
     name: Build (Windows)
@@ -101,7 +105,11 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: release-windows
-          path: release/*.exe
+          path: |
+            release/*.exe
+            release/*.zip
+            release/*.yml
+            release/*.blockmap
 
   # build-linux:
   #   name: Build (Linux)
