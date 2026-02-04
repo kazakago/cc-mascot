@@ -27,6 +27,7 @@ public/licenses.json
 *.sw?
 
 # Native helpers (built per-platform)
+resources/mic-monitor
 resources/mic-monitor.exe
 mic-monitor.obj
 
