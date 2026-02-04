@@ -51,11 +51,12 @@ function startLogMonitor(): void {
 
 // Get mic-monitor binary path
 function getMicMonitorPath(): string | undefined {
-  if (process.platform !== "darwin") return undefined;
+  if (process.platform !== "darwin" && process.platform !== "win32") return undefined;
 
-  const devPath = path.join(__dirname, "../resources/mic-monitor");
+  const binaryName = process.platform === "win32" ? "mic-monitor.exe" : "mic-monitor";
+  const devPath = path.join(__dirname, "../resources", binaryName);
   if (app.isPackaged) {
-    const prodPath = path.join(process.resourcesPath, "mic-monitor");
+    const prodPath = path.join(process.resourcesPath, binaryName);
     return fs.existsSync(prodPath) ? prodPath : undefined;
   }
   return fs.existsSync(devPath) ? devPath : undefined;
