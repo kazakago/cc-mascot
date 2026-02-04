@@ -171,7 +171,13 @@ export default function SettingsApp() {
     if (window.electron?.setEngineSettings) {
       try {
         console.log(`[SettingsApp] Restarting engine: type=${effectiveEngineType}, path=${effectivePath}`);
-        await window.electron.setEngineSettings(effectiveEngineType, effectivePath);
+        const started = await window.electron.setEngineSettings(effectiveEngineType, effectivePath);
+
+        if (!started) {
+          setError("エンジンの起動に失敗しました。エンジンがインストールされているか確認してください。");
+          setLoadingSpeakers(false);
+          return;
+        }
 
         const newSpeakers = await fetchSpeakers();
 

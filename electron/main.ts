@@ -268,19 +268,30 @@ async function isPortInUse(port: number): Promise<boolean> {
 }
 
 // Start VOICEVOX Engine
-async function startVoicevoxEngine(): Promise<void> {
+// isRestart=true の場合、ポート解放をリトライで待つ（エンジン切替時用）
+async function startVoicevoxEngine(isRestart = false): Promise<boolean> {
   const voicevoxPath = getEnginePath();
 
   if (!voicevoxPath) {
     console.log("[Engine] Engine path not set, skipping auto-start");
-    return;
+    return false;
   }
 
   // Check if port is already in use
   const portInUse = await isPortInUse(VOICEVOX_PORT);
   if (portInUse) {
-    console.log(`[VOICEVOX] Port ${VOICEVOX_PORT} is already in use, skipping auto-start`);
-    return;
+    if (isRestart) {
+      // リスタート時はポート解放をリトライで待つ
+      console.log(`[VOICEVOX] Port ${VOICEVOX_PORT} still in use, waiting for release...`);
+      const released = await waitForPortRelease(VOICEVOX_PORT);
+      if (!released) {
+        console.error(`[VOICEVOX] Port ${VOICEVOX_PORT} was not released in time, cannot start engine`);
+        return false;
+      }
+    } else {
+      console.log(`[VOICEVOX] Port ${VOICEVOX_PORT} is already in use, skipping auto-start`);
+      return false;
+    }
   }
 
   try {
@@ -306,9 +317,11 @@ async function startVoicevoxEngine(): Promise<void> {
     });
 
     console.log(`[VOICEVOX] Engine started on port ${VOICEVOX_PORT}`);
+    return true;
   } catch (error) {
     console.error("[VOICEVOX] Error starting engine:", error);
     voicevoxProcess = null;
+    return false;
   }
 }
 
@@ -342,6 +355,17 @@ async function stopVoicevoxEngine(): Promise<void> {
 
     if (process.platform === "win32" && proc.pid) {
       killProcessTree(proc.pid);
+      // macOSと同様にプロセス終了を待つ
+      await new Promise<void>((resolve) => {
+        const timeout = setTimeout(() => {
+          console.log("[Engine] Windows process did not exit in time after taskkill");
+          resolve();
+        }, 5000);
+        proc.once("exit", () => {
+          clearTimeout(timeout);
+          resolve();
+        });
+      });
     } else {
       // Try graceful shutdown first
       proc.kill("SIGTERM");
@@ -715,8 +739,8 @@ ipcMain.handle("set-voicevox-path", async (_event, path: string) => {
   store.set("voicevoxEnginePath", path);
   // Restart engine if it's running
   await stopVoicevoxEngine();
-  await startVoicevoxEngine();
-  return true;
+  const started = await startVoicevoxEngine(true);
+  return started;
 });
 
 ipcMain.handle("get-engine-type", () => {
@@ -732,8 +756,8 @@ ipcMain.handle("set-engine-settings", async (_event, engineType: EngineType, cus
   console.log(`[IPC] Stored engineType: ${store.get("engineType")}`);
   // Restart engine
   await stopVoicevoxEngine();
-  await startVoicevoxEngine();
-  return true;
+  const started = await startVoicevoxEngine(true);
+  return started;
 });
 
 ipcMain.handle("reset-engine-settings", async () => {
@@ -742,8 +766,8 @@ ipcMain.handle("reset-engine-settings", async () => {
   store.delete("voicevoxEnginePath");
   // Stop engine and restart with default settings (AivisSpeech)
   await stopVoicevoxEngine();
-  await startVoicevoxEngine();
-  return true;
+  const started = await startVoicevoxEngine(true);
+  return started;
 });
 
 // Get current character size from Electron Store
@@ -828,7 +852,7 @@ ipcMain.handle("reset-all-settings", async () => {
   stopMicMonitor();
 
   await stopVoicevoxEngine();
-  await startVoicevoxEngine();
+  const started = await startVoicevoxEngine(true);
 
   // Restart log monitor with default settings
   startLogMonitor();
@@ -838,7 +862,7 @@ ipcMain.handle("reset-all-settings", async () => {
     mainWindow.webContents.send("character-size-changed", 800);
   }
 
-  return true;
+  return started;
 });
 
 // Open settings window
