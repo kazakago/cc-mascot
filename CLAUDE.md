@@ -2,9 +2,9 @@
 
 ## プロジェクト概要
 
-**Claude Codeを擬人化するためのVRMアバターシステム**
+**Claude Codeを擬人化するためのVRMキャラクターシステム**
 
-このアプリケーションは、Claude Codeの発言をリアルタイムで音声化し、3DのVRMアバターでビジュアル化するためのElectronアプリケーションです。
+このアプリケーションは、Claude Codeの発言をリアルタイムで音声化し、3DのVRMキャラクターでビジュアル化するためのElectronアプリケーションです。
 
 ### コンセプト
 
@@ -113,7 +113,7 @@
 
 **メインウィンドウ（透過・常に最前面・フレームレス）:**
 
-- VRMアバター表示
+- VRMキャラクター表示
 - リップシンク・感情表現
 - ドラッグ移動（楕円判定）
 - クリックスルー（キャラクター外）
@@ -247,7 +247,7 @@ VRM表情 'aa' に適用
 - requestAnimationFrame でフレーム同期
 - fftSize=256（音声解析に十分）
 
-### 5. VRMアバターシステム
+### 5. VRMキャラクターシステム
 
 **src/hooks/useVRM.ts**
 
@@ -443,7 +443,7 @@ cc-mascot/
 │   ├── App.tsx                  # メインウィンドウ
 │   ├── SettingsApp.tsx          # 設定ウィンドウ
 │   ├── components/
-│   │   ├── VRMAvatar.tsx        # VRMアバター表示
+│   │   ├── VRMAvatar.tsx        # VRMキャラクター表示
 │   │   └── Scene.tsx            # Three.jsシーン
 │   ├── hooks/
 │   │   ├── useSpeech.ts         # 音声合成・キュー管理
