@@ -555,6 +555,11 @@ cc-mascot/
 # 依存関係インストール
 npm install
 
+# ネイティブヘルパービルド（初回必須）
+# macOS: Swift + CoreAudio（要Xcode Command Line Tools）
+# Windows: C++ + MSVC（要Visual Studio Build Tools）
+npm run build:mic-monitor
+
 # 開発モード起動（HMR有効、MCPサーバー接続可能）
 npm run dev
 
@@ -573,15 +578,40 @@ npm test:run
 # テストカバレッジ
 npm run test:coverage
 
-# Swiftヘルパービルド（macOSのみ、要Xcode CLT）
-npm run build:mic-monitor
-
 # ビルド
 npm run build
 
 # パッケージング（dmg/exe/AppImage）
-# ※macOSではSwiftヘルパーのビルドも自動実行される
+# ※ネイティブヘルパーのビルドも自動実行される
 npm run package
+```
+
+## 開発環境のセットアップ
+
+### 共通
+
+```bash
+npm install
+npm run build:mic-monitor  # 初回必須
+```
+
+### macOS固有の要件
+
+マイク監視機能を使用する場合、Xcode Command Line Toolsが必要：
+
+```bash
+xcode-select --install
+```
+
+### Windows固有の要件
+
+マイク監視機能を使用する場合、Visual Studio Build Tools with C++が必要：
+
+```powershell
+winget install --id Microsoft.VisualStudio.2022.BuildTools --override "--passive --wait --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
+```
+
+**注意:** インストール後、新しいターミナルで `npm run build:mic-monitor` を実行してください。
 ```
 
 ## 主要依存関係
