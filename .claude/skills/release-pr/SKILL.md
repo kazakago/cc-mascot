@@ -32,7 +32,7 @@ git status
 
 # 5. PRの作成
 
-ブランチをプッシュしたうえで、`production`ブランチに向けてPRを作成してください。
+`main`ブランチをプッシュしたうえで、`production`ブランチをベースブランチとして、PRを作成してください。
 
 ```bash
 gh pr create --base production --title "<PRタイトル>" --body "<本文>"
