@@ -612,6 +612,7 @@ winget install --id Microsoft.VisualStudio.2022.BuildTools --override "--passive
 ```
 
 **注意:** インストール後、新しいターミナルで `npm run build:mic-monitor` を実行してください。
+
 ```
 
 ## 主要依存関係
@@ -634,3 +635,4 @@ winget install --id Microsoft.VisualStudio.2022.BuildTools --override "--passive
 - `vitest`: ^4.0.17
 
 完全な依存関係リストは `package.json` を参照してください。
+```
