@@ -87,6 +87,9 @@ jobs:
           APPLE_API_KEY_ID: ${{ vars.APPLE_API_KEY_ID }}
           APPLE_API_ISSUER: ${{ vars.APPLE_API_ISSUER }}
 
+      - name: Remove debug files from artifacts
+        run: rm -f release/builder-debug.yml
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -118,6 +121,9 @@ jobs:
       - name: Build and package
         run: npm run package
 
+      - name: Remove debug files from artifacts
+        run: Remove-Item release/builder-debug.yml -ErrorAction SilentlyContinue
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -128,40 +134,12 @@ jobs:
             release/*.yml
             release/*.blockmap
 
-  # build-linux:
-  #   name: Build (Linux)
-  #   needs: bump-version
-  #   runs-on: ubuntu-latest
-  #
-  #   steps:
-  #     - name: Checkout repository
-  #       uses: actions/checkout@v4
-  #
-  #     - name: Setup Node.js
-  #       uses: actions/setup-node@v4
-  #       with:
-  #         node-version: "24"
-  #         cache: "npm"
-  #
-  #     - name: Install dependencies
-  #       run: npm ci
-  #
-  #     - name: Build and package
-  #       run: npm run package
-  #
-  #     - name: Upload artifact
-  #       uses: actions/upload-artifact@v4
-  #       with:
-  #         name: release-linux
-  #         path: release/*.AppImage
-
   create-release:
     name: Create release
     needs:
       - bump-version
       - build-macos
       - build-windows
-      # - build-linux
     runs-on: ubuntu-latest
 
     steps:
