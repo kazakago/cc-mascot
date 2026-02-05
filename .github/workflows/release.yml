@@ -87,9 +87,6 @@ jobs:
           APPLE_API_KEY_ID: ${{ vars.APPLE_API_KEY_ID }}
           APPLE_API_ISSUER: ${{ vars.APPLE_API_ISSUER }}
 
-      - name: Remove debug files from artifacts
-        run: rm -f release/builder-debug.yml
-
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -97,7 +94,7 @@ jobs:
           path: |
             release/*.dmg
             release/*.zip
-            release/*.yml
+            release/latest*.yml
             release/*.blockmap
 
   build-windows:
@@ -121,9 +118,6 @@ jobs:
       - name: Build and package
         run: npm run package
 
-      - name: Remove debug files from artifacts
-        run: Remove-Item release/builder-debug.yml -ErrorAction SilentlyContinue
-
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -131,7 +125,7 @@ jobs:
           path: |
             release/*.exe
             release/*.zip
-            release/*.yml
+            release/latest*.yml
             release/*.blockmap
 
   create-release:
