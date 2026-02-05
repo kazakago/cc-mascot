@@ -62,8 +62,9 @@ function buildWin32() {
   let vsPath;
   try {
     console.log("[build-mic-monitor] Querying Visual Studio installation...");
+    // Search for both BuildTools and Enterprise editions (GitHub Actions runners have Enterprise)
     vsPath = execSync(
-      `"${vswhere}" -products Microsoft.VisualStudio.Product.BuildTools -latest -property installationPath`,
+      `"${vswhere}" -products * -latest -property installationPath -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64`,
       {
         encoding: "utf8",
       },
