@@ -95,6 +95,7 @@
     ],
     "mac": {
       "icon": "resources/icons/icon.icns",
+      "artifactName": "CC-Mascot-${version}-mac-${arch}.${ext}",
       "target": [
         "dmg",
         "zip"
@@ -116,6 +117,7 @@
     },
     "win": {
       "icon": "resources/icons/icon.ico",
+      "artifactName": "CC-Mascot-${version}-windows-${arch}.${ext}",
       "target": [
         "nsis",
         "zip"
@@ -132,6 +134,7 @@
     },
     "linux": {
       "icon": "resources/icons/icon.png",
+      "artifactName": "CC-Mascot-${version}-linux-${arch}.${ext}",
       "target": "AppImage",
       "category": "Entertainment"
     }
