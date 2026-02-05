@@ -112,6 +112,10 @@ jobs:
           node-version: "24"
           cache: "npm"
 
+      - name: Install Visual Studio Build Tools
+        run: |
+          winget install --id Microsoft.VisualStudio.2022.BuildTools --override "--passive --wait --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
+
       - name: Install dependencies
         run: npm ci
 
