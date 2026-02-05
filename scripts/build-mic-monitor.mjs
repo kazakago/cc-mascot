@@ -90,8 +90,9 @@ function buildWin32() {
 
   try {
     console.log("[build-mic-monitor] Compiling C++ helper with MSVC...");
-    const objFile = source.replace(".cpp", ".obj");
-    execSync(`cmd /c ""${vcvarsall}" x64 && cl /O2 /EHsc ${source} Ole32.lib /Fe:${output} && del ${objFile}"`, {
+    // MSVC outputs .obj files to the current directory, not the source directory
+    const objFileName = source.split('/').pop().replace(".cpp", ".obj");
+    execSync(`cmd /c ""${vcvarsall}" x64 && cl /O2 /EHsc ${source} Ole32.lib /Fe:${output} && del ${objFileName}"`, {
       stdio: "inherit",
     });
     console.log(`[build-mic-monitor] Built: ${output}`);
