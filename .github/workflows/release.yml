@@ -1,16 +1,24 @@
 name: Release
 
 on:
-  push:
-    branches: [production]
   workflow_dispatch:
+    inputs:
+      version_bump:
+        description: 'バージョンのインクリメント方法を選択'
+        required: true
+        type: choice
+        options:
+          - major
+          - minor
+          - patch
+        default: 'patch'
 
 permissions:
   contents: write
 
 jobs:
-  check-version:
-    name: Check version
+  bump-version:
+    name: Bump version
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
@@ -21,23 +29,32 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Read version from package.json
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Configure Git
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: Bump version
         id: version
         run: |
+          npm version ${{ inputs.version_bump }}
           VERSION=$(node -p "require('./package.json').version")
           echo "version=v${VERSION}" >> "$GITHUB_OUTPUT"
-          echo "Version: v${VERSION}"
+          echo "Bumped version to: v${VERSION}"
 
-      - name: Check if tag already exists
+      - name: Push commit and tag
         run: |
-          if git rev-parse "${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
-            echo "::error::Tag ${{ steps.version.outputs.version }} already exists. Please bump the version in package.json."
-            exit 1
-          fi
+          git push origin HEAD
+          git push origin "${{ steps.version.outputs.version }}"
 
   build-macos:
     name: Build (macOS)
-    needs: check-version
+    needs: bump-version
     runs-on: macos-latest
 
     steps:
@@ -82,7 +99,7 @@ jobs:
 
   build-windows:
     name: Build (Windows)
-    needs: check-version
+    needs: bump-version
     runs-on: windows-latest
 
     steps:
@@ -113,25 +130,25 @@ jobs:
 
   # build-linux:
   #   name: Build (Linux)
-  #   needs: check-version
+  #   needs: bump-version
   #   runs-on: ubuntu-latest
-
+  #
   #   steps:
   #     - name: Checkout repository
   #       uses: actions/checkout@v4
-
+  #
   #     - name: Setup Node.js
   #       uses: actions/setup-node@v4
   #       with:
   #         node-version: "24"
   #         cache: "npm"
-
+  #
   #     - name: Install dependencies
   #       run: npm ci
-
+  #
   #     - name: Build and package
   #       run: npm run package
-
+  #
   #     - name: Upload artifact
   #       uses: actions/upload-artifact@v4
   #       with:
@@ -141,7 +158,7 @@ jobs:
   create-release:
     name: Create release
     needs:
-      - check-version
+      - bump-version
       - build-macos
       - build-windows
       # - build-linux
@@ -157,14 +174,9 @@ jobs:
           path: artifacts
           pattern: release-*
 
-      - name: Create Git tag
-        run: |
-          git tag "${{ needs.check-version.outputs.version }}"
-          git push origin "${{ needs.check-version.outputs.version }}"
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ needs.check-version.outputs.version }}
+          tag_name: ${{ needs.bump-version.outputs.version }}
           generate_release_notes: true
           files: artifacts/**/*
