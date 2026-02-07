@@ -32,6 +32,7 @@ declare global {
       notifyVolumeChanged: (volumeScale: number) => void;
       playTestSpeech: () => void;
       onPlayTestSpeech: (callback: () => void) => () => void;
+      getMicActive: () => Promise<boolean>;
       getMuteOnMicActive: () => Promise<boolean>;
       setMuteOnMicActive: (value: boolean) => Promise<boolean>;
       getDefaultEnginePath: (engineType: "aivis" | "voicevox") => Promise<string>;

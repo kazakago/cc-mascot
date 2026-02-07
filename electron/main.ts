@@ -945,6 +945,11 @@ ipcMain.handle("get-devtools-state", (_event, target: "main" | "settings") => {
   return settingsWindow?.webContents.isDevToolsOpened() ?? false;
 });
 
+// Get current mic active state (for initial state query from renderer)
+ipcMain.handle("get-mic-active", () => {
+  return micActive;
+});
+
 // Mic monitor settings
 ipcMain.handle("get-mute-on-mic-active", () => {
   const value = store.get("muteOnMicActive");
@@ -962,7 +967,10 @@ ipcMain.handle("set-mute-on-mic-active", (_event, value: boolean) => {
       mainWindow.webContents.send("mic-active-changed", false);
     }
   }
-  // Notify settings window of the change
+  // Notify main window and settings window of the change
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send("mute-on-mic-active-changed", value);
+  }
   if (settingsWindow && !settingsWindow.isDestroyed()) {
     settingsWindow.webContents.send("mute-on-mic-active-changed", value);
   }
