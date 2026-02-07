@@ -2,15 +2,22 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { VRM, VRMLoaderPlugin, VRMUtils } from "@pixiv/three-vrm";
 import { VRMLookAtQuaternionProxy } from "@pixiv/three-vrm-animation";
-import { MathUtils } from "three";
+import { Box3, MathUtils } from "three";
 import type { Emotion } from "../types/emotion";
 import { getExpressionName } from "../types/emotion";
+
+export interface VRMBounds {
+  height: number;
+  centerX: number;
+  minY: number;
+}
 
 const EMOTIONS: Emotion[] = ["neutral", "happy", "angry", "sad", "relaxed", "surprised"];
 const LERP_FACTOR = 0.1; // Lower = smoother but slower transition
 
 export function useVRM(url: string) {
   const [vrm, setVrm] = useState<VRM | null>(null);
+  const [bounds, setBounds] = useState<VRMBounds | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const vrmRef = useRef<VRM | null>(null);
@@ -51,6 +58,16 @@ export function useVRM(url: string) {
           lookAtProxy.name = "VRMLookAtQuaternionProxy";
           loadedVrm.scene.add(lookAtProxy);
         }
+
+        // Compute bounding box for auto-fit positioning
+        const box = new Box3().setFromObject(loadedVrm.scene);
+        const min = box.min;
+        const max = box.max;
+        setBounds({
+          height: max.y - min.y,
+          centerX: (min.x + max.x) / 2,
+          minY: min.y,
+        });
 
         vrmRef.current = loadedVrm;
         setVrm(loadedVrm);
@@ -117,5 +134,5 @@ export function useVRM(url: string) {
     [vrm],
   );
 
-  return { vrm, loading, error, setMouthOpen, setEmotion, update };
+  return { vrm, bounds, loading, error, setMouthOpen, setEmotion, update };
 }

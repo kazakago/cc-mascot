@@ -1,4 +1,4 @@
-import { useEffect, useRef, useImperativeHandle, forwardRef } from "react";
+import { useEffect, useRef, useImperativeHandle, forwardRef, useMemo } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Group, Vector3 } from "three";
 import { useVRM } from "../hooks/useVRM";
@@ -7,6 +7,11 @@ import { useBlink } from "../hooks/useBlink";
 import { useCursorTracking } from "../hooks/useCursorTracking";
 import type { Emotion } from "../types/emotion";
 import type { CursorTrackingOptions } from "../hooks/useCursorTracking";
+
+// VRMモデルのオートフィット定数
+const REFERENCE_HEIGHT = 1.5; // この高さに正規化する
+const BASE_OFFSET_Y = -0.8; // 足の基準位置（バストアップ表示用）
+const BASE_OFFSET_X = 0.15; // X方向の基準オフセット
 
 export interface VRMAvatarHandle {
   setMouthOpen: (value: number) => void;
@@ -36,7 +41,7 @@ export const VRMAvatar = forwardRef<VRMAvatarHandle, VRMAvatarProps>(function VR
   },
   ref,
 ) {
-  const { vrm, loading, error, setMouthOpen, setEmotion, update: updateVRM } = useVRM(url);
+  const { vrm, bounds, loading, error, setMouthOpen, setEmotion, update: updateVRM } = useVRM(url);
   const { update: updateAnimation } = useVRMAnimation(vrm, animationUrl || "", {
     loop: animationLoop,
     onAnimationEnd,
@@ -51,6 +56,24 @@ export const VRMAvatar = forwardRef<VRMAvatarHandle, VRMAvatarProps>(function VR
     blinkDuration: 150, // 0.15秒
     enabled: true,
   });
+
+  // モデルのバウンディングボックスに基づくオートフィット
+  // 基準高さにスケールを合わせ、足の位置を一定に保つ
+  const groupTransform = useMemo(() => {
+    if (!bounds || bounds.height <= 0) {
+      return {
+        position: [BASE_OFFSET_X, BASE_OFFSET_Y, 0] as [number, number, number],
+        scale: 1,
+      };
+    }
+    const scale = REFERENCE_HEIGHT / bounds.height;
+    const posY = BASE_OFFSET_Y - bounds.minY * scale;
+    const posX = BASE_OFFSET_X - bounds.centerX * scale;
+    return {
+      position: [posX, posY, 0] as [number, number, number],
+      scale,
+    };
+  }, [bounds]);
 
   // カーソル追従機能を有効化
   const { updateOptions: updateCursorTracking } = useCursorTracking(vrm, cursorTrackingOptions);
@@ -117,5 +140,7 @@ export const VRMAvatar = forwardRef<VRMAvatarHandle, VRMAvatarProps>(function VR
     return null;
   }
 
-  return <group ref={groupRef} position={[0.15, -0.8, 0]} rotation={[0, Math.PI, 0]} />;
+  return (
+    <group ref={groupRef} position={groupTransform.position} scale={groupTransform.scale} rotation={[0, Math.PI, 0]} />
+  );
 });
