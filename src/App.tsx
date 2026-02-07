@@ -25,6 +25,12 @@ function isInsideEllipse(
   return (dx * dx) / (radiusX * radiusX) + (dy * dy) / (radiusY * radiusY) <= 1;
 }
 
+// クリック可能領域（楕円）のパラメータ
+// キャラクターの表示位置に合わせて調整（頭: 画面上21%, 足: 画面外下）
+const ELLIPSE_RADIUS_X = 0.15; // コンテナ幅に対する横半径の比率
+const ELLIPSE_RADIUS_Y = 0.45; // コンテナ高さに対する縦半径の比率
+const ELLIPSE_CENTER_Y_OFFSET = 0.03; // コンテナ中心からの下方オフセット比率
+
 const DEFAULT_VRM_URL = "./models/avatar.glb";
 const IDLE_ANIMATION_URL = "./animations/idle_loop.vrma";
 const EMOTION_ANIMATION_URLS: Partial<Record<Emotion, string>> = {
@@ -364,9 +370,10 @@ function App() {
     const isInsideCharacterArea = (clientX: number, clientY: number) => {
       const center = containerCenterRef.current;
       const size = containerSizeRef.current;
-      const radiusX = size * 0.15;
-      const radiusY = size * 0.45;
-      return isInsideEllipse(clientX, clientY, center.x, center.y, radiusX, radiusY);
+      const radiusX = size * ELLIPSE_RADIUS_X;
+      const radiusY = size * ELLIPSE_RADIUS_Y;
+      const ellipseCenterY = center.y + size * ELLIPSE_CENTER_Y_OFFSET;
+      return isInsideEllipse(clientX, clientY, center.x, ellipseCenterY, radiusX, radiusY);
     };
 
     const handleMouseDown = (e: MouseEvent) => {
@@ -454,9 +461,9 @@ function App() {
   // Calculate ellipse parameters for visualization (in renderSize coordinate space)
   const ellipseParams = {
     centerX: renderSize / 2,
-    centerY: renderSize / 2,
-    radiusX: renderSize * 0.15,
-    radiusY: renderSize * 0.45,
+    centerY: renderSize / 2 + renderSize * ELLIPSE_CENTER_Y_OFFSET,
+    radiusX: renderSize * ELLIPSE_RADIUS_X,
+    radiusY: renderSize * ELLIPSE_RADIUS_Y,
   };
 
   return (
