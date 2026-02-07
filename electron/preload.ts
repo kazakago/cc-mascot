@@ -138,6 +138,9 @@ contextBridge.exposeInMainWorld("electron", {
       ipcRenderer.removeListener("play-test-speech", listener);
     };
   },
+  getMicActive: (): Promise<boolean> => {
+    return ipcRenderer.invoke("get-mic-active");
+  },
   getMuteOnMicActive: (): Promise<boolean> => {
     return ipcRenderer.invoke("get-mute-on-mic-active");
   },

@@ -240,9 +240,10 @@ function App() {
     }
   }, [setVolumeScale]);
 
-  // Load muteOnMicActive setting and listen for changes
+  // Load muteOnMicActive setting, initial mic state, and listen for changes
   useEffect(() => {
     window.electron?.getMuteOnMicActive?.().then(setMuteOnMicActive);
+    window.electron?.getMicActive?.().then(setMicActive);
 
     const cleanups: (() => void)[] = [];
 
