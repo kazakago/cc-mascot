@@ -4,6 +4,10 @@
 
 Claude Codeからの返答をVRMキャラクターが喋ってくれるデスクトップマスコットです。
 
+https://github.com/user-attachments/assets/6f67d2fb-e613-4c40-b369-ae8c9092e7f7
+
+<img width="600" alt="スクリーンショット 2026-02-07 14 56 09" src="https://github.com/user-attachments/assets/e8867e42-8197-45ef-8fef-b8f88a70290c" />
+
 ## 特徴
 
 - **オフライン動作**: インターネット接続不要でローカル環境で完結
