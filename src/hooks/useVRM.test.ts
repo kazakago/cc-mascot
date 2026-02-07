@@ -44,6 +44,17 @@ vi.mock("three", () => ({
   MathUtils: {
     lerp: (a: number, b: number, t: number) => a + (b - a) * t,
   },
+  Box3: vi.fn(function () {
+    return {
+      setFromObject: vi.fn(function () {
+        this.min = { x: -0.3, y: 0, z: -0.3 };
+        this.max = { x: 0.3, y: 1.6, z: 0.3 };
+        return this;
+      }),
+      min: { x: -0.3, y: 0, z: -0.3 },
+      max: { x: 0.3, y: 1.6, z: 0.3 },
+    };
+  }),
 }));
 
 describe("useVRM", () => {

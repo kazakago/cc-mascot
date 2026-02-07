@@ -4,14 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       version_bump:
-        description: 'バージョンのインクリメント方法を選択'
+        description: "バージョンのインクリメント方法を選択"
         required: true
         type: choice
         options:
           - major
           - minor
           - patch
-        default: 'patch'
+        default: "patch"
 
 permissions:
   contents: write
