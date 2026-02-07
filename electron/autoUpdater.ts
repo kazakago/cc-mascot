@@ -86,11 +86,20 @@ export function initAutoUpdater(): void {
 
   setupEventHandlers();
 
-  // Delay initial check to allow UI to initialize
+  // Check every 24 hours (1 day)
+  const CHECK_INTERVAL = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+
+  // Initial check with delay to allow UI to initialize
   setTimeout(() => {
     console.log("[AutoUpdater] Checking for updates...");
     autoUpdater.checkForUpdates();
-  }, 10_000);
+  }, 5_000);
+
+  // Periodic check every 24 hours
+  setInterval(() => {
+    console.log("[AutoUpdater] Scheduled daily update check...");
+    autoUpdater.checkForUpdates();
+  }, CHECK_INTERVAL);
 }
 
 export function checkForUpdatesManually(): void {
