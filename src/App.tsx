@@ -67,6 +67,8 @@ function App() {
   const isSpeakingRef = useRef(false);
   const lastIdleAnimTimeRef = useRef(0);
   const nextIdleIntervalRef = useRef(0);
+  const enableIdleAnimationsRef = useRef(true);
+  const enableSpeechAnimationsRef = useRef(true);
 
   // 初回マウント時にランダム待機タイマーを初期化
   useEffect(() => {
@@ -284,6 +286,30 @@ function App() {
     return () => cleanups.forEach((fn) => fn());
   }, []);
 
+  // Load motion settings and listen for changes
+  useEffect(() => {
+    window.electron?.getEnableIdleAnimations?.().then((value) => {
+      enableIdleAnimationsRef.current = value;
+    });
+    window.electron?.getEnableSpeechAnimations?.().then((value) => {
+      enableSpeechAnimationsRef.current = value;
+    });
+
+    const cleanups: (() => void)[] = [];
+
+    const cleanupIdle = window.electron?.onEnableIdleAnimationsChanged?.((value) => {
+      enableIdleAnimationsRef.current = value;
+    });
+    if (cleanupIdle) cleanups.push(cleanupIdle);
+
+    const cleanupSpeech = window.electron?.onEnableSpeechAnimationsChanged?.((value) => {
+      enableSpeechAnimationsRef.current = value;
+    });
+    if (cleanupSpeech) cleanups.push(cleanupSpeech);
+
+    return () => cleanups.forEach((fn) => fn());
+  }, []);
+
   const handleMouthValueChange = useCallback((value: number) => {
     avatarRef.current?.setMouthOpen(value);
   }, []);
@@ -300,13 +326,15 @@ function App() {
       avatarRef.current?.setEmotion(emotion);
 
       // Select animation based on emotion (randomly choose from array)
-      const animationUrls = EMOTION_ANIMATION_URLS[emotion];
-      if (animationUrls && animationUrls.length > 0) {
-        const randomIndex = Math.floor(Math.random() * animationUrls.length);
-        const animationUrl = animationUrls[randomIndex];
-        setCurrentAnimationUrl(animationUrl);
+      if (enableSpeechAnimationsRef.current) {
+        const animationUrls = EMOTION_ANIMATION_URLS[emotion];
+        if (animationUrls && animationUrls.length > 0) {
+          const randomIndex = Math.floor(Math.random() * animationUrls.length);
+          const animationUrl = animationUrls[randomIndex];
+          setCurrentAnimationUrl(animationUrl);
+        }
       }
-      // If no animation for this emotion, keep current animation (idle)
+      // If disabled or no animation for this emotion, keep current animation (idle)
 
       startLipSync(analyser);
     },
@@ -335,6 +363,7 @@ function App() {
 
   const handleAnimationLoop = useCallback(() => {
     if (isSpeakingRef.current) return;
+    if (!enableIdleAnimationsRef.current) return;
     const elapsed = Date.now() - lastIdleAnimTimeRef.current;
     if (elapsed < nextIdleIntervalRef.current) return;
     const randomIndex = Math.floor(Math.random() * IDLE_RANDOM_ANIMATION_URLS.length);
