@@ -33,11 +33,11 @@ const ELLIPSE_CENTER_Y_OFFSET = 0.03; // コンテナ中心からの下方オフ
 
 const DEFAULT_VRM_URL = "./models/avatar.glb";
 const IDLE_ANIMATION_URL = "./animations/idle_loop.vrma";
-const EMOTION_ANIMATION_URLS: Partial<Record<Emotion, string>> = {
-  happy: "./animations/happy.vrma",
-  angry: "./animations/angry.vrma",
-  sad: "./animations/sad.vrma",
-  relaxed: "./animations/relaxed.vrma",
+const EMOTION_ANIMATION_URLS: Partial<Record<Emotion, string[]>> = {
+  happy: ["./animations/happy1.vrma", "./animations/happy2.vrma"],
+  angry: ["./animations/angry.vrma"],
+  sad: ["./animations/sad.vrma"],
+  relaxed: ["./animations/relaxed.vrma"],
 };
 const VOICEVOX_BASE_URL = "http://localhost:8564";
 
@@ -279,9 +279,11 @@ function App() {
       setCurrentEmotion(emotion);
       avatarRef.current?.setEmotion(emotion);
 
-      // Select animation based on emotion
-      const animationUrl = EMOTION_ANIMATION_URLS[emotion];
-      if (animationUrl) {
+      // Select animation based on emotion (randomly choose from array)
+      const animationUrls = EMOTION_ANIMATION_URLS[emotion];
+      if (animationUrls && animationUrls.length > 0) {
+        const randomIndex = Math.floor(Math.random() * animationUrls.length);
+        const animationUrl = animationUrls[randomIndex];
         setCurrentAnimationUrl(animationUrl);
       }
       // If no animation for this emotion, keep current animation (idle)
