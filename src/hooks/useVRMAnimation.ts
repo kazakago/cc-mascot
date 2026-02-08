@@ -7,10 +7,11 @@ import type { VRM } from "@pixiv/three-vrm";
 interface UseVRMAnimationOptions {
   loop?: boolean;
   onAnimationEnd?: () => void;
+  onAnimationLoop?: () => void;
 }
 
 export function useVRMAnimation(vrm: VRM | null, animationUrl: string, options: UseVRMAnimationOptions = {}) {
-  const { loop = true, onAnimationEnd } = options;
+  const { loop = true, onAnimationEnd, onAnimationLoop } = options;
   const [vrmAnimation, setVrmAnimation] = useState<VRMAnimation | null>(null);
   const mixerRef = useRef<AnimationMixer | null>(null);
   const currentActionRef = useRef<AnimationAction | null>(null);
@@ -96,7 +97,21 @@ export function useVRMAnimation(vrm: VRM | null, animationUrl: string, options: 
         mixer.removeEventListener("finished", handleFinished);
       };
     }
-  }, [vrm, vrmAnimation, loop, onAnimationEnd]);
+
+    // Set up loop callback for looping animations
+    if (loop && onAnimationLoop) {
+      const handleLoop = (event: { action: AnimationAction }) => {
+        if (event.action === newAction) {
+          onAnimationLoop();
+        }
+      };
+      mixer.addEventListener("loop", handleLoop);
+
+      return () => {
+        mixer.removeEventListener("loop", handleLoop);
+      };
+    }
+  }, [vrm, vrmAnimation, loop, onAnimationEnd, onAnimationLoop]);
 
   const update = useCallback((delta: number) => {
     mixerRef.current?.update(delta);

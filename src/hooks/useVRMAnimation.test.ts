@@ -219,6 +219,54 @@ describe("useVRMAnimation", () => {
       // finishedイベントリスナーは登録されていない
       expect(mockMixer.addEventListener).not.toHaveBeenCalledWith("finished", expect.any(Function));
     });
+
+    it("loop=trueかつonAnimationLoopが指定された場合、loopイベントリスナーが登録される", async () => {
+      const onAnimationLoop = vi.fn();
+
+      renderHook(() => useVRMAnimation(mockVRM, "/test.vrma", { loop: true, onAnimationLoop }));
+
+      // VRMAのロード完了を待つ
+      await waitFor(() => {
+        expect(mockLoadAsync).toHaveBeenCalled();
+      });
+
+      // loopイベントリスナーが登録される
+      await waitFor(() => {
+        expect(mockMixer.addEventListener).toHaveBeenCalledWith("loop", expect.any(Function));
+      });
+    });
+
+    it("loop=falseの場合、onAnimationLoopは無視される", async () => {
+      const onAnimationLoop = vi.fn();
+
+      renderHook(() => useVRMAnimation(mockVRM, "/test.vrma", { loop: false, onAnimationLoop }));
+
+      // VRMAのロード完了を待つ
+      await waitFor(() => {
+        expect(mockLoadAsync).toHaveBeenCalled();
+      });
+
+      // イベントリスナーは登録されない
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // loopイベントリスナーは登録されていない
+      expect(mockMixer.addEventListener).not.toHaveBeenCalledWith("loop", expect.any(Function));
+    });
+
+    it("onAnimationLoopのクリーンアップでリスナーが除去される", async () => {
+      const onAnimationLoop = vi.fn();
+
+      const { unmount } = renderHook(() => useVRMAnimation(mockVRM, "/test.vrma", { loop: true, onAnimationLoop }));
+
+      // VRMAのロード完了を待つ
+      await waitFor(() => {
+        expect(mockMixer.addEventListener).toHaveBeenCalledWith("loop", expect.any(Function));
+      });
+
+      unmount();
+
+      expect(mockMixer.removeEventListener).toHaveBeenCalledWith("loop", expect.any(Function));
+    });
   });
 
   describe("アニメーション切り替え", () => {
