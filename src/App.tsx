@@ -37,6 +37,7 @@ const IDLE_RANDOM_ANIMATION_URLS = [
   "./animations/idle_anim1.vrma",
   "./animations/idle_anim2.vrma",
   "./animations/idle_anim3.vrma",
+  "./animations/idle_anim4.vrma",
 ];
 const IDLE_RANDOM_MIN_INTERVAL = 30000; // 30秒
 const IDLE_RANDOM_MAX_INTERVAL = 60000; // 60秒
