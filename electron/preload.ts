@@ -159,6 +159,36 @@ contextBridge.exposeInMainWorld("electron", {
   setIncludeSubAgents: (value: boolean): Promise<boolean> => {
     return ipcRenderer.invoke("set-include-sub-agents", value);
   },
+  getEnableIdleAnimations: (): Promise<boolean> => {
+    return ipcRenderer.invoke("get-enable-idle-animations");
+  },
+  setEnableIdleAnimations: (value: boolean): Promise<boolean> => {
+    return ipcRenderer.invoke("set-enable-idle-animations", value);
+  },
+  onEnableIdleAnimationsChanged: (callback: (value: boolean) => void) => {
+    const listener = (_event: unknown, value: boolean) => {
+      callback(value);
+    };
+    ipcRenderer.on("enable-idle-animations-changed", listener);
+    return () => {
+      ipcRenderer.removeListener("enable-idle-animations-changed", listener);
+    };
+  },
+  getEnableSpeechAnimations: (): Promise<boolean> => {
+    return ipcRenderer.invoke("get-enable-speech-animations");
+  },
+  setEnableSpeechAnimations: (value: boolean): Promise<boolean> => {
+    return ipcRenderer.invoke("set-enable-speech-animations", value);
+  },
+  onEnableSpeechAnimationsChanged: (callback: (value: boolean) => void) => {
+    const listener = (_event: unknown, value: boolean) => {
+      callback(value);
+    };
+    ipcRenderer.on("enable-speech-animations-changed", listener);
+    return () => {
+      ipcRenderer.removeListener("enable-speech-animations-changed", listener);
+    };
+  },
   onMicActiveChanged: (callback: (active: boolean) => void) => {
     const listener = (_event: unknown, active: boolean) => {
       callback(active);

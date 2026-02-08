@@ -853,6 +853,8 @@ ipcMain.handle("reset-all-settings", async () => {
   store.delete("characterPosition");
   store.delete("muteOnMicActive");
   store.delete("includeSubAgents");
+  store.delete("enableIdleAnimations");
+  store.delete("enableSpeechAnimations");
   stopMicMonitor();
 
   await stopVoicevoxEngine();
@@ -1002,6 +1004,39 @@ ipcMain.handle("set-include-sub-agents", (_event, value: boolean) => {
   store.set("includeSubAgents", value);
   console.log(`[IPC] includeSubAgents set to ${value}, restarting log monitor`);
   startLogMonitor();
+  return true;
+});
+
+// Motion settings
+ipcMain.handle("get-enable-idle-animations", () => {
+  const value = store.get("enableIdleAnimations");
+  return value === undefined ? true : (value as boolean);
+});
+
+ipcMain.handle("set-enable-idle-animations", (_event, value: boolean) => {
+  store.set("enableIdleAnimations", value);
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send("enable-idle-animations-changed", value);
+  }
+  if (settingsWindow && !settingsWindow.isDestroyed()) {
+    settingsWindow.webContents.send("enable-idle-animations-changed", value);
+  }
+  return true;
+});
+
+ipcMain.handle("get-enable-speech-animations", () => {
+  const value = store.get("enableSpeechAnimations");
+  return value === undefined ? true : (value as boolean);
+});
+
+ipcMain.handle("set-enable-speech-animations", (_event, value: boolean) => {
+  store.set("enableSpeechAnimations", value);
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send("enable-speech-animations-changed", value);
+  }
+  if (settingsWindow && !settingsWindow.isDestroyed()) {
+    settingsWindow.webContents.send("enable-speech-animations-changed", value);
+  }
   return true;
 });
 

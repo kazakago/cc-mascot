@@ -39,6 +39,12 @@ declare global {
       getMicMonitorAvailable: () => Promise<boolean>;
       getIncludeSubAgents: () => Promise<boolean>;
       setIncludeSubAgents: (value: boolean) => Promise<boolean>;
+      getEnableIdleAnimations: () => Promise<boolean>;
+      setEnableIdleAnimations: (value: boolean) => Promise<boolean>;
+      onEnableIdleAnimationsChanged: (callback: (value: boolean) => void) => () => void;
+      getEnableSpeechAnimations: () => Promise<boolean>;
+      setEnableSpeechAnimations: (value: boolean) => Promise<boolean>;
+      onEnableSpeechAnimationsChanged: (callback: (value: boolean) => void) => () => void;
       onMicActiveChanged: (callback: (active: boolean) => void) => () => void;
       onMuteOnMicActiveChanged: (callback: (value: boolean) => void) => () => void;
       onDevToolsStateChanged: (callback: (isOpen: boolean) => void) => () => void;

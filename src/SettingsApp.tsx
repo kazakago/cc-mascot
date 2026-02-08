@@ -29,6 +29,8 @@ export default function SettingsApp() {
   const [muteOnMicActive, setMuteOnMicActive] = useState(false);
   const [micMonitorAvailable, setMicMonitorAvailable] = useState(false);
   const [includeSubAgents, setIncludeSubAgents] = useState(false);
+  const [enableIdleAnimations, setEnableIdleAnimations] = useState(true);
+  const [enableSpeechAnimations, setEnableSpeechAnimations] = useState(true);
   const [mainDevToolsOpen, setMainDevToolsOpen] = useState(false);
   const [settingsDevToolsOpen, setSettingsDevToolsOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -117,6 +119,16 @@ export default function SettingsApp() {
       if (window.electron?.getIncludeSubAgents) {
         const include = await window.electron.getIncludeSubAgents();
         setIncludeSubAgents(include);
+      }
+
+      // Load motion settings
+      if (window.electron?.getEnableIdleAnimations) {
+        const idle = await window.electron.getEnableIdleAnimations();
+        setEnableIdleAnimations(idle);
+      }
+      if (window.electron?.getEnableSpeechAnimations) {
+        const speech = await window.electron.getEnableSpeechAnimations();
+        setEnableSpeechAnimations(speech);
       }
 
       // Load VRM file name from IndexedDB
@@ -285,6 +297,16 @@ export default function SettingsApp() {
     await window.electron?.setIncludeSubAgents?.(value);
   };
 
+  const handleEnableIdleAnimationsChange = async (value: boolean) => {
+    setEnableIdleAnimations(value);
+    await window.electron?.setEnableIdleAnimations?.(value);
+  };
+
+  const handleEnableSpeechAnimationsChange = async (value: boolean) => {
+    setEnableSpeechAnimations(value);
+    await window.electron?.setEnableSpeechAnimations?.(value);
+  };
+
   const handleVolumeChangeComplete = () => {
     localStorage.setItem("volumeScale", String(volumeScaleInput));
     console.log(`[SettingsApp] Volume saved to localStorage: ${volumeScaleInput}`);
@@ -370,6 +392,10 @@ export default function SettingsApp() {
       // Reset sub-agent monitoring setting
       setIncludeSubAgents(false);
 
+      // Reset motion settings
+      setEnableIdleAnimations(true);
+      setEnableSpeechAnimations(true);
+
       // Close settings window
       if (window.electron?.closeSettingsWindow) {
         window.electron.closeSettingsWindow();
@@ -425,6 +451,37 @@ export default function SettingsApp() {
                 <span>400px (小)</span>
                 <span>1200px (大)</span>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Motion Section */}
+        <div>
+          <h2 className="m-0 mb-4 text-lg font-semibold text-gray-800">モーション</h2>
+          <div className="space-y-4">
+            <div className="flex flex-col gap-3">
+              <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-800">
+                <input
+                  type="checkbox"
+                  checked={enableIdleAnimations}
+                  onChange={(e) => handleEnableIdleAnimationsChange(e.target.checked)}
+                  className="w-4 h-4 m-0 cursor-pointer accent-primary"
+                />
+                <span className="font-normal">ランダム待機アニメーションを使用する</span>
+              </label>
+              <p className="text-sm text-gray-400 m-0">30〜60秒ごとにランダムな待機アニメーションを再生します</p>
+            </div>
+            <div className="flex flex-col gap-3">
+              <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-800">
+                <input
+                  type="checkbox"
+                  checked={enableSpeechAnimations}
+                  onChange={(e) => handleEnableSpeechAnimationsChange(e.target.checked)}
+                  className="w-4 h-4 m-0 cursor-pointer accent-primary"
+                />
+                <span className="font-normal">発話アニメーションを使用する</span>
+              </label>
+              <p className="text-sm text-gray-400 m-0">発話時に感情に合わせたアニメーションを再生します</p>
             </div>
           </div>
         </div>
