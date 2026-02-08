@@ -24,6 +24,7 @@ interface VRMAvatarProps {
   animationUrl?: string;
   animationLoop?: boolean;
   onAnimationEnd?: () => void;
+  onAnimationLoop?: () => void;
   cursorTrackingOptions?: Partial<CursorTrackingOptions>;
   containerSize?: number;
   onHeadPositionUpdate?: (containerX: number, containerY: number) => void;
@@ -35,6 +36,7 @@ export const VRMAvatar = forwardRef<VRMAvatarHandle, VRMAvatarProps>(function VR
     animationUrl,
     animationLoop = true,
     onAnimationEnd,
+    onAnimationLoop,
     cursorTrackingOptions,
     containerSize = 800,
     onHeadPositionUpdate,
@@ -45,6 +47,7 @@ export const VRMAvatar = forwardRef<VRMAvatarHandle, VRMAvatarProps>(function VR
   const { update: updateAnimation } = useVRMAnimation(vrm, animationUrl || "", {
     loop: animationLoop,
     onAnimationEnd,
+    onAnimationLoop,
   });
   const groupRef = useRef<Group>(null);
   const { camera } = useThree();

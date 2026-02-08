@@ -33,6 +33,13 @@ const ELLIPSE_CENTER_Y_OFFSET = 0.03; // コンテナ中心からの下方オフ
 
 const DEFAULT_VRM_URL = "./models/avatar.glb";
 const IDLE_ANIMATION_URL = "./animations/idle_loop.vrma";
+const IDLE_RANDOM_ANIMATION_URLS = [
+  "./animations/idle_anim1.vrma",
+  "./animations/idle_anim2.vrma",
+  "./animations/idle_anim3.vrma",
+];
+const IDLE_RANDOM_MIN_INTERVAL = 30000; // 30秒
+const IDLE_RANDOM_MAX_INTERVAL = 60000; // 60秒
 const EMOTION_ANIMATION_URLS: Partial<Record<Emotion, string[]>> = {
   happy: ["./animations/happy1.vrma", "./animations/happy2.vrma"],
   angry: ["./animations/angry.vrma"],
@@ -55,6 +62,18 @@ function App() {
   const [headPosition, setHeadPosition] = useState<{ x: number; y: number } | null>(null);
   const [muteOnMicActive, setMuteOnMicActive] = useState(true);
   const [micActive, setMicActive] = useState(false);
+
+  // ランダム待機アニメーション用ref
+  const isSpeakingRef = useRef(false);
+  const lastIdleAnimTimeRef = useRef(0);
+  const nextIdleIntervalRef = useRef(0);
+
+  // 初回マウント時にランダム待機タイマーを初期化
+  useEffect(() => {
+    lastIdleAnimTimeRef.current = Date.now();
+    nextIdleIntervalRef.current =
+      IDLE_RANDOM_MIN_INTERVAL + Math.random() * (IDLE_RANDOM_MAX_INTERVAL - IDLE_RANDOM_MIN_INTERVAL);
+  }, []);
 
   // Cursor tracking settings (fixed values)
   const cursorTrackingOptions: Partial<CursorTrackingOptions> = useMemo(
@@ -275,6 +294,7 @@ function App() {
 
   const handleSpeechStart = useCallback(
     (analyser: AnalyserNode, emotion: Emotion) => {
+      isSpeakingRef.current = true;
       // Set emotion when speech actually starts (after VOICEVOX API processing)
       setCurrentEmotion(emotion);
       avatarRef.current?.setEmotion(emotion);
@@ -294,6 +314,11 @@ function App() {
   );
 
   const handleSpeechEnd = useCallback(() => {
+    isSpeakingRef.current = false;
+    // Reset random idle timer to prevent immediate trigger after speaking
+    lastIdleAnimTimeRef.current = Date.now();
+    nextIdleIntervalRef.current =
+      IDLE_RANDOM_MIN_INTERVAL + Math.random() * (IDLE_RANDOM_MAX_INTERVAL - IDLE_RANDOM_MIN_INTERVAL);
     stopLipSync();
     // Reset emotion to neutral after speaking
     setCurrentEmotion("neutral");
@@ -301,8 +326,19 @@ function App() {
   }, [stopLipSync]);
 
   const handleAnimationEnd = useCallback(() => {
-    // When speaking animation ends, return to idle
+    // When animation ends, return to idle and reset random idle timer
     setCurrentAnimationUrl(IDLE_ANIMATION_URL);
+    lastIdleAnimTimeRef.current = Date.now();
+    nextIdleIntervalRef.current =
+      IDLE_RANDOM_MIN_INTERVAL + Math.random() * (IDLE_RANDOM_MAX_INTERVAL - IDLE_RANDOM_MIN_INTERVAL);
+  }, []);
+
+  const handleAnimationLoop = useCallback(() => {
+    if (isSpeakingRef.current) return;
+    const elapsed = Date.now() - lastIdleAnimTimeRef.current;
+    if (elapsed < nextIdleIntervalRef.current) return;
+    const randomIndex = Math.floor(Math.random() * IDLE_RANDOM_ANIMATION_URLS.length);
+    setCurrentAnimationUrl(IDLE_RANDOM_ANIMATION_URLS[randomIndex]);
   }, []);
 
   const { speakText } = useSpeech({
@@ -504,6 +540,7 @@ function App() {
                 animationUrl={currentAnimationUrl}
                 animationLoop={currentAnimationUrl === IDLE_ANIMATION_URL}
                 onAnimationEnd={handleAnimationEnd}
+                onAnimationLoop={handleAnimationLoop}
                 cursorTrackingOptions={cursorTrackingOptions}
                 containerSize={renderSize}
                 onHeadPositionUpdate={(containerX, containerY) => {
