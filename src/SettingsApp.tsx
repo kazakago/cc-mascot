@@ -388,13 +388,17 @@ export default function SettingsApp() {
 
       // Reset mic mute setting
       setMuteOnMicActive(false);
+      await window.electron?.setMuteOnMicActive?.(false);
 
       // Reset sub-agent monitoring setting
       setIncludeSubAgents(false);
+      await window.electron?.setIncludeSubAgents?.(false);
 
       // Reset motion settings
       setEnableIdleAnimations(true);
       setEnableSpeechAnimations(true);
+      await window.electron?.setEnableIdleAnimations?.(true);
+      await window.electron?.setEnableSpeechAnimations?.(true);
 
       // Close settings window
       if (window.electron?.closeSettingsWindow) {
@@ -612,6 +616,26 @@ export default function SettingsApp() {
                 className="w-full cursor-pointer"
               />
             </div>
+            <div className="flex flex-col gap-3">
+              <label className="text-sm font-medium text-gray-600">テスト音声</label>
+              <button
+                type="button"
+                onClick={handleTestSpeech}
+                disabled={isPlayingTest || speakers.length === 0}
+                className="px-4 py-2 rounded-md text-sm font-medium cursor-pointer transition-all duration-200 border-0 bg-primary text-white w-fit hover:bg-primary-dark disabled:bg-gray-400 disabled:cursor-not-allowed"
+              >
+                {isPlayingTest ? "再生中..." : "テスト音声を再生"}
+              </button>
+              {testAudioError && <p className="text-sm text-danger mt-1 mb-0">{testAudioError}</p>}
+            </div>
+            {error && <p className="text-sm text-danger mt-1 mb-0">{error}</p>}
+          </div>
+        </div>
+
+        {/* Advanced Settings Section */}
+        <div>
+          <h2 className="m-0 mb-4 text-lg font-semibold text-gray-800">高度な設定</h2>
+          <div className="space-y-4">
             {micMonitorAvailable && (
               <div className="flex flex-col gap-3">
                 <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-800">
@@ -642,19 +666,6 @@ export default function SettingsApp() {
                 Claudeが実行するサブエージェント（ファイル検索など）の発言も音声化します
               </p>
             </div>
-            <div className="flex flex-col gap-3">
-              <label className="text-sm font-medium text-gray-600">テスト音声</label>
-              <button
-                type="button"
-                onClick={handleTestSpeech}
-                disabled={isPlayingTest || speakers.length === 0}
-                className="px-4 py-2 rounded-md text-sm font-medium cursor-pointer transition-all duration-200 border-0 bg-primary text-white w-fit hover:bg-primary-dark disabled:bg-gray-400 disabled:cursor-not-allowed"
-              >
-                {isPlayingTest ? "再生中..." : "テスト音声を再生"}
-              </button>
-              {testAudioError && <p className="text-sm text-danger mt-1 mb-0">{testAudioError}</p>}
-            </div>
-            {error && <p className="text-sm text-danger mt-1 mb-0">{error}</p>}
           </div>
         </div>
 
