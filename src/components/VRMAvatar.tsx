@@ -11,7 +11,7 @@ import type { CursorTrackingOptions } from "../hooks/useCursorTracking";
 // VRMモデルのオートフィット定数
 const REFERENCE_HEIGHT = 1.5; // この高さに正規化する
 const BASE_OFFSET_Y = -0.8; // 足の基準位置（バストアップ表示用）
-const BASE_OFFSET_X = 0.15; // X方向の基準オフセット
+const BASE_OFFSET_X = 0.0; // X方向の基準オフセット
 
 export interface VRMAvatarHandle {
   setMouthOpen: (value: number) => void;
