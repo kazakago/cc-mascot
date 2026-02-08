@@ -35,6 +35,9 @@ const DEFAULT_VRM_URL = "./models/avatar.glb";
 const IDLE_ANIMATION_URL = "./animations/idle_loop.vrma";
 const EMOTION_ANIMATION_URLS: Partial<Record<Emotion, string>> = {
   happy: "./animations/happy.vrma",
+  angry: "./animations/angry.vrma",
+  sad: "./animations/sad.vrma",
+  relaxed: "./animations/relaxed.vrma",
 };
 const VOICEVOX_BASE_URL = "http://localhost:8564";
 
