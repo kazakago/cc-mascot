@@ -92,9 +92,13 @@ export function useVRM(url: string) {
     (value: number) => {
       if (vrm?.expressionManager) {
         const happyValue = currentEmotionValues.current.happy;
+        const sadValue = currentEmotionValues.current.sad;
         // happyが強いほどリップシンクを弱く（0.2〜1.0の範囲）
-        // 笑顔時に口が開きすぎてメッシュからはみ出るのを防ぐ
-        const scale = 1.0 - happyValue * 0.8;
+        // sadが強いほどリップシンクを半分に（0.5〜1.0の範囲）
+        // 笑顔時や悲しいときに口が開きすぎてメッシュからはみ出るのを防ぐ
+        const happyScale = 1.0 - happyValue * 0.8;
+        const sadScale = 1.0 - sadValue * 0.5;
+        const scale = happyScale * sadScale;
         const adjustedValue = value * scale;
         vrm.expressionManager.setValue("aa", adjustedValue);
       }
