@@ -138,37 +138,36 @@ describe("cleanTextForSpeech", () => {
     });
   });
 
-  describe("URLの置換", () => {
-    it("HTTPSのURLをURLに置換する", () => {
+  describe("URLの除去", () => {
+    it("HTTPSのURLを除去する", () => {
       const text = "こちらをご覧ください https://example.com/path です。";
       const result = cleanTextForSpeech(text);
 
       expect(result).not.toContain("https://example.com/path");
-      expect(result).toContain("URL");
+      expect(result).toContain("こちらをご覧ください");
     });
 
-    it("HTTPのURLをURLに置換する", () => {
+    it("HTTPのURLを除去する", () => {
       const text = "リンク http://example.com はこちら。";
       const result = cleanTextForSpeech(text);
 
       expect(result).not.toContain("http://example.com");
-      expect(result).toContain("URL");
     });
 
-    it("複数のURLを置換する", () => {
+    it("複数のURLを除去する", () => {
       const text = "https://site1.com と https://site2.com を参照。";
       const result = cleanTextForSpeech(text);
 
-      expect(result).toContain("URL");
       expect(result).not.toContain("site1.com");
       expect(result).not.toContain("site2.com");
+      expect(result).toContain("と");
+      expect(result).toContain("を参照。");
     });
 
-    it("クエリパラメータ付きURLを置換する", () => {
+    it("クエリパラメータ付きURLを除去する", () => {
       const text = "https://example.com?param=value&other=123";
       const result = cleanTextForSpeech(text);
 
-      expect(result).toContain("URL");
       expect(result).not.toContain("example.com");
     });
   });
@@ -188,6 +187,38 @@ describe("cleanTextForSpeech", () => {
       const result = cleanTextForSpeech(text);
 
       expect(result).not.toContain(":");
+    });
+  });
+
+  describe("かっこの読み上げ変換", () => {
+    it("半角かっこを読み上げテキストに変換する", () => {
+      const text = "関数(引数)を呼び出す";
+      const result = cleanTextForSpeech(text);
+
+      expect(result).toBe("関数、かっこ、引数、かっこ閉じ、を呼び出す");
+    });
+
+    it("全角かっこを読み上げテキストに変換する", () => {
+      const text = "テキスト（補足情報）です。";
+      const result = cleanTextForSpeech(text);
+
+      expect(result).toBe("テキスト、かっこ、補足情報、かっこ閉じ、です。");
+    });
+
+    it("半角と全角が混在する場合を処理する", () => {
+      const text = "(半角)と（全角）の混在";
+      const result = cleanTextForSpeech(text);
+
+      expect(result).toBe("、かっこ、半角、かっこ閉じ、と、かっこ、全角、かっこ閉じ、の混在");
+    });
+
+    it("丸括弧以外の括弧はそのまま保持する", () => {
+      const text = "【重要】彼は「了解」と言った。『本』です。";
+      const result = cleanTextForSpeech(text);
+
+      expect(result).toContain("【重要】");
+      expect(result).toContain("「了解」");
+      expect(result).toContain("『本』");
     });
   });
 
@@ -224,7 +255,7 @@ const greeting = "Hello";
       expect(result).toContain("テスト見出し");
       expect(result).toContain("以下のコードを確認してください");
       expect(result).toContain("詳細は");
-      expect(result).toContain("URL");
+      expect(result).not.toContain("URL");
       expect(result).toContain("リスト項目1");
       expect(result).toContain("console.log");
     });
@@ -247,7 +278,7 @@ import { describe, it, expect } from 'vitest';
       expect(result).toContain("了解しました");
       expect(result).toContain("ruleBasedEmotionClassifier.ts");
       expect(result).toContain("のテストを実装します");
-      expect(result).toContain("URL");
+      expect(result).not.toContain("URL");
       expect(result).not.toContain("```");
       expect(result).not.toContain("import");
       expect(result).not.toContain("vitest.dev");
@@ -274,8 +305,8 @@ import { describe, it, expect } from 'vitest';
     it("特殊文字を含むテキストを処理する", () => {
       const text = "テキスト「引用」とか（括弧）など。";
       const result = cleanTextForSpeech(text);
-      expect(result).toContain("引用");
-      expect(result).toContain("括弧");
+      expect(result).toContain("「引用」");
+      expect(result).toContain("、かっこ、括弧、かっこ閉じ、");
     });
 
     it("改行を保持する", () => {
