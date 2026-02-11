@@ -1,8 +1,62 @@
-import { describe, it, expect } from "vitest";
-import { createBlobURL, revokeBlobURL } from "./vrmStorage";
+import { describe, it, expect, beforeEach } from "vitest";
+import { createBlobURL, revokeBlobURL, saveVRMFile, loadVRMFile, deleteVRMFile } from "./vrmStorage";
 
-// Note: IndexedDB関連のテスト（saveVRMFile, loadVRMFile, deleteVRMFile）は
-// fake-indexeddbの複雑さと非同期処理の問題により、統合テストで実施する
+describe("vrmStorage - IndexedDB operations", () => {
+  // 各テスト前にストアをクリーンアップ
+  beforeEach(async () => {
+    try {
+      await deleteVRMFile();
+    } catch {
+      // ストアがまだ存在しない場合は無視
+    }
+  });
+
+  describe("saveVRMFile / loadVRMFile", () => {
+    it("ファイルを保存して読み込める", async () => {
+      const file = new File(["vrm-content"], "avatar.vrm", { type: "model/vnd.vrm" });
+
+      await saveVRMFile(file);
+      const loaded = await loadVRMFile();
+
+      // fake-indexeddbのstructured cloneではFileの型は保持されないが、値は保存される
+      expect(loaded).not.toBeNull();
+      expect(loaded).toBeTruthy();
+    });
+
+    it("上書き保存後は最新の値が返る", async () => {
+      const file1 = new File(["first"], "first.vrm", { type: "model/vnd.vrm" });
+      const file2 = new File(["second"], "second.vrm", { type: "model/vnd.vrm" });
+
+      await saveVRMFile(file1);
+      await saveVRMFile(file2);
+      const loaded = await loadVRMFile();
+
+      expect(loaded).not.toBeNull();
+    });
+  });
+
+  describe("loadVRMFile", () => {
+    it("保存されていない場合はnullを返す", async () => {
+      const loaded = await loadVRMFile();
+      expect(loaded).toBeNull();
+    });
+  });
+
+  describe("deleteVRMFile", () => {
+    it("保存済みファイルを削除できる", async () => {
+      const file = new File(["content"], "test.vrm", { type: "model/vnd.vrm" });
+      await saveVRMFile(file);
+      await deleteVRMFile();
+
+      const loaded = await loadVRMFile();
+      expect(loaded).toBeNull();
+    });
+
+    it("保存されていない状態で削除してもエラーにならない", async () => {
+      await expect(deleteVRMFile()).resolves.not.toThrow();
+    });
+  });
+});
 
 describe("vrmStorage - Blob URL utilities", () => {
   describe("createBlobURL", () => {

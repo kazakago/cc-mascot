@@ -319,20 +319,110 @@ describe("logMonitor", () => {
   });
 
   describe("ログ行のパースとブロードキャスト", () => {
-    // 非同期処理を含む複雑なテストは統合テストで実施
-    // ここではファイル監視の設定のみテスト
-    it("必要なモジュールがモックされている", () => {
-      // fs, readline, chokidarのモックが正しく設定されていることを確認
-      expect(fsMod.statSync).toBeDefined();
-      expect(fsMod.createReadStream).toBeDefined();
-      expect(readlineMod.createInterface).toBeDefined();
-      expect(chokidarMod.watch).toBeDefined();
+    it("ファイル変更時にパース・フィルタ・ブロードキャストのパイプラインが実行される", async () => {
+      vi.spyOn(console, "log").mockImplementation(() => {});
+      const { parseClaudeCodeLog } = await import("./parsers/claudeCodeParser");
+      const { cleanTextForSpeech } = await import("./filters/textFilter");
+
+      (parseClaudeCodeLog as any).mockReturnValue([{ type: "speak", text: "こんにちは！", emotion: "happy" }]);
+      (cleanTextForSpeech as any).mockReturnValue("こんにちは！");
+
+      let addCallback: ((filePath: string) => void) | null = null;
+      let changeCallback: ((filePath: string) => void) | null = null;
+      const mockRl = {
+        on: vi.fn((event: string, callback: (line?: string) => void) => {
+          if (event === "line") callback("some-json-line");
+          if (event === "close") callback();
+        }),
+      };
+      const mockStream = {
+        on: vi.fn((event: string, callback: () => void) => {
+          if (event === "close") callback();
+        }),
+      };
+      const mockWatcher = {
+        on: vi.fn((event: string, callback: (arg?: any) => void) => {
+          if (event === "add") addCallback = callback as (filePath: string) => void;
+          if (event === "change") changeCallback = callback as (filePath: string) => void;
+        }),
+        close: vi.fn(),
+      };
+
+      (chokidarMod.watch as any).mockReturnValue(mockWatcher as any);
+      (fsMod.createReadStream as any).mockReturnValue(mockStream as any);
+      (readlineMod.createInterface as any).mockReturnValue(mockRl as any);
+
+      // 初期サイズ100
+      (fsMod.statSync as any).mockReturnValue({ size: 100 } as fsMod.Stats);
+      createLogMonitor(mockBroadcast);
+      addCallback!("/test/pipe.jsonl");
+
+      // サイズ増加でchange発火
+      (fsMod.statSync as any).mockReturnValue({ size: 200 } as fsMod.Stats);
+      changeCallback!("/test/pipe.jsonl");
+
+      // processFileChangesはfire-and-forget asyncなので、マイクロタスクをフラッシュ
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(parseClaudeCodeLog).toHaveBeenCalled();
+      expect(cleanTextForSpeech).toHaveBeenCalledWith("こんにちは！");
+      expect(mockBroadcast).toHaveBeenCalledWith(
+        JSON.stringify({ type: "speak", text: "こんにちは！", emotion: "happy" }),
+      );
+    });
+
+    it("フィルタ後に空文字になった場合はブロードキャストしない", async () => {
+      vi.spyOn(console, "log").mockImplementation(() => {});
+      const { parseClaudeCodeLog } = await import("./parsers/claudeCodeParser");
+      const { cleanTextForSpeech } = await import("./filters/textFilter");
+
+      (parseClaudeCodeLog as any).mockReturnValue([{ type: "speak", text: "```code block```", emotion: "neutral" }]);
+      (cleanTextForSpeech as any).mockReturnValue("");
+
+      let addCallback: ((filePath: string) => void) | null = null;
+      let changeCallback: ((filePath: string) => void) | null = null;
+      const mockRl = {
+        on: vi.fn((event: string, callback: (line?: string) => void) => {
+          if (event === "line") callback("some-json-line");
+          if (event === "close") callback();
+        }),
+      };
+      const mockStream = {
+        on: vi.fn((event: string, callback: () => void) => {
+          if (event === "close") callback();
+        }),
+      };
+      const mockWatcher = {
+        on: vi.fn((event: string, callback: (arg?: any) => void) => {
+          if (event === "add") addCallback = callback as (filePath: string) => void;
+          if (event === "change") changeCallback = callback as (filePath: string) => void;
+        }),
+        close: vi.fn(),
+      };
+
+      (chokidarMod.watch as any).mockReturnValue(mockWatcher as any);
+      (fsMod.createReadStream as any).mockReturnValue(mockStream as any);
+      (readlineMod.createInterface as any).mockReturnValue(mockRl as any);
+
+      (fsMod.statSync as any).mockReturnValue({ size: 50 } as fsMod.Stats);
+      createLogMonitor(mockBroadcast);
+      addCallback!("/test/empty.jsonl");
+
+      (fsMod.statSync as any).mockReturnValue({ size: 150 } as fsMod.Stats);
+      changeCallback!("/test/empty.jsonl");
+
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(cleanTextForSpeech).toHaveBeenCalled();
+      expect(mockBroadcast).not.toHaveBeenCalled();
     });
   });
 
   describe("エラーハンドリング", () => {
-    // 非同期処理のエラーハンドリングは統合テストで実施
-    // ここでは基本機能のみテスト
     it("ファイル監視がエラーでも監視を続ける", () => {
       const mockWatcher = {
         on: vi.fn(),

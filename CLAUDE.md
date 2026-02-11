@@ -42,7 +42,7 @@
 
 - localStorage (音声設定)
 - IndexedDB (VRMファイル)
-- Electron Store (エンジン設定、ウィンドウサイズ)
+- Electron Store (エンジン設定、キャラクター設定、各種トグル)
 
 **開発ツール:**
 
@@ -82,6 +82,7 @@
 │  ├─ useVRM (VRMモデル読み込み)             │
 │  ├─ useVRMAnimation (アニメーション)       │
 │  ├─ useBlink (まばたき)                   │
+│  ├─ useCursorTracking (視線・頭部追従)    │
 │  └─ VRMAvatar (3D表示)                    │
 └──────────┬───────────────────────────────┘
            │ HTTP API
@@ -125,8 +126,10 @@
 - スピーカー選択
 - 音量調整
 - マイク使用中ミュート設定（macOSのみ）
-- ウィンドウサイズ調整
+- サブエージェント発言の包含設定
+- キャラクターサイズ調整
 - VRMファイル選択
+- 待機アニメーション・発話アニメーションの有効/無効
 - テスト音声再生
 
 ## 主要コンポーネント
@@ -137,7 +140,7 @@
 
 設計方針:
 
-- `~/.claude/projects/**/*.jsonl` を監視（depth=1、サブエージェントは除外）
+- `~/.claude/projects/**/*.jsonl` を監視（depth=1〜3、`includeSubAgents`設定で変動）
 - ファイルごとに位置を記録、差分のみ読み取り（既存ログは無視）
 - デバウンス処理（100ms）で過剰な処理を防ぐ
 - 非同期ストリーム読み込みで大容量ファイルにも対応
@@ -272,8 +275,10 @@ VRM読み込み:
 - VRMA形式（VRM Animation）
 - VRMAnimationLoaderPlugin使用
 - ループ再生対応
-- デフォルト: `/animations/idle_loop.vrma`（待機モーション）
-- 感情別アニメーション: `/animations/happy.vrma` など（オプション）
+- デフォルト: `/animations/idle_loop.vrma`（待機ループモーション）
+- 待機アニメーション: `/animations/idle_anim1〜4.vrma`（ランダム再生）
+- 感情別アニメーション: `/animations/happy1.vrma`, `/animations/happy2.vrma`, `/animations/angry.vrma`, `/animations/sad.vrma`, `/animations/relaxed.vrma`
+- `enableIdleAnimations` / `enableSpeechAnimations` 設定で有効/無効を切替可能
 
 **src/hooks/useBlink.ts**
 
@@ -282,6 +287,17 @@ VRM読み込み:
 - ランダム間隔（2〜6秒）
 - アニメーション時間（0.15秒）
 - リップシンク・感情表現と独立
+
+**src/hooks/useCursorTracking.ts**
+
+カーソル追従（視線・頭部トラッキング）:
+
+- マウス位置に応じてキャラクターの目線と頭部が追従
+- VRM lookAt API（目線）と headボーン回転（頭部）の2段階制御
+- headボーンの位置をスクリーン座標に投影し、顔を基準とした相対追従
+- Bezier補間（lerp factor=0.08）で滑らかな動き
+- 感度設定: eyeSensitivity=0.4, headSensitivity=0.1（デフォルト）
+- 頭部回転制限: 上下25度、左右35度
 
 ### 6. エンジン自動起動
 
@@ -329,14 +345,24 @@ IPC通信:
 - `speak`: メイン→レンダラー（ログ監視で検出したメッセージ）
 - `vrm-changed`: 設定→メイン→メイン（VRM変更通知）
 - `speaker-changed`: 設定→メイン→メイン（スピーカー変更通知）
+- `volume-changed`: 設定→メイン→メイン（音量変更通知）
 - `play-test-speech`: 設定→メイン→メイン（テスト音声再生）
 - `set-ignore-mouse-events`: レンダラー→メイン（クリックスルー制御）
-- `get/set-window-position`: レンダラー↔メイン（ウィンドウ位置）
-- `get/set-window-size`: レンダラー↔メイン（ウィンドウサイズ）
-- `get/set-engine-settings`: レンダラー↔メイン（エンジン設定）
+- `get/set-character-position`: レンダラー↔メイン（キャラクター位置）
+- `reset-character-position`: レンダラー→メイン（位置リセット）
+- `get/set-character-size`: レンダラー↔メイン（キャラクターサイズ）
+- `reset-character-size`: レンダラー→メイン（サイズリセット）
+- `get-engine-type` / `set-engine-settings` / `reset-engine-settings`: レンダラー↔メイン（エンジン設定）
 - `get/set-mute-on-mic-active`: レンダラー↔メイン（ミュート設定）
+- `get-mic-active`: レンダラー→メイン（現在のマイク使用状態）
 - `mic-active-changed`: メイン→レンダラー（マイク使用状態変化）
 - `get-mic-monitor-available`: レンダラー→メイン（機能利用可否）
+- `get/set-include-sub-agents`: レンダラー↔メイン（サブエージェント設定）
+- `get/set-enable-idle-animations`: レンダラー↔メイン（待機アニメーション設定）
+- `get/set-enable-speech-animations`: レンダラー↔メイン（発話アニメーション設定）
+- `open/close-settings-window`: レンダラー→メイン（設定ウィンドウ制御）
+- `reset-all-settings`: レンダラー→メイン（全設定リセット）
+- `toggle-devtools` / `get-devtools-state`: レンダラー↔メイン（DevTools制御、開発用）
 
 ### 8. マイク使用中ミュート（macOS専用）
 
@@ -385,7 +411,27 @@ Electronとの統合（electron/main.ts）:
 - ミュート時は `gainNode.gain.value = 0`（発話処理・リップシンク・アニメーションは継続）
 - `volumeScale` と `isMicMuted` の両方をリアルタイム監視
 
-### 9. MCPサーバー（開発用）
+### 9. 自動更新
+
+**electron/autoUpdater.ts**
+
+- electron-updater を使用した自動更新機能
+- 起動5秒後に初回チェック、以降24時間ごとに自動チェック
+- ダウンロード確認ダイアログ → インストール確認ダイアログの2段階UI
+- 開発モードではスキップ（`app.isPackaged` で判定）
+- トレイメニューの「バージョン情報」から手動チェックも可能
+
+### 10. システムトレイ
+
+**electron/main.ts**
+
+- アプリ起動時にシステムトレイにアイコンを表示
+- macOSではテンプレートアイコン対応
+- コンテキストメニュー: 「設定を開く」「バージョン情報」「終了」
+- バージョン情報ダイアログ: アップデート確認ボタン、ライセンス情報ボタン
+- ライセンス情報ウィンドウ: `npm run generate-licenses` で生成した `public/licenses.json` を表示
+
+### 11. MCPサーバー（開発用）
 
 **electron-mcp-server**
 
@@ -402,8 +448,8 @@ Electronとの統合（electron/main.ts）:
 
 ### IndexedDB（Renderer Process）
 
-データベース名: `VRMStorage`
-オブジェクトストア: `vrm-files`
+データベース名: `cc-mascot-db`
+オブジェクトストア: `vrm-models`
 キー: `current-vrm`
 値: VRMファイル（Blob）
 
@@ -411,20 +457,25 @@ Electronとの統合（electron/main.ts）:
 
 ### Electron Store（Main Process）
 
-| キー                 | 型      | デフォルト | 説明                                    |
-| -------------------- | ------- | ---------- | --------------------------------------- |
-| `engineType`         | string  | "aivis"    | エンジンタイプ（aivis/voicevox/custom） |
-| `voicevoxEnginePath` | string  | undefined  | カスタムエンジンパス                    |
-| `windowSize`         | number  | 800        | ウィンドウサイズ（400〜1200）           |
-| `muteOnMicActive`    | boolean | false      | マイク使用中にミュートするか            |
+| キー                     | 型      | デフォルト | 説明                                    |
+| ------------------------ | ------- | ---------- | --------------------------------------- |
+| `engineType`             | string  | "aivis"    | エンジンタイプ（aivis/voicevox/custom） |
+| `voicevoxEnginePath`     | string  | undefined  | カスタムエンジンパス                    |
+| `characterSize`          | number  | 800        | キャラクターサイズ（400〜1200）         |
+| `characterPosition`      | object  | undefined  | キャラクター位置 { x, y }               |
+| `muteOnMicActive`        | boolean | false      | マイク使用中にミュートするか            |
+| `includeSubAgents`       | boolean | false      | サブエージェントの発言を含めるか        |
+| `enableIdleAnimations`   | boolean | true       | 待機アニメーションの有効/無効           |
+| `enableSpeechAnimations` | boolean | true       | 発話アニメーションの有効/無効           |
 
 ## ディレクトリ構造
 
 ```
 cc-mascot/
 ├── electron/                    # Electronメインプロセス
-│   ├── main.ts                  # エントリーポイント、ウィンドウ管理、エンジン起動
+│   ├── main.ts                  # エントリーポイント、ウィンドウ管理、エンジン起動、トレイ
 │   ├── preload.ts               # IPC API公開
+│   ├── autoUpdater.ts           # 自動更新機能
 │   ├── logMonitor.ts            # ログファイル監視
 │   ├── parsers/
 │   │   └── claudeCodeParser.ts  # JSONL解析
@@ -435,13 +486,16 @@ cc-mascot/
 ├── helpers/                     # ネイティブヘルパーソース
 │   └── mic-monitor.swift        # マイク監視 Swift CLI（CoreAudio）
 ├── scripts/                     # ビルドスクリプト
-│   └── build-mic-monitor.mjs    # Swift ヘルパーのコンパイル
+│   ├── build-mic-monitor.mjs    # ネイティブヘルパーのコンパイル
+│   └── notarize.js              # macOSコード署名（パッケージング用）
 ├── resources/                   # パッケージングリソース
 │   ├── icons/                   # アプリアイコン
 │   └── mic-monitor              # コンパイル済みバイナリ（.gitignore対象）
 ├── src/                         # Electronレンダラープロセス
 │   ├── App.tsx                  # メインウィンドウ
+│   ├── main.tsx                 # メインウィンドウ エントリーポイント
 │   ├── SettingsApp.tsx          # 設定ウィンドウ
+│   ├── settings-main.tsx        # 設定ウィンドウ エントリーポイント
 │   ├── components/
 │   │   ├── VRMAvatar.tsx        # VRMキャラクター表示
 │   │   └── Scene.tsx            # Three.jsシーン
@@ -451,6 +505,7 @@ cc-mascot/
 │   │   ├── useVRM.ts            # VRMモデル読み込み
 │   │   ├── useVRMAnimation.ts   # アニメーション
 │   │   ├── useBlink.ts          # まばたき
+│   │   ├── useCursorTracking.ts # 視線・頭部追従
 │   │   └── useLocalStorage.ts   # localStorage永続化
 │   ├── services/
 │   │   └── voicevox.ts          # 音声合成API
@@ -462,8 +517,15 @@ cc-mascot/
 │   ├── models/
 │   │   └── avatar.glb           # デフォルトVRMモデル
 │   └── animations/
-│       ├── idle_loop.vrma       # 待機モーション
-│       └── happy.vrma           # 喜びモーション
+│       ├── idle_loop.vrma       # 待機ループモーション
+│       ├── idle_anim1〜4.vrma   # 待機アニメーション（ランダム再生）
+│       ├── happy1.vrma          # 喜びアニメーション1
+│       ├── happy2.vrma          # 喜びアニメーション2
+│       ├── angry.vrma           # 怒りアニメーション
+│       ├── sad.vrma             # 悲しみアニメーション
+│       └── relaxed.vrma         # リラックスアニメーション
+├── build/
+│   └── entitlements.mac.plist   # macOSコード署名用entitlements
 ├── .mcp.json                    # MCPサーバー設定
 ├── .claude/
 │   └── settings.json            # Claude Code設定
@@ -479,7 +541,7 @@ cc-mascot/
 
 ### ファイル監視
 
-- depth=1（サブディレクトリ除外）
+- depth=1〜3（`includeSubAgents`設定で変動）
 - デバウンス100ms（過剰な処理防止）
 - 差分読み取り（全体読み込み回避）
 
@@ -613,26 +675,24 @@ winget install --id Microsoft.VisualStudio.2022.BuildTools --override "--passive
 
 **注意:** インストール後、新しいターミナルで `npm run build:mic-monitor` を実行してください。
 
-```
-
 ## 主要依存関係
 
 **本番:**
 
-- `@pixiv/three-vrm`: ^3.4.4
-- `@pixiv/three-vrm-animation`: ^3.4.4
-- `@react-three/fiber`: ^9.5.0
-- `react`: ^19.2.0
-- `three`: ^0.182.0
-- `chokidar`: ^5.0.0
-- `electron-store`: ^11.0.2
+- `@pixiv/three-vrm` / `@pixiv/three-vrm-animation` (VRMモデル・アニメーション)
+- `@react-three/fiber` / `@react-three/drei` (React用Three.jsバインディング)
+- `react` / `react-dom` (UIフレームワーク)
+- `three` (3Dレンダリング)
+- `chokidar` (ファイル監視)
+- `electron-store` (設定永続化)
+- `electron-updater` (自動更新)
 
 **開発:**
 
-- `electron`: ^39.2.7
-- `electron-mcp-server`: ^1.5.0
-- `vite`: ^7.2.4
-- `vitest`: ^4.0.17
+- `electron` / `electron-builder` (デスクトップアプリ化・パッケージング)
+- `electron-mcp-server` (開発用デバッグ)
+- `vite` / `vite-plugin-electron` (ビルドツール)
+- `vitest` (テスト)
+- `tailwindcss` (スタイリング)
 
-完全な依存関係リストは `package.json` を参照してください。
-```
+バージョンは `package.json` を参照してください。
