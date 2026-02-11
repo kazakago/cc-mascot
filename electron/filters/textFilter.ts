@@ -5,7 +5,7 @@
 
 /**
  * Clean text for speech synthesis by removing markdown syntax and
- * replacing paths/URLs with readable alternatives
+ * replacing special characters with readable alternatives
  */
 export function cleanTextForSpeech(text: string): string {
   let cleaned = text;
@@ -31,14 +31,18 @@ export function cleanTextForSpeech(text: string): string {
   // 7. Remove list markers (-, *) but keep numbered lists (1., 2., etc.)
   cleaned = cleaned.replace(/^[-*]\s+/gm, "");
 
-  // 8. Replace URLs with "URL"
-  cleaned = cleaned.replace(/https?:\/\/[^\s]+/g, "URL");
+  // 8. Remove URLs
+  cleaned = cleaned.replace(/https?:\/\/[^\s]+/g, "");
 
   // 9. Remove inline code backticks but keep the content
   cleaned = cleaned.replace(/`([^`]+)`/g, "$1");
 
   // 10. Remove colons
   cleaned = cleaned.replace(/:/g, "");
+
+  // 11. Replace brackets with readable text
+  cleaned = cleaned.replace(/[(\uff08]/g, "、かっこ、");
+  cleaned = cleaned.replace(/[)\uff09]/g, "、かっこ閉じ、");
 
   return cleaned;
 }
