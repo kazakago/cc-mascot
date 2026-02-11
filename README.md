@@ -21,10 +21,10 @@ https://github.com/user-attachments/assets/6f67d2fb-e613-4c40-b369-ae8c9092e7f7
 
 ## 利用環境
 
-- MacOS
-  - M1以降のみ対応
+- macOS
+  - Apple Silicon搭載機種のみ対応
 - Windows
-  - WSL環境へインストールしたClaudeCodeには非対応
+  - WSL環境へインストールしたClaude Codeには非対応
 
 ## セットアップ
 
@@ -87,14 +87,22 @@ https://github.com/kazakago/cc-mascot/releases
 - **VRMモデル変更**: 好きなVRMファイル（.vrm / .glb）を選択
 - **キャラクターサイズ**: ウィンドウサイズを調整（400〜1200px）
 
+### モーション
+
+- **待機アニメーションを使用する**: たまにランダムな待機リアクションを取ります
+- **発話アニメーションを使用する**: 発話時に感情に合わせたリアクションを取ります
+
 ### オーディオ
 
 - **音声合成エンジン**: AivisSpeech / VOICEVOX / カスタムパス から選択
 - **音声スタイル**: 話者・スタイルを選択（エンジンから自動取得）
 - **音量**: 音量調整（0.00〜2.00）
+- **テスト音声**: テスト音声を再生してプレビュー
+
+### 高度な設定
+
 - **マイク使用中はミュートにする**: OSのマイク使用を検出して制御
 - **サブエージェントの発言を含める**: サブエージェントまで発話対象とするか
-- **テスト音声**: テスト音声を再生してプレビュー
 
 ## 開発者向け
 
@@ -129,16 +137,28 @@ npm run build:mic-monitor
 npm run dev
 ```
 
+`npm run build:mic-monitor` でネイティブヘルパー（マイク監視）をビルドします。
+プラットフォームごとに以下の前提条件があります。
+
+- **macOS**: Xcode Command Line Tools（`xcode-select --install`）
+- **Windows**: Visual Studio Build Tools with C++（[インストール手順](https://visualstudio.microsoft.com/ja/visual-cpp-build-tools/)）
+
 ### 技術スタック
 
 - **Electron**: デスクトップアプリケーション
 - **React + TypeScript + Vite**: フロントエンド
 - **Three.js + @react-three/fiber**: 3Dレンダリング
 - **@pixiv/three-vrm**: VRMサポート
+- **Tailwind CSS**: スタイリング
 - **chokidar**: ファイル監視
+- **electron-updater**: 自動更新
 
 ### 参考
 
 - https://github.com/pixiv/three-vrm
 - https://aivis-project.com/
 - https://voicevox.hiroshiba.jp/
+
+## ライセンス
+
+[Apache License 2.0](LICENSE)
