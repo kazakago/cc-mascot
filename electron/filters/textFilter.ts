@@ -34,13 +34,16 @@ export function cleanTextForSpeech(text: string): string {
   // 8. Remove URLs
   cleaned = cleaned.replace(/https?:\/\/[^\s]+/g, "");
 
-  // 9. Remove inline code backticks but keep the content
+  // 9. Remove git commit hashes (7-40 character hex strings)
+  cleaned = cleaned.replace(/\b[0-9a-f]{7,40}\b/g, "");
+
+  // 10. Remove inline code backticks but keep the content
   cleaned = cleaned.replace(/`([^`]+)`/g, "$1");
 
-  // 10. Remove colons
+  // 11. Remove colons
   cleaned = cleaned.replace(/:/g, "");
 
-  // 11. Replace brackets with readable text
+  // 12. Replace brackets with readable text
   cleaned = cleaned.replace(/[(\uff08]/g, "、かっこ、");
   cleaned = cleaned.replace(/[)\uff09]/g, "、かっこ閉じ、");
 
