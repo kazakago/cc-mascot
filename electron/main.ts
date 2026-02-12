@@ -196,12 +196,12 @@ const createTray = () => {
             `Chrome: v${process.versions.chrome}`,
             `Node.js: v${process.versions.node}`,
           ].join("\n"),
-          buttons: ["ライセンス情報", "アップデートを確認", "OK"],
+          buttons: ["閉じる", "アップデートを確認", "ライセンス情報"],
         });
-        if (response === 0) {
-          createLicenseWindow();
-        } else if (response === 1) {
+        if (response === 1) {
           checkForUpdatesManually();
+        } else if (response === 2) {
+          createLicenseWindow();
         }
       },
     },
