@@ -647,9 +647,7 @@ export default function SettingsApp() {
                   />
                   <span className="font-normal">マイク使用中はミュートにする</span>
                 </label>
-                <p className="text-sm text-gray-400 m-0">
-                  マイク使用中は、キャラクターの発話音声をミュートにします
-                </p>
+                <p className="text-sm text-gray-400 m-0">マイク使用中は、キャラクターの発話音声をミュートにします</p>
               </div>
             )}
             <div className="flex flex-col gap-3">
@@ -662,9 +660,7 @@ export default function SettingsApp() {
                 />
                 <span className="font-normal">サブエージェントの発言も含める</span>
               </label>
-              <p className="text-sm text-gray-400 m-0">
-                サブエージェントの内容も発話の対象とします
-              </p>
+              <p className="text-sm text-gray-400 m-0">サブエージェントの内容も発話の対象とします</p>
             </div>
           </div>
         </div>
