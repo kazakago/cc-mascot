@@ -471,9 +471,9 @@ export default function SettingsApp() {
                   onChange={(e) => handleEnableIdleAnimationsChange(e.target.checked)}
                   className="w-4 h-4 m-0 cursor-pointer accent-primary"
                 />
-                <span className="font-normal">ランダム待機アニメーションを使用する</span>
+                <span className="font-normal">待機モーションを有効にする</span>
               </label>
-              <p className="text-sm text-gray-400 m-0">30〜60秒ごとにランダムな待機アニメーションを再生します</p>
+              <p className="text-sm text-gray-400 m-0">待機中にたまにリアクションを取ります</p>
             </div>
             <div className="flex flex-col gap-3">
               <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-800">
@@ -483,9 +483,9 @@ export default function SettingsApp() {
                   onChange={(e) => handleEnableSpeechAnimationsChange(e.target.checked)}
                   className="w-4 h-4 m-0 cursor-pointer accent-primary"
                 />
-                <span className="font-normal">発話アニメーションを使用する</span>
+                <span className="font-normal">発話モーションを有効にする</span>
               </label>
-              <p className="text-sm text-gray-400 m-0">発話時に感情に合わせたアニメーションを再生します</p>
+              <p className="text-sm text-gray-400 m-0">発話時に感情に合わせたリアクションを取ります</p>
             </div>
           </div>
         </div>
@@ -648,7 +648,7 @@ export default function SettingsApp() {
                   <span className="font-normal">マイク使用中はミュートにする</span>
                 </label>
                 <p className="text-sm text-gray-400 m-0">
-                  他のアプリがマイクを使用中は、キャラクターの発話音声をミュートにします
+                  マイク使用中は、キャラクターの発話音声をミュートにします
                 </p>
               </div>
             )}
@@ -663,7 +663,7 @@ export default function SettingsApp() {
                 <span className="font-normal">サブエージェントの発言も含める</span>
               </label>
               <p className="text-sm text-gray-400 m-0">
-                Claudeが実行するサブエージェント（ファイル検索など）の発言も音声化します
+                サブエージェントの内容も発話の対象とします
               </p>
             </div>
           </div>
