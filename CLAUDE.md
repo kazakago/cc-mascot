@@ -481,67 +481,46 @@ Electronとの統合（electron/main.ts）:
 | `enableIdleAnimations`   | boolean | true       | 待機アニメーションの有効/無効           |
 | `enableSpeechAnimations` | boolean | true       | 発話アニメーションの有効/無効           |
 
+### 12. ランディングページ（GitHub Pages）
+
+**docs/**
+
+GitHub Pagesで公開しているプロダクトLP。Electronアプリ本体とは独立した静的サイト。
+
+公開URL: `https://kazakago.github.io/cc-mascot/`
+
+技術スタック:
+
+- 素のHTML + Tailwind CSS CDN (v4) + vanilla JavaScript
+- Google Fonts (M PLUS Rounded 1c)
+- ビルドプロセスなし（静的ファイルをそのまま配信）
+
+ページ構成:
+
+- `index.html`: メインLP（特徴紹介・仕組み説明・スクリーンショット・ダウンロード導線）
+- `terms.html`: 利用規約
+- `privacy.html`: プライバシーポリシー
+- `style.css`: スタイル（グラデーション背景・フェードインアニメーション・波区切り）
+- `script.js`: スクロールフェードイン・動画再生制御・GitHub API経由のダウンロードURL解決
+- `icon.png` / `screenshot.png` / `demo.mp4`: 画像・動画素材
+
+特記事項:
+
+- ダウンロードボタンは GitHub Releases API からmacOS(.dmg)・Windows(.exe)の最新アセットURLを動的に解決
+- API失敗時はフォールバックとして `releases/latest` ページにリンク
+
 ## ディレクトリ構造
 
 ```
 cc-mascot/
-├── electron/                    # Electronメインプロセス
-│   ├── main.ts                  # エントリーポイント、ウィンドウ管理、エンジン起動、トレイ
-│   ├── preload.ts               # IPC API公開
-│   ├── autoUpdater.ts           # 自動更新機能
-│   ├── logMonitor.ts            # ログファイル監視
-│   ├── parsers/
-│   │   └── claudeCodeParser.ts  # JSONL解析
-│   ├── filters/
-│   │   └── textFilter.ts        # テキストフィルタリング
-│   └── services/
-│       └── ruleBasedEmotionClassifier.ts  # 感情判定
-├── helpers/                     # ネイティブヘルパーソース
-│   └── mic-monitor.swift        # マイク監視 Swift CLI（CoreAudio）
-├── scripts/                     # ビルドスクリプト
-│   ├── build-mic-monitor.mjs    # ネイティブヘルパーのコンパイル
-│   └── notarize.js              # macOSコード署名（パッケージング用）
-├── resources/                   # パッケージングリソース
-│   ├── icons/                   # アプリアイコン
-│   └── mic-monitor              # コンパイル済みバイナリ（.gitignore対象）
-├── src/                         # Electronレンダラープロセス
-│   ├── App.tsx                  # メインウィンドウ
-│   ├── main.tsx                 # メインウィンドウ エントリーポイント
-│   ├── SettingsApp.tsx          # 設定ウィンドウ
-│   ├── settings-main.tsx        # 設定ウィンドウ エントリーポイント
-│   ├── components/
-│   │   ├── VRMAvatar.tsx        # VRMキャラクター表示
-│   │   └── Scene.tsx            # Three.jsシーン
-│   ├── hooks/
-│   │   ├── useSpeech.ts         # 音声合成・キュー管理
-│   │   ├── useLipSync.ts        # リップシンク
-│   │   ├── useVRM.ts            # VRMモデル読み込み
-│   │   ├── useVRMAnimation.ts   # アニメーション
-│   │   ├── useBlink.ts          # まばたき
-│   │   ├── useCursorTracking.ts # 視線・頭部追従
-│   │   └── useLocalStorage.ts   # localStorage永続化
-│   ├── services/
-│   │   └── voicevox.ts          # 音声合成API
-│   ├── utils/
-│   │   └── vrmStorage.ts        # IndexedDB操作
-│   └── types/
-│       └── emotion.ts           # 感情型定義
-├── public/
-│   ├── models/
-│   │   └── avatar.glb           # デフォルトVRMモデル
-│   └── animations/
-│       ├── idle_loop.vrma       # 待機ループモーション
-│       ├── idle_anim1〜4.vrma   # 待機アニメーション（ランダム再生）
-│       ├── happy1.vrma          # 喜びアニメーション1
-│       ├── happy2.vrma          # 喜びアニメーション2
-│       ├── angry.vrma           # 怒りアニメーション
-│       ├── sad.vrma             # 悲しみアニメーション
-│       └── relaxed.vrma         # リラックスアニメーション
-├── build/
-│   └── entitlements.mac.plist   # macOSコード署名用entitlements
-├── .mcp.json                    # MCPサーバー設定
-├── .claude/
-│   └── settings.json            # Claude Code設定
+├── electron/          # Electronメインプロセス（ログ監視・JSONL解析・感情判定・IPC）
+├── helpers/           # ネイティブヘルパーソース（マイク監視 Swift/C++）
+├── scripts/           # ビルドスクリプト（ネイティブヘルパー・コード署名）
+├── resources/         # パッケージングリソース（アイコン・コンパイル済みバイナリ）
+├── src/               # Electronレンダラープロセス（React + Three.js + VRM）
+├── public/            # 静的アセット（VRMモデル・VRMAアニメーション）
+├── docs/              # GitHub Pages LP（静的サイト・利用規約・プライバシーポリシー）
+├── build/             # パッケージング設定（entitlements等）
 └── package.json
 ```
 
