@@ -281,6 +281,12 @@ async function startVoicevoxEngine(isRestart = false): Promise<boolean> {
     return false;
   }
 
+  // Check if engine binary exists
+  if (!fs.existsSync(voicevoxPath)) {
+    console.log(`[Engine] Engine not found at: ${voicevoxPath}`);
+    return false;
+  }
+
   // Check if port is already in use
   const portInUse = await isPortInUse(VOICEVOX_PORT);
   if (portInUse) {
@@ -1051,6 +1057,11 @@ ipcMain.on("set-ignore-mouse-events", (_event, ignore: boolean) => {
 // initialization and is ready to create browser windows.
 app.whenReady().then(async () => {
   createTray();
+
+  // Check if engine binary exists before attempting to start
+  const enginePath = getEnginePath();
+  const engineInstalled = enginePath ? fs.existsSync(enginePath) : false;
+
   await startVoicevoxEngine();
 
   // Start mic monitor if enabled (default: false)
@@ -1060,6 +1071,20 @@ app.whenReady().then(async () => {
 
   createWindow();
   initAutoUpdater();
+
+  // Show dialog and open settings if engine is not found
+  if (!engineInstalled) {
+    createSettingsWindow();
+    // Show dialog as a child of settings window to avoid being hidden behind the transparent main window
+    if (settingsWindow && !settingsWindow.isDestroyed()) {
+      dialog.showMessageBox(settingsWindow, {
+        type: "warning",
+        title: "音声合成エンジンが見つかりません",
+        message:
+          "選択中の音声合成エンジンが見つかりませんでした。\nエンジンをインストールするか、設定画面でエンジンの設定を確認してください。",
+      });
+    }
+  }
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
