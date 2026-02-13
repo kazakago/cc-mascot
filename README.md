@@ -35,14 +35,19 @@ https://github.com/user-attachments/assets/6f67d2fb-e613-4c40-b369-ae8c9092e7f7
 **[AivisSpeech](https://aivis-project.com/)**
 
 インストーラー版によるグローバルインストールを推奨します。  
-グローバルのデフォルトパス以外に音声合成エンジンを配置した場合、設定変更でエンジンパスを指定してください。
+グローバルのデフォルトパス以外に音声合成エンジンを配置した場合、設定変更でエンジンパスを指定してください。  
+
+> [!TIP]
+> 参考: AivisSpeechのプログラムディレクトリ配下のエンジンまでのパス  
+> - macOS: `**/AivisSpeech.app/Contents/Resources/AivisSpeech-Engine/run`  
+> - Windows: `**/AivisSpeech/AivisSpeech-Engine/run.exe`
+
 
 初回起動とモデルDLまで済ませれば上記アプリケーションを起動しておく必要はありません。  
 cc-mascotが自動的にエンジンプロセスを起動します。
 
-> [!TIP]
-> 本アプリケーションはVOICEVOX API互換のエンジンを利用して動作します。  
-> 設定変更することで **[VOICEVOX](https://voicevox.hiroshiba.jp/)** も利用可能です。
+本アプリケーションはVOICEVOX API互換のエンジンを利用して動作します。  
+設定変更することで **[VOICEVOX](https://voicevox.hiroshiba.jp/)** も利用可能です。
 
 ### 2. cc-mascotアプリケーションのインストール
 

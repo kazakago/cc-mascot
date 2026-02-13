@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>プライバシーポリシー - cc-mascot</title>
+    <meta
+      name="description"
+      content="cc-mascotのプライバシーポリシー"
+    />
+
+    <link rel="icon" href="icon.png" />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;900&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Tailwind CSS v4 CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['"M PLUS Rounded 1c"', "sans-serif"],
+            },
+          },
+        },
+      };
+    </script>
+  </head>
+  <body class="font-sans text-slate-800 antialiased">
+    <div class="mx-auto max-w-3xl px-4 py-16">
+      <p class="mb-8">
+        <a href="./" class="text-sm text-slate-500 hover:text-slate-800">&larr; トップページに戻る</a>
+      </p>
+
+      <h1 class="mb-8 text-3xl font-900">プライバシーポリシー</h1>
+
+      <p class="mb-8 text-slate-600">
+        cc-mascot（以下、「本アプリ」といいます）は、ユーザーのプライバシーを尊重し、以下のとおりプライバシーポリシーを定めます。
+      </p>
+
+      <section class="mb-8">
+        <h2 class="mb-3 text-xl font-700">基本方針</h2>
+        <p class="text-slate-600">
+          本アプリはオフライン動作を基本とし、ユーザーの個人情報を収集・送信しません。すべてのデータ処理はユーザーのローカル環境内で完結します。
+        </p>
+      </section>
+
+      <section class="mb-8">
+        <h2 class="mb-3 text-xl font-700">本アプリがアクセスするデータ</h2>
+        <p class="mb-3 text-slate-600">
+          本アプリは以下のデータにアクセスしますが、いずれもユーザーのデバイス内で処理され、外部に送信されることはありません。
+        </p>
+        <ul class="list-disc space-y-2 pl-6 text-slate-600">
+          <li>
+            <span class="font-500 text-slate-800">Claude Codeのログファイル</span><br />
+            <code class="text-sm">~/.claude/projects/</code> 配下のJSONLログファイルを読み取り、Claude Codeの応答テキストを検出します。
+          </li>
+          <li>
+            <span class="font-500 text-slate-800">マイクの使用状態（オプション）</span><br />
+            「マイク使用中はミュートにする」設定を有効にした場合のみ、OSのマイク使用状態を監視します。音声データへのアクセスは行いません。
+          </li>
+        </ul>
+      </section>
+
+      <section class="mb-8">
+        <h2 class="mb-3 text-xl font-700">ローカルに保存するデータ</h2>
+        <p class="mb-3 text-slate-600">
+          本アプリは以下のデータをユーザーのデバイスにローカル保存します。
+        </p>
+        <ul class="list-disc space-y-2 pl-6 text-slate-600">
+          <li>
+            <span class="font-500 text-slate-800">アプリ設定</span><br />
+            エンジン種別、音量、キャラクターサイズ等の設定情報（Electron Store / localStorage）
+          </li>
+          <li>
+            <span class="font-500 text-slate-800">VRMモデルファイル</span><br />
+            ユーザーが選択したカスタムVRMファイル（IndexedDB）
+          </li>
+        </ul>
+      </section>
+
+      <section class="mb-8">
+        <h2 class="mb-3 text-xl font-700">ローカルでの通信</h2>
+        <p class="text-slate-600">
+          本アプリは音声合成のため、ローカルで起動している音声合成エンジン（AivisSpeech / VOICEVOX等）のAPIに対して、テキストデータを送信します。この通信はユーザーのデバイス内（localhost）で完結します。
+        </p>
+      </section>
+
+      <section class="mb-8">
+        <h2 class="mb-3 text-xl font-700">インターネット通信</h2>
+        <p class="mb-3 text-slate-600">
+          本アプリが行うインターネット通信は以下のみです。
+        </p>
+        <ul class="list-disc space-y-2 pl-6 text-slate-600">
+          <li>
+            <span class="font-500 text-slate-800">自動更新チェック</span><br />
+            アプリの最新バージョンを確認するため、GitHubのリリース情報に定期的にアクセスします。この際、個人を特定する情報は送信されません。
+          </li>
+        </ul>
+      </section>
+
+      <section class="mb-8">
+        <h2 class="mb-3 text-xl font-700">第三者への提供</h2>
+        <p class="text-slate-600">
+          本アプリはユーザーのデータを第三者に提供しません。
+        </p>
+      </section>
+
+      <section class="mb-12">
+        <h2 class="mb-3 text-xl font-700">プライバシーポリシーの変更</h2>
+        <p class="text-slate-600">
+          本ポリシーの内容は、必要に応じて変更することがあります。変更後のプライバシーポリシーは、本ページに掲載した時点から効力を生じるものとします。
+        </p>
+      </section>
+
+      <p class="text-right text-slate-600">kazakago</p>
+    </div>
+  </body>
+</html>
