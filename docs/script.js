@@ -19,6 +19,8 @@ document.addEventListener("DOMContentLoaded", () => {
   if (video && playBtn) {
     playBtn.addEventListener("click", () => {
       video.play();
+    });
+    video.addEventListener("play", () => {
       playBtn.classList.add("opacity-0", "pointer-events-none");
     });
     video.addEventListener("pause", () => {
@@ -27,9 +29,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // Resolve latest release download URLs
-  fetch(
-    "https://api.github.com/repos/kazakago/cc-mascot/releases/latest",
-  )
+  fetch("https://api.github.com/repos/kazakago/cc-mascot/releases/latest")
     .then((res) => res.json())
     .then((release) => {
       const assets = release.assets || [];

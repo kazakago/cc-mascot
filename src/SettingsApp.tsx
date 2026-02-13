@@ -408,14 +408,16 @@ export default function SettingsApp() {
   };
 
   return (
-    <div className="h-screen bg-gray-50 p-6 overflow-y-auto">
-      <div className="max-w-2xl mx-auto space-y-6">
+    <div className="h-screen bg-white p-6 overflow-y-auto">
+      <div className="max-w-2xl mx-auto space-y-5">
         {/* Character Section */}
-        <div>
-          <h2 className="m-0 mb-4 text-lg font-semibold text-gray-800">キャラクター</h2>
+        <section className="rounded-2xl bg-slate-50/60 p-6 shadow-sm">
+          <h2 className="m-0 mb-4 text-lg font-semibold text-slate-800 flex items-center gap-2">
+            <span>🎨</span> キャラクター
+          </h2>
           <div className="space-y-4">
             <div className="flex flex-col gap-3">
-              <label htmlFor="vrm-file" className="text-sm font-medium text-gray-600">
+              <label htmlFor="vrm-file" className="text-sm font-medium text-slate-600">
                 VRMモデル変更
               </label>
               <input
@@ -427,18 +429,18 @@ export default function SettingsApp() {
                 style={{ display: "none" }}
               />
               <button
-                className="px-4 py-2 rounded-md text-sm font-medium cursor-pointer transition-all duration-200 border border-gray-300 bg-white text-gray-800 hover:bg-gray-100 hover:border-gray-400 w-fit"
+                className="px-4 py-2 rounded-xl text-sm font-medium cursor-pointer transition-all duration-200 border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300 hover:shadow-sm w-fit"
                 onClick={() => fileInputRef.current?.click()}
                 type="button"
               >
                 VRMファイルを選択
               </button>
-              <p className="text-sm text-gray-600 mb-0 italic">
+              <p className="text-sm text-slate-500 mb-0 italic">
                 {selectedFileName || vrmFileName || "ファイルが選択されていません"}
               </p>
             </div>
             <div className="flex flex-col gap-3">
-              <label htmlFor="window-size" className="text-sm font-medium text-gray-600">
+              <label htmlFor="window-size" className="text-sm font-medium text-slate-600">
                 キャラクターサイズ: {windowSizeInput}px
               </label>
               <input
@@ -451,20 +453,22 @@ export default function SettingsApp() {
                 onChange={(e) => handleWindowSizeChange(Number(e.target.value))}
                 className="w-full cursor-pointer"
               />
-              <div className="flex justify-between text-sm text-gray-400">
+              <div className="flex justify-between text-sm text-slate-400">
                 <span>400px (小)</span>
                 <span>1200px (大)</span>
               </div>
             </div>
           </div>
-        </div>
+        </section>
 
         {/* Motion Section */}
-        <div>
-          <h2 className="m-0 mb-4 text-lg font-semibold text-gray-800">モーション</h2>
+        <section className="rounded-2xl bg-slate-50/60 p-6 shadow-sm">
+          <h2 className="m-0 mb-4 text-lg font-semibold text-slate-800 flex items-center gap-2">
+            <span>🎬</span> モーション
+          </h2>
           <div className="space-y-4">
             <div className="flex flex-col gap-3">
-              <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-800">
+              <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-800">
                 <input
                   type="checkbox"
                   checked={enableIdleAnimations}
@@ -473,10 +477,10 @@ export default function SettingsApp() {
                 />
                 <span className="font-normal">待機モーションを有効にする</span>
               </label>
-              <p className="text-sm text-gray-400 m-0">待機中にたまにリアクションを取ります</p>
+              <p className="text-sm text-slate-400 m-0">待機中にたまにリアクションを取ります</p>
             </div>
             <div className="flex flex-col gap-3">
-              <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-800">
+              <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-800">
                 <input
                   type="checkbox"
                   checked={enableSpeechAnimations}
@@ -485,19 +489,21 @@ export default function SettingsApp() {
                 />
                 <span className="font-normal">発話モーションを有効にする</span>
               </label>
-              <p className="text-sm text-gray-400 m-0">発話時に感情に合わせたリアクションを取ります</p>
+              <p className="text-sm text-slate-400 m-0">発話時に感情に合わせたリアクションを取ります</p>
             </div>
           </div>
-        </div>
+        </section>
 
         {/* Audio Section */}
-        <div>
-          <h2 className="m-0 mb-4 text-lg font-semibold text-gray-800">オーディオ</h2>
+        <section className="rounded-2xl bg-slate-50/60 p-6 shadow-sm">
+          <h2 className="m-0 mb-4 text-lg font-semibold text-slate-800 flex items-center gap-2">
+            <span>🔊</span> オーディオ
+          </h2>
           <div className="space-y-4">
             <div className="flex flex-col gap-3">
-              <label className="text-sm font-medium text-gray-600">音声合成エンジン</label>
+              <label className="text-sm font-medium text-slate-600">音声合成エンジン</label>
               <div className="flex flex-col gap-2.5">
-                <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-800">
+                <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-800">
                   <input
                     type="radio"
                     name="engineType"
@@ -508,7 +514,7 @@ export default function SettingsApp() {
                   />
                   <span className="font-normal">AivisSpeech</span>
                 </label>
-                <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-800">
+                <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-800">
                   <input
                     type="radio"
                     name="engineType"
@@ -519,7 +525,7 @@ export default function SettingsApp() {
                   />
                   <span className="font-normal">VOICEVOX</span>
                 </label>
-                <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-800">
+                <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-800">
                   <input
                     type="radio"
                     name="engineType"
@@ -533,7 +539,7 @@ export default function SettingsApp() {
               </div>
             </div>
             <div className="flex flex-col gap-3">
-              <label htmlFor="engine-path" className="text-sm font-medium text-gray-600">
+              <label htmlFor="engine-path" className="text-sm font-medium text-slate-600">
                 エンジンパス
               </label>
               <div className="flex gap-2 items-center">
@@ -544,13 +550,13 @@ export default function SettingsApp() {
                   onChange={(e) => setCustomPath(e.target.value)}
                   disabled={engineType !== "custom"}
                   placeholder={engineType === "custom" ? "カスタムエンジンパスを入力" : ""}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm font-mono text-gray-800 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+                  className="flex-1 px-3 py-2 border border-slate-200 rounded-xl text-sm font-mono text-slate-800 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
                 />
                 {engineType === "custom" && (
                   <button
                     type="button"
                     onClick={handleApplyCustomPath}
-                    className="px-4 py-2 rounded-md text-sm font-medium cursor-pointer transition-all duration-200 border-0 bg-primary text-white whitespace-nowrap min-w-[60px] hover:bg-primary-dark disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    className="btn-gradient px-5 py-2 rounded-full text-sm font-medium whitespace-nowrap min-w-[60px]"
                     disabled={loadingSpeakers}
                   >
                     確定
@@ -559,7 +565,7 @@ export default function SettingsApp() {
               </div>
             </div>
             <div className="flex flex-col gap-3">
-              <label htmlFor="speaker-select" className="text-sm font-medium text-gray-600">
+              <label htmlFor="speaker-select" className="text-sm font-medium text-slate-600">
                 音声スタイル
               </label>
               {loadingSpeakers ? (
@@ -567,18 +573,18 @@ export default function SettingsApp() {
                   <select
                     id="speaker-select"
                     disabled
-                    className="px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-800 bg-white cursor-pointer w-full focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+                    className="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white cursor-pointer w-full focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
                   >
                     <option>読み込み中...</option>
                   </select>
-                  <p className="text-sm text-gray-400 mt-1 mb-0">エンジンの起動を待っています...</p>
+                  <p className="text-sm text-slate-400 mt-1 mb-0">エンジンの起動を待っています...</p>
                 </>
               ) : speakers.length > 0 ? (
                 <select
                   id="speaker-select"
                   value={selectedSpeakerId}
                   onChange={(e) => handleSpeakerChange(Number(e.target.value))}
-                  className="px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-800 bg-white cursor-pointer w-full focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+                  className="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white cursor-pointer w-full focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
                 >
                   {speakers.map((speaker) => (
                     <option key={speaker.id} value={speaker.id}>
@@ -591,16 +597,16 @@ export default function SettingsApp() {
                   <select
                     id="speaker-select"
                     disabled
-                    className="px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-800 bg-white cursor-pointer w-full focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+                    className="px-3 py-2 border border-slate-200 rounded-xl text-sm text-slate-800 bg-white cursor-pointer w-full focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
                   >
                     <option>利用可能なスタイルがありません</option>
                   </select>
-                  <p className="text-sm text-gray-400 mt-1 mb-0">エンジンが実行されていますか?</p>
+                  <p className="text-sm text-slate-400 mt-1 mb-0">エンジンが実行されていますか?</p>
                 </>
               )}
             </div>
             <div className="flex flex-col gap-3">
-              <label htmlFor="volume-scale" className="text-sm font-medium text-gray-600">
+              <label htmlFor="volume-scale" className="text-sm font-medium text-slate-600">
                 音量: {volumeScaleInput.toFixed(2)}
               </label>
               <input
@@ -617,12 +623,12 @@ export default function SettingsApp() {
               />
             </div>
             <div className="flex flex-col gap-3">
-              <label className="text-sm font-medium text-gray-600">テスト音声</label>
+              <label className="text-sm font-medium text-slate-600">テスト音声</label>
               <button
                 type="button"
                 onClick={handleTestSpeech}
                 disabled={isPlayingTest || speakers.length === 0}
-                className="px-4 py-2 rounded-md text-sm font-medium cursor-pointer transition-all duration-200 border-0 bg-primary text-white w-fit hover:bg-primary-dark disabled:bg-gray-400 disabled:cursor-not-allowed"
+                className="btn-gradient px-5 py-2 rounded-full text-sm font-medium w-fit"
               >
                 {isPlayingTest ? "再生中..." : "テスト音声を再生"}
               </button>
@@ -630,15 +636,17 @@ export default function SettingsApp() {
             </div>
             {error && <p className="text-sm text-danger mt-1 mb-0">{error}</p>}
           </div>
-        </div>
+        </section>
 
         {/* Advanced Settings Section */}
-        <div>
-          <h2 className="m-0 mb-4 text-lg font-semibold text-gray-800">高度な設定</h2>
+        <section className="rounded-2xl bg-slate-50/60 p-6 shadow-sm">
+          <h2 className="m-0 mb-4 text-lg font-semibold text-slate-800 flex items-center gap-2">
+            <span>⚙️</span> 高度な設定
+          </h2>
           <div className="space-y-4">
             {micMonitorAvailable && (
               <div className="flex flex-col gap-3">
-                <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-800">
+                <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-800">
                   <input
                     type="checkbox"
                     checked={muteOnMicActive}
@@ -647,11 +655,11 @@ export default function SettingsApp() {
                   />
                   <span className="font-normal">マイク使用中はミュートにする</span>
                 </label>
-                <p className="text-sm text-gray-400 m-0">マイク使用中は、キャラクターの発話音声をミュートにします</p>
+                <p className="text-sm text-slate-400 m-0">マイク使用中は、キャラクターの発話音声をミュートにします</p>
               </div>
             )}
             <div className="flex flex-col gap-3">
-              <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-800">
+              <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-800">
                 <input
                   type="checkbox"
                   checked={includeSubAgents}
@@ -660,17 +668,19 @@ export default function SettingsApp() {
                 />
                 <span className="font-normal">サブエージェントの発言も含める</span>
               </label>
-              <p className="text-sm text-gray-400 m-0">サブエージェントの内容も発話の対象とします</p>
+              <p className="text-sm text-slate-400 m-0">サブエージェントの内容も発話の対象とします</p>
             </div>
           </div>
-        </div>
+        </section>
 
         {/* Reset Section */}
-        <div>
-          <h2 className="m-0 mb-4 text-lg font-semibold text-gray-800">リセット</h2>
+        <section className="rounded-2xl bg-slate-50/60 p-6 shadow-sm">
+          <h2 className="m-0 mb-4 text-lg font-semibold text-slate-800 flex items-center gap-2">
+            <span>🔄</span> リセット
+          </h2>
           <div className="flex flex-col gap-3">
             <button
-              className="px-4 py-2 rounded-md text-sm font-medium cursor-pointer transition-all duration-200 border border-solid border-gray-300 bg-white text-gray-700 w-fit hover:bg-gray-100"
+              className="px-4 py-2 rounded-xl text-sm font-medium cursor-pointer transition-all duration-200 border border-slate-200 bg-white text-slate-700 w-fit hover:bg-slate-50 hover:border-slate-300 hover:shadow-sm"
               onClick={() => {
                 window.electron?.resetCharacterPosition?.();
               }}
@@ -678,24 +688,26 @@ export default function SettingsApp() {
               キャラクター位置をリセット
             </button>
             <button
-              className="px-4 py-2 rounded-md text-sm font-medium cursor-pointer transition-all duration-200 border-0 bg-danger text-white w-fit hover:bg-danger-dark"
+              className="px-4 py-2 rounded-xl text-sm font-medium cursor-pointer transition-all duration-200 border border-red-200 bg-red-50 text-red-600 w-fit hover:bg-red-100 hover:border-red-300"
               onClick={handleReset}
             >
               すべての設定をリセット
             </button>
           </div>
-        </div>
+        </section>
 
         {/* Developer Section */}
-        <div>
-          <h2 className="m-0 mb-4 text-lg font-semibold text-gray-800">デベロッパー</h2>
+        <section className="rounded-2xl bg-slate-50/60 p-6 shadow-sm">
+          <h2 className="m-0 mb-4 text-lg font-semibold text-slate-800 flex items-center gap-2">
+            <span>🛠️</span> デベロッパー
+          </h2>
           <div className="space-y-4">
             <div className="flex flex-col gap-3">
-              <label className="text-sm font-medium text-gray-600">DevTools</label>
+              <label className="text-sm font-medium text-slate-600">DevTools</label>
               <div className="flex gap-3">
                 <button
                   type="button"
-                  className="px-4 py-2 rounded-md text-sm font-medium cursor-pointer transition-all duration-200 border border-solid border-gray-300 bg-white text-gray-700 w-fit hover:bg-gray-100"
+                  className="px-4 py-2 rounded-xl text-sm font-medium cursor-pointer transition-all duration-200 border border-slate-200 bg-white text-slate-700 w-fit hover:bg-slate-50 hover:border-slate-300 hover:shadow-sm"
                   onClick={() => {
                     window.electron?.toggleDevTools?.("main").then(setMainDevToolsOpen);
                   }}
@@ -704,7 +716,7 @@ export default function SettingsApp() {
                 </button>
                 <button
                   type="button"
-                  className="px-4 py-2 rounded-md text-sm font-medium cursor-pointer transition-all duration-200 border border-solid border-gray-300 bg-white text-gray-700 w-fit hover:bg-gray-100"
+                  className="px-4 py-2 rounded-xl text-sm font-medium cursor-pointer transition-all duration-200 border border-slate-200 bg-white text-slate-700 w-fit hover:bg-slate-50 hover:border-slate-300 hover:shadow-sm"
                   onClick={() => {
                     window.electron?.toggleDevTools?.("settings").then(setSettingsDevToolsOpen);
                   }}
@@ -712,12 +724,12 @@ export default function SettingsApp() {
                   設定ウィンドウ DevTools を{settingsDevToolsOpen ? "閉じる" : "開く"}
                 </button>
               </div>
-              <p className="text-sm text-gray-500 m-0">
+              <p className="text-sm text-slate-500 m-0">
                 ショートカット: {navigator.platform.includes("Mac") ? "⌘ Command + ⌥ Option + I" : "Ctrl + Shift + I"}
               </p>
             </div>
           </div>
-        </div>
+        </section>
       </div>
     </div>
   );

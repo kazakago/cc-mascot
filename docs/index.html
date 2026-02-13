@@ -1,42 +1,21 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>cc-mascot - Claude Code向けデスクトップマスコット</title>
-    <meta
-      name="description"
-      content="Claude Codeからの応答を喋ってくれるデスクトップマスコット"
-    />
+    <meta name="description" content="Claude Codeからの応答を喋ってくれるデスクトップマスコット" />
 
     <!-- OGP -->
-    <meta
-      property="og:title"
-      content="cc-mascot - Claude Code向けデスクトップマスコット"
-    />
-    <meta
-      property="og:description"
-      content="Claude Codeからの応答を喋ってくれるデスクトップマスコット"
-    />
-    <meta
-      property="og:image"
-      content="https://kazakago.github.io/cc-mascot/icon.png"
-    />
+    <meta property="og:title" content="cc-mascot - Claude Code向けデスクトップマスコット" />
+    <meta property="og:description" content="Claude Codeからの応答を喋ってくれるデスクトップマスコット" />
+    <meta property="og:image" content="https://kazakago.github.io/cc-mascot/icon.png" />
     <meta property="og:url" content="https://kazakago.github.io/cc-mascot/" />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary" />
-    <meta
-      name="twitter:title"
-      content="cc-mascot - Claude Code向けデスクトップマスコット"
-    />
-    <meta
-      name="twitter:description"
-      content="Claude Codeからの応答を喋ってくれるデスクトップマスコット"
-    />
-    <meta
-      name="twitter:image"
-      content="https://kazakago.github.io/cc-mascot/icon.png"
-    />
+    <meta name="twitter:title" content="cc-mascot - Claude Code向けデスクトップマスコット" />
+    <meta name="twitter:description" content="Claude Codeからの応答を喋ってくれるデスクトップマスコット" />
+    <meta name="twitter:image" content="https://kazakago.github.io/cc-mascot/icon.png" />
 
     <link rel="icon" href="icon.png" />
 
@@ -70,36 +49,20 @@
       class="section-hero relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4 py-20"
     >
       <div class="fade-in relative z-10 mx-auto max-w-5xl text-center">
-        <img
-          src="icon.png"
-          alt="cc-mascot アイコン"
-          class="mx-auto mb-8 h-28 w-28 rounded-3xl drop-shadow-lg"
-        />
-        <h1 class="mb-4 text-5xl font-900 tracking-tight md:text-6xl">
-          cc-mascot
-        </h1>
-        <p class="gradient-text mb-8 text-xl font-700 md:text-2xl">
-          Claude Codeの応答を喋るデスクトップマスコット
-        </p>
+        <img src="icon.png" alt="cc-mascot アイコン" class="mx-auto mb-8 h-28 w-28 rounded-3xl drop-shadow-lg" />
+        <h1 class="mb-4 text-5xl font-900 tracking-tight md:text-6xl">cc-mascot</h1>
+        <p class="gradient-text mb-8 text-xl font-700 md:text-2xl">Claude Codeの応答を喋るデスクトップマスコット</p>
         <p class="mx-auto mb-10 max-w-2xl text-lg text-slate-600">
           Claude Codeからの返答をVRMキャラクターがリアルタイムで読み上げ。<br />感情表現・リップシンク・視線追従で、コーディングに楽しいパートナーを。
         </p>
 
         <!-- Demo Video -->
         <div class="relative mb-10 overflow-hidden rounded-2xl shadow-2xl">
-          <video
-            controls
-            loop
-            playsinline
-            class="w-full"
-            id="demo-video"
-            src="demo.mp4"
-          ></video>
-          <button
-            id="demo-play-btn"
-            class="absolute inset-0 flex items-center justify-center transition-opacity"
-          >
-            <div class="flex h-20 w-20 items-center justify-center rounded-full bg-white/90 shadow-lg transition-transform hover:scale-110">
+          <video controls loop playsinline class="w-full" id="demo-video" src="demo.mp4"></video>
+          <button id="demo-play-btn" class="absolute inset-0 flex items-center justify-center transition-opacity">
+            <div
+              class="flex h-20 w-20 items-center justify-center rounded-full bg-white/90 shadow-lg transition-transform hover:scale-110"
+            >
               <svg class="ml-1 h-10 w-10 text-slate-800" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M8 5v14l11-7z" />
               </svg>
@@ -125,24 +88,26 @@
           </a>
         </div>
         <p class="mt-4 text-xs text-slate-400">
-          ダウンロードすることで、<a href="terms.html" class="underline hover:text-slate-600">利用規約</a>および<a href="privacy.html" class="underline hover:text-slate-600">プライバシーポリシー</a>に同意したものとみなします。
+          ダウンロードすることで、<a href="terms.html" class="underline hover:text-slate-600">利用規約</a>および<a
+            href="privacy.html"
+            class="underline hover:text-slate-600"
+            >プライバシーポリシー</a
+          >に同意したものとみなします。
         </p>
       </div>
     </section>
 
     <!-- Wave: Hero → Features -->
     <svg class="wave-divider" viewBox="0 0 1440 60" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M0,60 C360,0 1080,0 1440,60 L1440,0 L0,0 Z" fill="#e0e7ff"/>
-      <path d="M0,60 C480,10 960,10 1440,60 L1440,60 L0,60 Z" fill="#e0e7ff"/>
+      <path d="M0,60 C360,0 1080,0 1440,60 L1440,0 L0,0 Z" fill="#e0e7ff" />
+      <path d="M0,60 C480,10 960,10 1440,60 L1440,60 L0,60 Z" fill="#e0e7ff" />
     </svg>
 
     <!-- Features -->
     <section class="section-features px-4 py-20">
       <div class="fade-in mx-auto max-w-6xl">
         <h2 class="mb-4 text-center text-3xl font-900 md:text-4xl">特徴</h2>
-        <p class="mb-12 text-center text-slate-600">
-          シンプルな仕組みで、豊かな体験を。
-        </p>
+        <p class="mb-12 text-center text-slate-600">シンプルな仕組みで、豊かな体験を。</p>
         <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           <!-- Feature Cards -->
           <div class="feature-card rounded-2xl bg-white/80 p-6 shadow-md backdrop-blur-sm">
@@ -163,24 +128,19 @@
             <div class="mb-4 text-4xl">📡</div>
             <h3 class="mb-2 text-lg font-700">自動ログ監視</h3>
             <p class="text-sm text-slate-600">
-              Claude
-              Codeのログファイルを自動監視。プラグイン不要で、起動するだけで連携開始。
+              Claude Codeのログファイルを自動監視。プラグイン不要で、起動するだけで連携開始。
             </p>
           </div>
           <div class="feature-card rounded-2xl bg-white/80 p-6 shadow-md backdrop-blur-sm">
             <div class="mb-4 text-4xl">🔊</div>
             <h3 class="mb-2 text-lg font-700">音声合成エンジン</h3>
-            <p class="text-sm text-slate-600">
-              AivisSpeech / VOICEVOX /
-              互換エンジンに対応。好みの声質で喋らせよう。
-            </p>
+            <p class="text-sm text-slate-600">AivisSpeech / VOICEVOX / 互換エンジンに対応。好みの声質で喋らせよう。</p>
           </div>
           <div class="feature-card rounded-2xl bg-white/80 p-6 shadow-md backdrop-blur-sm">
             <div class="mb-4 text-4xl">👄</div>
             <h3 class="mb-2 text-lg font-700">リップシンク</h3>
             <p class="text-sm text-slate-600">
-              Web Audio
-              APIで音声をリアルタイム解析。音声に同期した自然な口の動きを実現。
+              Web Audio APIで音声をリアルタイム解析。音声に同期した自然な口の動きを実現。
             </p>
           </div>
           <div class="feature-card rounded-2xl bg-white/80 p-6 shadow-md backdrop-blur-sm">
@@ -200,9 +160,7 @@
           <div class="feature-card rounded-2xl bg-white/80 p-6 shadow-md backdrop-blur-sm">
             <div class="mb-4 text-4xl">🎨</div>
             <h3 class="mb-2 text-lg font-700">カスタマイズ</h3>
-            <p class="text-sm text-slate-600">
-              好きなVRMモデルや音声スタイルに変更可能。あなただけのマスコットに。
-            </p>
+            <p class="text-sm text-slate-600">好きなVRMモデルや音声スタイルに変更可能。あなただけのマスコットに。</p>
           </div>
         </div>
       </div>
@@ -210,19 +168,15 @@
 
     <!-- Wave: Features → How It Works -->
     <svg class="wave-divider" viewBox="0 0 1440 60" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M0,0 C360,60 1080,60 1440,0 L1440,60 L0,60 Z" fill="#fef3c7"/>
-      <path d="M0,0 C480,50 960,50 1440,0 L1440,0 L0,0 Z" fill="#ffedd5"/>
+      <path d="M0,0 C360,60 1080,60 1440,0 L1440,60 L0,60 Z" fill="#fef3c7" />
+      <path d="M0,0 C480,50 960,50 1440,0 L1440,0 L0,0 Z" fill="#ffedd5" />
     </svg>
 
     <!-- How It Works -->
     <section class="section-how px-4 py-20">
       <div class="fade-in mx-auto max-w-4xl">
-        <h2 class="mb-4 text-center text-3xl font-900 md:text-4xl">
-          仕組み
-        </h2>
-        <p class="mb-12 text-center text-slate-600">
-          Claude Codeのログを監視して、自動的にキャラクターが喋ります。
-        </p>
+        <h2 class="mb-4 text-center text-3xl font-900 md:text-4xl">仕組み</h2>
+        <p class="mb-12 text-center text-slate-600">Claude Codeのログを監視して、自動的にキャラクターが喋ります。</p>
         <div class="grid gap-8 md:grid-cols-4">
           <div class="step-card text-center">
             <div
@@ -231,9 +185,7 @@
               1
             </div>
             <h3 class="mb-2 font-700">Claude Codeで会話</h3>
-            <p class="text-sm text-slate-600">
-              いつも通りClaude Codeを使うだけ。特別な設定は不要。
-            </p>
+            <p class="text-sm text-slate-600">いつも通りClaude Codeを使うだけ。特別な設定は不要。</p>
           </div>
           <div class="step-card text-center">
             <div
@@ -242,9 +194,7 @@
               2
             </div>
             <h3 class="mb-2 font-700">ログを自動検出</h3>
-            <p class="text-sm text-slate-600">
-              JSONLログファイルをリアルタイム監視し、応答を自動検出。
-            </p>
+            <p class="text-sm text-slate-600">JSONLログファイルをリアルタイム監視し、応答を自動検出。</p>
           </div>
           <div class="step-card text-center">
             <div
@@ -253,9 +203,7 @@
               3
             </div>
             <h3 class="mb-2 font-700">感情を判定</h3>
-            <p class="text-sm text-slate-600">
-              テキストからキーワード・文末パターンで感情をスコアリング。
-            </p>
+            <p class="text-sm text-slate-600">テキストからキーワード・文末パターンで感情をスコアリング。</p>
           </div>
           <div class="step-card text-center">
             <div
@@ -264,9 +212,7 @@
               4
             </div>
             <h3 class="mb-2 font-700">キャラクターが発話</h3>
-            <p class="text-sm text-slate-600">
-              音声合成 + リップシンク + 感情表現でキャラクターが喋る。
-            </p>
+            <p class="text-sm text-slate-600">音声合成 + リップシンク + 感情表現でキャラクターが喋る。</p>
           </div>
         </div>
       </div>
@@ -274,26 +220,17 @@
 
     <!-- Wave: How It Works → Screenshot -->
     <svg class="wave-divider" viewBox="0 0 1440 60" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M0,60 C240,0 720,60 1440,0 L1440,0 L0,0 Z" fill="#ccfbf1"/>
-      <path d="M0,60 C360,10 960,50 1440,0 L1440,60 L0,60 Z" fill="#d1fae5"/>
+      <path d="M0,60 C240,0 720,60 1440,0 L1440,0 L0,0 Z" fill="#ccfbf1" />
+      <path d="M0,60 C360,10 960,50 1440,0 L1440,60 L0,60 Z" fill="#d1fae5" />
     </svg>
 
     <!-- Screenshot -->
     <section class="section-screenshot px-4 py-20">
       <div class="fade-in mx-auto max-w-5xl">
-        <h2 class="mb-4 text-center text-3xl font-900 md:text-4xl">
-          スクリーンショット
-        </h2>
-        <p class="mb-12 text-center text-slate-600">
-          デスクトップに常駐するVRMキャラクターと設定画面。
-        </p>
+        <h2 class="mb-4 text-center text-3xl font-900 md:text-4xl">スクリーンショット</h2>
+        <p class="mb-12 text-center text-slate-600">デスクトップに常駐するVRMキャラクターと設定画面。</p>
         <div class="overflow-hidden rounded-2xl shadow-2xl">
-          <img
-            src="screenshot.png"
-            alt="cc-mascot スクリーンショット"
-            class="w-full"
-            loading="lazy"
-          />
+          <img src="screenshot.png" alt="cc-mascot スクリーンショット" class="w-full" loading="lazy" />
         </div>
         <div class="mt-8 grid gap-6 md:grid-cols-3">
           <div class="text-center">
@@ -304,9 +241,7 @@
           </div>
           <div class="text-center">
             <h3 class="mb-2 font-700">ドラッグ移動</h3>
-            <p class="text-sm text-slate-600">
-              キャラクターをドラッグして好きな位置に配置。常に最前面で表示。
-            </p>
+            <p class="text-sm text-slate-600">キャラクターをドラッグして好きな位置に配置。常に最前面で表示。</p>
           </div>
           <div class="text-center">
             <h3 class="mb-2 font-700">設定画面</h3>
@@ -320,19 +255,15 @@
 
     <!-- Wave: Screenshot → Requirements -->
     <svg class="wave-divider" viewBox="0 0 1440 60" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M0,0 C480,60 960,60 1440,0 L1440,60 L0,60 Z" fill="#ede9fe"/>
-      <path d="M0,0 C240,50 1200,50 1440,0 L1440,0 L0,0 Z" fill="#ede9fe"/>
+      <path d="M0,0 C480,60 960,60 1440,0 L1440,60 L0,60 Z" fill="#ede9fe" />
+      <path d="M0,0 C240,50 1200,50 1440,0 L1440,0 L0,0 Z" fill="#ede9fe" />
     </svg>
 
     <!-- Requirements -->
     <section class="section-requirements px-4 py-20">
       <div class="fade-in mx-auto max-w-3xl">
-        <h2 class="mb-4 text-center text-3xl font-900 md:text-4xl">
-          動作環境
-        </h2>
-        <p class="mb-12 text-center text-slate-600">
-          対応OSと必要なソフトウェア。
-        </p>
+        <h2 class="mb-4 text-center text-3xl font-900 md:text-4xl">動作環境</h2>
+        <p class="mb-12 text-center text-slate-600">対応OSと必要なソフトウェア。</p>
         <div class="grid gap-6 md:grid-cols-2">
           <div class="rounded-2xl bg-white/70 p-6 shadow-sm">
             <h3 class="mb-4 text-lg font-700">対応OS</h3>
@@ -359,10 +290,8 @@
               <li class="flex items-start gap-2">
                 <span class="mt-0.5 text-lg">🤖</span>
                 <div>
-                   <span class="font-500 text-slate-800"
-                    ><a
-                      href="https://claude.com/ja-jp/product/claude-code"
-                      class="underline hover:text-slate-800"
+                  <span class="font-500 text-slate-800"
+                    ><a href="https://claude.com/ja-jp/product/claude-code" class="underline hover:text-slate-800"
                       >Claude Code</a
                     ></span
                   >
@@ -373,11 +302,7 @@
                 <span class="mt-0.5 text-lg">🔊</span>
                 <div>
                   <span class="font-500 text-slate-800"
-                    ><a
-                      href="https://aivis-project.com/"
-                      class="underline hover:text-slate-800"
-                      >AivisSpeech</a
-                    ></span
+                    ><a href="https://aivis-project.com/" class="underline hover:text-slate-800">AivisSpeech</a></span
                   >
                   <br />日本語音声合成エンジン（VOICEVOX API互換エンジンも利用可能）
                 </div>
@@ -390,42 +315,34 @@
 
     <!-- Wave: Requirements → Download -->
     <svg class="wave-divider" viewBox="0 0 1440 60" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M0,60 C360,0 1080,0 1440,60 L1440,0 L0,0 Z" fill="#fecaca"/>
-      <path d="M0,60 C600,20 840,20 1440,60 L1440,60 L0,60 Z" fill="#ffe4e6"/>
+      <path d="M0,60 C360,0 1080,0 1440,60 L1440,0 L0,0 Z" fill="#fecaca" />
+      <path d="M0,60 C600,20 840,20 1440,60 L1440,60 L0,60 Z" fill="#ffe4e6" />
     </svg>
 
     <!-- Download -->
     <section class="section-download px-4 py-20">
       <div class="fade-in relative z-10 mx-auto max-w-3xl text-center">
-        <h2 class="mb-4 text-3xl font-900 md:text-4xl">
-          今すぐはじめよう
-        </h2>
+        <h2 class="mb-4 text-3xl font-900 md:text-4xl">今すぐはじめよう</h2>
         <p class="mb-10 text-slate-600">3ステップで簡単セットアップ。</p>
         <div class="mb-12 grid gap-6 text-left md:grid-cols-3">
           <div class="rounded-2xl bg-white/80 p-6 shadow-md backdrop-blur-sm">
             <div class="mb-2 text-sm font-700 text-orange-500">Step 1</div>
             <h3 class="mb-2 font-700">音声エンジン導入</h3>
             <p class="text-sm text-slate-600">
-              <a
-                href="https://aivis-project.com/"
-                class="underline hover:text-slate-800"
-                >AivisSpeech</a
+              <a href="https://aivis-project.com/" class="underline hover:text-slate-800">AivisSpeech</a
               >をインストールして初回起動とモデルDLを済ませる。
             </p>
           </div>
           <div class="rounded-2xl bg-white/80 p-6 shadow-md backdrop-blur-sm">
             <div class="mb-2 text-sm font-700 text-pink-500">Step 2</div>
             <h3 class="mb-2 font-700">アプリをインストール</h3>
-            <p class="text-sm text-slate-600">
-              GitHubリリースページから最新バイナリをダウンロード&インストール。
-            </p>
+            <p class="text-sm text-slate-600">GitHubリリースページから最新バイナリをダウンロード&インストール。</p>
           </div>
           <div class="rounded-2xl bg-white/80 p-6 shadow-md backdrop-blur-sm">
             <div class="mb-2 text-sm font-700 text-violet-500">Step 3</div>
             <h3 class="mb-2 font-700">起動して会話</h3>
             <p class="text-sm text-slate-600">
-              アプリを起動してClaude
-              Codeで会話するだけ。キャラクターが自動で喋り始める。
+              アプリを起動してClaude Codeで会話するだけ。キャラクターが自動で喋り始める。
             </p>
           </div>
         </div>
@@ -452,14 +369,18 @@
           </a>
         </div>
         <p class="mt-4 text-xs text-slate-400">
-          ダウンロードすることで、<a href="terms.html" class="underline hover:text-slate-600">利用規約</a>および<a href="privacy.html" class="underline hover:text-slate-600">プライバシーポリシー</a>に同意したものとみなします。
+          ダウンロードすることで、<a href="terms.html" class="underline hover:text-slate-600">利用規約</a>および<a
+            href="privacy.html"
+            class="underline hover:text-slate-600"
+            >プライバシーポリシー</a
+          >に同意したものとみなします。
         </p>
       </div>
     </section>
 
     <!-- Wave: Download → Footer -->
     <svg class="wave-divider" viewBox="0 0 1440 40" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M0,0 C480,40 960,40 1440,0 L1440,40 L0,40 Z" fill="#f1f5f9"/>
+      <path d="M0,0 C480,40 960,40 1440,0 L1440,40 L0,40 Z" fill="#f1f5f9" />
     </svg>
 
     <!-- Footer -->
@@ -470,39 +391,15 @@
           <span class="text-lg font-700">cc-mascot</span>
         </div>
         <div class="mb-6 flex flex-wrap justify-center gap-6 text-sm text-slate-600">
-          <a
-            href="https://github.com/kazakago/cc-mascot"
-            class="hover:text-slate-800"
-            >GitHub</a
-          >
-          <a
-            href="https://github.com/kazakago/cc-mascot/releases"
-            class="hover:text-slate-800"
-            >Releases</a
-          >
-          <a
-            href="https://github.com/kazakago/cc-mascot/blob/main/LICENSE"
-            class="hover:text-slate-800"
-            >License</a
-          >
-          <a
-            href="terms.html"
-            class="hover:text-slate-800"
-            >Terms</a
-          >
-          <a
-            href="privacy.html"
-            class="hover:text-slate-800"
-            >Privacy Policy</a
-          >
+          <a href="https://github.com/kazakago/cc-mascot" class="hover:text-slate-800">GitHub</a>
+          <a href="https://github.com/kazakago/cc-mascot/releases" class="hover:text-slate-800">Releases</a>
+          <a href="https://github.com/kazakago/cc-mascot/blob/main/LICENSE" class="hover:text-slate-800">License</a>
+          <a href="terms.html" class="hover:text-slate-800">Terms</a>
+          <a href="privacy.html" class="hover:text-slate-800">Privacy Policy</a>
         </div>
         <p class="text-xs text-slate-400">
           &copy; 2026
-          <a
-            href="https://blog.kazakago.com/"
-            class="hover:text-slate-600"
-            >kazakago</a
-          >
+          <a href="https://blog.kazakago.com/" class="hover:text-slate-600">kazakago</a>
         </p>
       </div>
     </footer>
