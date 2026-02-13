@@ -19,6 +19,8 @@ document.addEventListener("DOMContentLoaded", () => {
   if (video && playBtn) {
     playBtn.addEventListener("click", () => {
       video.play();
+    });
+    video.addEventListener("play", () => {
       playBtn.classList.add("opacity-0", "pointer-events-none");
     });
     video.addEventListener("pause", () => {
