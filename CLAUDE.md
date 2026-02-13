@@ -33,9 +33,10 @@
 - chokidar (ログファイル監視)
 - 対象: `~/.claude/projects/**/*.jsonl`
 
-**ネイティブヘルパー（macOS専用）:**
+**ネイティブヘルパー（macOS / Windows）:**
 
-- Swift CLI バイナリ (CoreAudio API)
+- macOS: Swift CLI バイナリ (CoreAudio API)
+- Windows: C++ バイナリ (WASAPI)
 - マイク使用状態の検出
 
 **データ永続化:**
@@ -125,7 +126,7 @@
 - エンジン選択（AivisSpeech/VOICEVOX/Custom）
 - スピーカー選択
 - 音量調整
-- マイク使用中ミュート設定（macOSのみ）
+- マイク使用中ミュート設定
 - サブエージェント発言の包含設定
 - キャラクターサイズ調整
 - VRMファイル選択
@@ -365,9 +366,9 @@ IPC通信:
 - `reset-all-settings`: レンダラー→メイン（全設定リセット）
 - `toggle-devtools` / `get-devtools-state`: レンダラー↔メイン（DevTools制御、開発用）
 
-### 8. マイク使用中ミュート（macOS専用）
+### 8. マイク使用中ミュート（macOS / Windows）
 
-**helpers/mic-monitor.swift**
+**helpers/mic-monitor.swift**（macOS）
 
 macOSのCoreAudio HAL APIを使用してマイクの使用状態をリアルタイム監視するSwift CLIツール。
 
@@ -378,33 +379,44 @@ macOSのCoreAudio HAL APIを使用してマイクの使用状態をリアルタ�
 - 状態変化時のみ stdout に JSON 行を出力: `{"micActive":true}` / `{"micActive":false}`
 - `RunLoop.main.run()` で常駐
 
+**helpers/mic-monitor.cpp**（Windows）
+
+WindowsのWASAPI（Windows Audio Session API）を使用してマイクの使用状態を監視するC++ CLIツール。
+
+仕組み:
+
+- 2秒ごとのポーリング式で全入力デバイスを監視
+- 状態変化時のみ stdout に JSON 行を出力: `{"micActive":true}` / `{"micActive":false}`
+
 ビルド方法:
 
 ```bash
-# macOSでのみ動作。swiftcでコンパイル
+# macOS / Windows で動作。プラットフォームに応じて自動でコンパイル
 npm run build:mic-monitor
-# → resources/mic-monitor にバイナリが出力される
+# macOS → resources/mic-monitor
+# Windows → resources/mic-monitor.exe
 ```
 
 ビルドスクリプト: `scripts/build-mic-monitor.mjs`
 
-- macOS以外ではスキップ（Windows/Linuxではバイナリ不要）
-- `swiftc -O -framework CoreAudio` でリリースビルド
-- 出力先: `resources/mic-monitor`
+- macOS: `swiftc -O -framework CoreAudio` でリリースビルド → `resources/mic-monitor`
+- Windows: MSVC (`cl.exe`) でリリースビルド → `resources/mic-monitor.exe`
+- Linux等その他OS: スキップ（バイナリ不要）
 
 Electronとの統合（electron/main.ts）:
 
 - `muteOnMicActive` 設定が有効な場合のみヘルパーを起動（プライバシー配慮）
 - `child_process.spawn()` で起動、stdout を行単位でパース
 - アプリ終了時に SIGTERM で停止
-- バイナリが見つからない場合（Windows/Linux）は機能を無効化
+- バイナリが見つからない場合（Linux等）は機能を無効化
 - 設定画面の `getMicMonitorAvailable` IPC で UI 表示を制御
 
 パッケージング:
 
 - `package.json` の `extraResources` でアプリバンドルに含める
-- パッケージ時: `resources/mic-monitor` → `process.resourcesPath/mic-monitor`
-- 開発時: `resources/mic-monitor` を直接参照
+- macOS: `resources/mic-monitor` → `process.resourcesPath/mic-monitor`
+- Windows: `resources/mic-monitor.exe` → `process.resourcesPath/mic-monitor.exe`
+- 開発時: `resources/` 配下を直接参照
 
 レンダラー側:
 
@@ -574,9 +586,9 @@ cc-mascot/
 - [ ] 設定ウィンドウが開くか
 - [ ] テスト音声が再生されるか
 
-### マイクミュート関連（macOSのみ）
+### マイクミュート関連（macOS / Windows）
 
-- [ ] `npm run build:mic-monitor` でSwiftバイナリがコンパイルされるか
+- [ ] `npm run build:mic-monitor` でネイティブバイナリがコンパイルされるか
 - [ ] 設定画面に「マイク使用中はミュートにする」チェックボックスが表示されるか
 - [ ] チェックを入れるとmic-monitorヘルパーが起動するか（mainプロセスログで確認）
 - [ ] 他アプリがマイク使用中に発話音声がミュートになるか（リップシンクは継続）

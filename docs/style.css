@@ -1,0 +1,106 @@
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, #f97316, #ec4899, #8b5cf6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* CTA button gradient */
+.cta-button {
+  background: linear-gradient(135deg, #f97316, #ec4899, #8b5cf6);
+}
+
+/* Step number gradient */
+.step-number {
+  background: linear-gradient(135deg, #f97316, #ec4899, #8b5cf6);
+}
+
+/* ── Section backgrounds ── */
+
+.section-hero {
+  background:
+    radial-gradient(
+      ellipse at 30% 20%,
+      rgba(249, 115, 22, 0.12) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse at 70% 60%,
+      rgba(139, 92, 246, 0.10) 0%,
+      transparent 50%
+    ),
+    linear-gradient(180deg, #fefefe 0%, #e0e7ff 100%);
+}
+
+.section-features {
+  background: linear-gradient(180deg, #e0e7ff 0%, #fce7f3 50%, #ffedd5 100%);
+}
+
+.section-how {
+  background: linear-gradient(180deg, #fef3c7 0%, #fefefe 50%, #ccfbf1 100%);
+}
+
+.section-screenshot {
+  background: linear-gradient(180deg, #d1fae5 0%, #dbeafe 50%, #ede9fe 100%);
+}
+
+.section-requirements {
+  background: linear-gradient(180deg, #ede9fe 0%, #fefefe 50%, #fecaca 100%);
+}
+
+.section-download {
+  background:
+    radial-gradient(
+      ellipse at 40% 80%,
+      rgba(249, 115, 22, 0.12) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse at 60% 20%,
+      rgba(139, 92, 246, 0.10) 0%,
+      transparent 50%
+    ),
+    linear-gradient(180deg, #ffe4e6 0%, #fefefe 40%, #e0e7ff 100%);
+}
+
+.section-footer {
+  background: linear-gradient(180deg, #f1f5f9 0%, #e2e8f0 100%);
+}
+
+/* ── Wave dividers ── */
+
+.wave-divider {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-top: -1px;
+}
+
+/* Feature card hover */
+.feature-card {
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow:
+    0 10px 25px -5px rgba(0, 0, 0, 0.1),
+    0 8px 10px -6px rgba(0, 0, 0, 0.1);
+}
+
+/* Fade-in animation */
+.fade-in {
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity 0.6s ease,
+    transform 0.6s ease;
+}
+
+.fade-in.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
