@@ -1,12 +1,19 @@
-# cc-mascot
-
-![License](https://img.shields.io/badge/license-Apache%202.0-blue) [![Validate](https://github.com/kazakago/cc-mascot/actions/workflows/validate.yml/badge.svg)](https://github.com/kazakago/cc-mascot/actions/workflows/validate.yml)
-
-Claude Codeからの返答をVRMキャラクターが喋ってくれるデスクトップマスコットです。
+<p align="center">
+  <img src="docs/icon.png" alt="cc-mascot" width="64" height="64">
+</p>
+<h1 align="center">cc-mascot</h1>
+<p align="center">Claude Codeからの返答をVRMキャラクターがリアルタイムで読み上げ。<br />感情表現・リップシンク・視線追従で、コーディングに楽しいパートナーを。</p>
+<p align="center">
+  <a href="https://kazakago.github.io/cc-mascot/">https://kazakago.github.io/cc-mascot/</a>
+</p>
+<p align="center">
+  <img src="https://img.shields.io/badge/license-Apache%202.0-blue" alt="License">
+  <a href="https://github.com/kazakago/cc-mascot/actions/workflows/validate.yml"><img src="https://github.com/kazakago/cc-mascot/actions/workflows/validate.yml/badge.svg" alt="Validate"></a>
+</p>
 
 https://github.com/user-attachments/assets/6f67d2fb-e613-4c40-b369-ae8c9092e7f7
 
-<img width="600" alt="スクリーンショット 2026-02-07 14 56 09" src="https://github.com/user-attachments/assets/e8867e42-8197-45ef-8fef-b8f88a70290c" />
+<img width="600" alt="スクリーンショット 2026-02-07 14 56 09" src="docs/screenshot.png" />
 
 ## 特徴
 
@@ -24,7 +31,7 @@ https://github.com/user-attachments/assets/6f67d2fb-e613-4c40-b369-ae8c9092e7f7
 - macOS
   - Apple Silicon搭載機種のみ対応
 - Windows
-  - WSL環境へインストールしたClaude Codeには非対応
+  - ネイティブインストールしたClaude Codeのみ対応
 
 ## セットアップ
 
