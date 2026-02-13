@@ -461,39 +461,6 @@ export default function SettingsApp() {
           </div>
         </section>
 
-        {/* Motion Section */}
-        <section className="rounded-2xl bg-slate-50/60 p-6 shadow-sm">
-          <h2 className="m-0 mb-4 text-lg font-semibold text-slate-800 flex items-center gap-2">
-            <span>🎬</span> モーション
-          </h2>
-          <div className="space-y-4">
-            <div className="flex flex-col gap-3">
-              <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-800">
-                <input
-                  type="checkbox"
-                  checked={enableIdleAnimations}
-                  onChange={(e) => handleEnableIdleAnimationsChange(e.target.checked)}
-                  className="w-4 h-4 m-0 cursor-pointer accent-primary"
-                />
-                <span className="font-normal">待機モーションを有効にする</span>
-              </label>
-              <p className="text-sm text-slate-400 m-0">待機中にたまにリアクションを取ります</p>
-            </div>
-            <div className="flex flex-col gap-3">
-              <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-800">
-                <input
-                  type="checkbox"
-                  checked={enableSpeechAnimations}
-                  onChange={(e) => handleEnableSpeechAnimationsChange(e.target.checked)}
-                  className="w-4 h-4 m-0 cursor-pointer accent-primary"
-                />
-                <span className="font-normal">発話モーションを有効にする</span>
-              </label>
-              <p className="text-sm text-slate-400 m-0">発話時に感情に合わせたリアクションを取ります</p>
-            </div>
-          </div>
-        </section>
-
         {/* Audio Section */}
         <section className="rounded-2xl bg-slate-50/60 p-6 shadow-sm">
           <h2 className="m-0 mb-4 text-lg font-semibold text-slate-800 flex items-center gap-2">
@@ -635,6 +602,39 @@ export default function SettingsApp() {
               {testAudioError && <p className="text-sm text-danger mt-1 mb-0">{testAudioError}</p>}
             </div>
             {error && <p className="text-sm text-danger mt-1 mb-0">{error}</p>}
+          </div>
+        </section>
+
+        {/* Motion Section */}
+        <section className="rounded-2xl bg-slate-50/60 p-6 shadow-sm">
+          <h2 className="m-0 mb-4 text-lg font-semibold text-slate-800 flex items-center gap-2">
+            <span>🎬</span> モーション
+          </h2>
+          <div className="space-y-4">
+            <div className="flex flex-col gap-3">
+              <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-800">
+                <input
+                  type="checkbox"
+                  checked={enableIdleAnimations}
+                  onChange={(e) => handleEnableIdleAnimationsChange(e.target.checked)}
+                  className="w-4 h-4 m-0 cursor-pointer accent-primary"
+                />
+                <span className="font-normal">待機モーションを有効にする</span>
+              </label>
+              <p className="text-sm text-slate-400 m-0">待機中にたまにリアクションを取ります</p>
+            </div>
+            <div className="flex flex-col gap-3">
+              <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-800">
+                <input
+                  type="checkbox"
+                  checked={enableSpeechAnimations}
+                  onChange={(e) => handleEnableSpeechAnimationsChange(e.target.checked)}
+                  className="w-4 h-4 m-0 cursor-pointer accent-primary"
+                />
+                <span className="font-normal">発話モーションを有効にする</span>
+              </label>
+              <p className="text-sm text-slate-400 m-0">発話時に感情に合わせたリアクションを取ります</p>
+            </div>
           </div>
         </section>
 
