@@ -31,7 +31,7 @@ https://github.com/user-attachments/assets/6f67d2fb-e613-4c40-b369-ae8c9092e7f7
 - macOS
   - Apple Silicon搭載機種のみ対応
 - Windows
-  - ネイティブインストールしたClaude Codeのみ対応
+  - WSL環境にインストールしたClaude Codeには非対応
 
 ## セットアップ
 
