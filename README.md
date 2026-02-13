@@ -47,8 +47,8 @@ https://github.com/user-attachments/assets/6f67d2fb-e613-4c40-b369-ae8c9092e7f7
 > [!TIP]
 > 参考: AivisSpeechのプログラムディレクトリ配下のエンジンまでのパス
 >
-> - macOS: `**/AivisSpeech.app/Contents/Resources/AivisSpeech-Engine/run`
-> - Windows: `**/AivisSpeech/AivisSpeech-Engine/run.exe`
+> - macOS: `AivisSpeech.app/Contents/Resources/AivisSpeech-Engine/run`
+> - Windows: `AivisSpeech/AivisSpeech-Engine/run.exe`
 
 初回起動とモデルDLまで済ませれば上記アプリケーションを起動しておく必要はありません。  
 cc-mascotが自動的にエンジンプロセスを起動します。
