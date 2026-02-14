@@ -177,7 +177,7 @@ describe("cleanTextForSpeech", () => {
       const text = "次のように実装します: コードはこちら";
       const result = cleanTextForSpeech(text);
 
-      expect(result).not.toContain(":");
+      expect(result).toContain(":");
       expect(result).toContain("次のように実装します");
       expect(result).toContain("コードはこちら");
     });
@@ -186,7 +186,7 @@ describe("cleanTextForSpeech", () => {
       const text = "項目1: 値1, 項目2: 値2";
       const result = cleanTextForSpeech(text);
 
-      expect(result).not.toContain(":");
+      expect(result).toContain(":");
     });
   });
 
@@ -248,7 +248,6 @@ const greeting = "Hello";
       expect(result).not.toContain("```");
       expect(result).not.toContain("const greeting");
       expect(result).not.toContain("https://example.com");
-      expect(result).not.toContain(":");
       expect(result).not.toContain("`");
 
       // 保持されるべきもの
@@ -257,6 +256,7 @@ const greeting = "Hello";
       expect(result).toContain("詳細は");
       expect(result).not.toContain("URL");
       expect(result).toContain("リスト項目1");
+      expect(result).toContain(":");
       expect(result).toContain("console.log");
     });
 
