@@ -21,7 +21,8 @@ type BroadcastFn = (message: string) => void;
  * @param includeSubAgents - Whether to monitor sub-agent logs (depth: 3) or only main agent (depth: 1)
  */
 export function createLogMonitor(broadcast: BroadcastFn, includeSubAgents = false) {
-  const claudeProjectsDir = path.join(os.homedir(), ".claude", "projects");
+  const claudeConfigDir = process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), ".claude");
+  const claudeProjectsDir = path.join(claudeConfigDir, "projects");
 
   const watcher = chokidar.watch(claudeProjectsDir, {
     ignored: (path, stats) => stats?.isFile() === true && !path.endsWith(".jsonl"), // only watch jsonl files
