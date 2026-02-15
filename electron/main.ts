@@ -486,7 +486,6 @@ const createWindow = () => {
     console.log("[Main] DevTools opened, disabling always-on-top and resizing to avoid menu bar");
     mainWindow?.setAlwaysOnTop(false);
     mainWindow?.webContents.send("devtools-state-changed", true);
-
     // Resize window to avoid menu bar area on macOS
     if (mainWindow && !mainWindow.isDestroyed()) {
       const primaryDisplay = screen.getPrimaryDisplay();
@@ -500,7 +499,6 @@ const createWindow = () => {
     console.log("[Main] DevTools closed, enabling always-on-top and resizing to full screen");
     mainWindow?.setAlwaysOnTop(true, "pop-up-menu");
     mainWindow?.webContents.send("devtools-state-changed", false);
-
     // Resize window to cover menu bar area on macOS
     if (mainWindow && !mainWindow.isDestroyed()) {
       const primaryDisplay = screen.getPrimaryDisplay();
@@ -797,25 +795,11 @@ ipcMain.handle("reset-all-settings", async () => {
   return started;
 });
 
-// Toggle DevTools for main window
-ipcMain.handle("toggle-devtools", (_event, target: "main") => {
-  if (target === "main" && mainWindow && !mainWindow.isDestroyed()) {
-    if (mainWindow.webContents.isDevToolsOpened()) {
-      mainWindow.webContents.closeDevTools();
-    } else {
-      mainWindow.webContents.openDevTools();
-    }
-    return mainWindow.webContents.isDevToolsOpened();
+// Open DevTools for main window
+ipcMain.handle("open-devtools", () => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.openDevTools();
   }
-  return false;
-});
-
-// Get DevTools state for main window
-ipcMain.handle("get-devtools-state", (_event, target: "main") => {
-  if (target === "main") {
-    return mainWindow?.webContents.isDevToolsOpened() ?? false;
-  }
-  return false;
 });
 
 // Get current mic active state (for initial state query from renderer)

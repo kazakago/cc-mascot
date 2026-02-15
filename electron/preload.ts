@@ -105,17 +105,12 @@ contextBridge.exposeInMainWorld("electron", {
       callback(isOpen);
     };
     ipcRenderer.on("devtools-state-changed", listener);
-
-    // Return cleanup function
     return () => {
       ipcRenderer.removeListener("devtools-state-changed", listener);
     };
   },
-  toggleDevTools: (target: "main"): Promise<boolean> => {
-    return ipcRenderer.invoke("toggle-devtools", target);
-  },
-  getDevToolsState: (target: "main"): Promise<boolean> => {
-    return ipcRenderer.invoke("get-devtools-state", target);
+  openDevTools: (): Promise<void> => {
+    return ipcRenderer.invoke("open-devtools");
   },
   onToggleSettingsPanel: (callback: () => void) => {
     const listener = () => {

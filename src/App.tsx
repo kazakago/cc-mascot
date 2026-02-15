@@ -584,42 +584,6 @@ function App() {
             </Scene>
           </Canvas>
 
-          {/* TEST: Local size slider with mode toggle - only shown when DevTools is open */}
-          {devToolsOpen && (
-            <div
-              style={{
-                position: "absolute",
-                bottom: 10,
-                left: "50%",
-                transform: "translateX(-50%)",
-                zIndex: 9999,
-                background: "rgba(0,0,0,0.7)",
-                padding: "8px 16px",
-                borderRadius: 8,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: 6,
-                pointerEvents: "auto",
-              }}
-            >
-              <span style={{ color: "white", fontSize: 12 }}>{containerSize}px</span>
-              <input
-                type="range"
-                min={400}
-                max={1200}
-                step={10}
-                value={containerSize}
-                onChange={(e) => {
-                  const newSize = Number(e.target.value);
-                  containerSizeRef.current = newSize;
-                  setContainerSize(newSize);
-                }}
-                style={{ width: 250 }}
-              />
-            </div>
-          )}
-
           {/* Visualize draggable area when DevTools is open */}
           {devToolsOpen && (
             <svg

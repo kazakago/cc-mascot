@@ -33,8 +33,7 @@ declare global {
       setEnableSpeechAnimations: (value: boolean) => Promise<boolean>;
       onMicActiveChanged: (callback: (active: boolean) => void) => () => void;
       onDevToolsStateChanged: (callback: (isOpen: boolean) => void) => () => void;
-      toggleDevTools: (target: "main") => Promise<boolean>;
-      getDevToolsState: (target: "main") => Promise<boolean>;
+      openDevTools: () => Promise<void>;
       onToggleSettingsPanel: (callback: () => void) => () => void;
     };
   }

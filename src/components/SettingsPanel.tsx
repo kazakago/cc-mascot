@@ -62,7 +62,6 @@ export default function SettingsPanel({
   const [testAudioError, setTestAudioError] = useState("");
   const [micMonitorAvailable, setMicMonitorAvailable] = useState(false);
   const [includeSubAgents, setIncludeSubAgents] = useState(false);
-  const [devToolsOpen, setDevToolsOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -142,21 +141,6 @@ export default function SettingsPanel({
       }
     };
     loadInitialValues();
-  }, []);
-
-  // Load DevTools state
-  useEffect(() => {
-    if (window.electron?.getDevToolsState) {
-      window.electron.getDevToolsState("main").then(setDevToolsOpen);
-    }
-
-    const cleanup = window.electron?.onDevToolsStateChanged?.((isOpen) => {
-      setDevToolsOpen(isOpen);
-    });
-
-    return () => {
-      cleanup?.();
-    };
   }, []);
 
   // Fetch speakers on mount
@@ -632,13 +616,14 @@ export default function SettingsPanel({
                   type="button"
                   className="px-4 py-2 rounded-xl text-sm font-medium cursor-pointer transition-all duration-200 border border-slate-200 bg-white text-slate-700 w-fit hover:bg-slate-50 hover:border-slate-300 hover:shadow-sm"
                   onClick={() => {
-                    window.electron?.toggleDevTools?.("main").then(setDevToolsOpen);
+                    window.electron?.openDevTools?.();
                   }}
                 >
-                  DevTools を{devToolsOpen ? "閉じる" : "開く"}
+                  DevTools を開く
                 </button>
                 <p className="text-sm text-slate-500 m-0">
-                  ショートカット: {navigator.platform.includes("Mac") ? "⌘ Command + ⌥ Option + I" : "Ctrl + Shift + I"}
+                  ショートカット:{" "}
+                  {navigator.userAgent.includes("Mac") ? "⌘ Command + ⌥ Option + I" : "Ctrl + Shift + I"}
                 </p>
               </div>
             </div>

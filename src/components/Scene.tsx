@@ -12,13 +12,7 @@ export function Scene({ children }: SceneProps) {
       <directionalLight position={[1, 1, 1]} intensity={1.6} />
       {children}
       <EffectComposer>
-        <Bloom
-          luminanceThreshold={1.0}
-          luminanceSmoothing={0.2}
-          mipmapBlur
-          intensity={1.0}
-          radius={0.7}
-        />
+        <Bloom luminanceThreshold={1.0} luminanceSmoothing={0.2} mipmapBlur intensity={1.0} radius={0.7} />
       </EffectComposer>
     </>
   );

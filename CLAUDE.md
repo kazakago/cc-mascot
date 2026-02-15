@@ -364,7 +364,7 @@ IPC通信:
 - `get/set-enable-speech-animations`: レンダラー↔メイン（発話アニメーション設定・永続化のみ）
 - `reset-all-settings`: レンダラー→メイン（全設定リセット）
 - `toggle-settings-panel`: メイン→レンダラー（トレイメニューからの設定パネル表示切替）
-- `toggle-devtools` / `get-devtools-state`: レンダラー↔メイン（DevTools制御、メインウィンドウのみ）
+- `open-devtools`: レンダラー→メイン（DevToolsを開く）
 - `devtools-state-changed`: メイン→レンダラー（DevTools状態変化通知）
 
 ### 8. マイク使用中ミュート（macOS / Windows）
