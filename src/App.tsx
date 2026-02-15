@@ -1,5 +1,6 @@
 import { useRef, useCallback, useState, useEffect, useMemo } from "react";
 import { Canvas } from "@react-three/fiber";
+import { AgXToneMapping } from "three";
 import { Scene } from "./components/Scene";
 import { VRMAvatar } from "./components/VRMAvatar";
 import type { VRMAvatarHandle } from "./components/VRMAvatar";
@@ -558,6 +559,7 @@ function App() {
         >
           <Canvas
             camera={{ position: [0, 0.2, 3.2], fov: 30 }}
+            gl={{ toneMapping: AgXToneMapping }}
             style={{ width: "100%", height: "100%" }}
             onContextMenu={(e) => {
               e.preventDefault();
