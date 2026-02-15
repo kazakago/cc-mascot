@@ -3,10 +3,11 @@ import { Canvas } from "@react-three/fiber";
 import { Scene } from "./components/Scene";
 import { VRMAvatar } from "./components/VRMAvatar";
 import type { VRMAvatarHandle } from "./components/VRMAvatar";
+import SettingsPanel from "./components/SettingsPanel";
 import { useSpeech } from "./hooks/useSpeech";
 import { useLipSync } from "./hooks/useLipSync";
 import { useLocalStorage } from "./hooks/useLocalStorage";
-import { loadVRMFile, createBlobURL } from "./utils/vrmStorage";
+import { loadVRMFile, createBlobURL, deleteVRMFile } from "./utils/vrmStorage";
 import type { Emotion } from "./types/emotion";
 import type { CursorTrackingOptions } from "./hooks/useCursorTracking";
 
@@ -49,6 +50,9 @@ const EMOTION_ANIMATION_URLS: Partial<Record<Emotion, string[]>> = {
 };
 const VOICEVOX_BASE_URL = "http://localhost:8564";
 
+// Settings panel width constant for click-through calculation
+const SETTINGS_PANEL_WIDTH = 400;
+
 function App() {
   const avatarRef = useRef<VRMAvatarHandle>(null);
   const [speakerId, setSpeakerId] = useLocalStorage("speakerId", 888753760);
@@ -63,6 +67,9 @@ function App() {
   const [headPosition, setHeadPosition] = useState<{ x: number; y: number } | null>(null);
   const [muteOnMicActive, setMuteOnMicActive] = useState(true);
   const [micActive, setMicActive] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [enableIdleAnimations, setEnableIdleAnimations] = useState(true);
+  const [enableSpeechAnimations, setEnableSpeechAnimations] = useState(true);
 
   // ランダム待機アニメーション用ref
   const isSpeakingRef = useRef(false);
@@ -70,6 +77,12 @@ function App() {
   const nextIdleIntervalRef = useRef(0);
   const enableIdleAnimationsRef = useRef(true);
   const enableSpeechAnimationsRef = useRef(true);
+  const showSettingsRef = useRef(false);
+
+  // Keep refs in sync with state
+  useEffect(() => {
+    showSettingsRef.current = showSettings;
+  }, [showSettings]);
 
   // 初回マウント時にランダム待機タイマーを初期化
   useEffect(() => {
@@ -148,59 +161,6 @@ function App() {
     init();
   }, []);
 
-  // Listen for character size changes from settings window
-  useEffect(() => {
-    if (!window.electron?.onCharacterSizeChanged) return;
-
-    let positionPersistTimer: ReturnType<typeof setTimeout> | null = null;
-
-    const cleanup = window.electron.onCharacterSizeChanged((newSize: number) => {
-      containerSizeRef.current = newSize;
-      setContainerSize(newSize);
-
-      // Debounce position persistence to reduce IPC traffic during rapid slider events
-      if (positionPersistTimer) clearTimeout(positionPersistTimer);
-      positionPersistTimer = setTimeout(() => {
-        const center = containerCenterRef.current;
-        const topLeftX = Math.round(center.x - containerSizeRef.current / 2);
-        const topLeftY = Math.round(center.y - containerSizeRef.current / 2);
-        window.electron?.setCharacterPosition?.(topLeftX, topLeftY);
-      }, 300);
-    });
-
-    return () => {
-      cleanup?.();
-      if (positionPersistTimer) {
-        clearTimeout(positionPersistTimer);
-        // Persist final position on cleanup
-        const center = containerCenterRef.current;
-        const topLeftX = Math.round(center.x - containerSizeRef.current / 2);
-        const topLeftY = Math.round(center.y - containerSizeRef.current / 2);
-        window.electron?.setCharacterPosition?.(topLeftX, topLeftY);
-      }
-    };
-  }, []);
-
-  // Listen for character position reset from settings window
-  useEffect(() => {
-    if (!window.electron?.onCharacterPositionReset || !window.electron?.getScreenSize) return;
-
-    const cleanup = window.electron.onCharacterPositionReset(async () => {
-      const screenSize = await window.electron!.getScreenSize();
-      const size = containerSizeRef.current;
-      const center = {
-        x: Math.round(screenSize.width / 2),
-        y: Math.round(screenSize.height - size / 2),
-      };
-      setContainerCenter(center);
-      containerCenterRef.current = center;
-    });
-
-    return () => {
-      cleanup?.();
-    };
-  }, []);
-
   // Load VRM from IndexedDB on mount
   useEffect(() => {
     loadVRMFile()
@@ -215,100 +175,42 @@ function App() {
       });
   }, []);
 
-  // Listen for VRM change notifications from settings window
-  useEffect(() => {
-    if (window.electron?.onVRMChanged) {
-      const cleanup = window.electron.onVRMChanged(() => {
-        console.log("[App] VRM file changed, reloading...");
-        loadVRMFile()
-          .then((file) => {
-            if (file) {
-              const url = createBlobURL(file);
-              setVrmUrl(url);
-              console.log("[App] VRM reloaded:", file.name);
-            } else {
-              // No custom VRM, load default
-              setVrmUrl(DEFAULT_VRM_URL);
-              console.log("[App] No custom VRM, using default");
-            }
-          })
-          .catch((err) => {
-            console.error("Failed to reload VRM file:", err);
-          });
-      });
-
-      return cleanup;
-    }
-  }, []);
-
-  // Listen for speaker change notifications from settings window
-  useEffect(() => {
-    if (window.electron?.onSpeakerChanged) {
-      const cleanup = window.electron.onSpeakerChanged((speakerId: number) => {
-        console.log("[App] Speaker changed to:", speakerId);
-        setSpeakerId(speakerId);
-      });
-
-      return cleanup;
-    }
-  }, [setSpeakerId]);
-
-  // Listen for volume change notifications from settings window
-  useEffect(() => {
-    if (window.electron?.onVolumeChanged) {
-      const cleanup = window.electron.onVolumeChanged((volumeScale: number) => {
-        console.log("[App] Volume changed to:", volumeScale);
-        setVolumeScale(volumeScale);
-      });
-
-      return cleanup;
-    }
-  }, [setVolumeScale]);
-
   // Load muteOnMicActive setting, initial mic state, and listen for changes
   useEffect(() => {
     window.electron?.getMuteOnMicActive?.().then(setMuteOnMicActive);
     window.electron?.getMicActive?.().then(setMicActive);
 
-    const cleanups: (() => void)[] = [];
-
     const cleanupMic = window.electron?.onMicActiveChanged?.((active) => {
       console.log(`[App] Mic active: ${active}`);
       setMicActive(active);
     });
-    if (cleanupMic) cleanups.push(cleanupMic);
 
-    const cleanupSetting = window.electron?.onMuteOnMicActiveChanged?.((value) => {
-      console.log(`[App] Mute on mic active changed: ${value}`);
-      setMuteOnMicActive(value);
-    });
-    if (cleanupSetting) cleanups.push(cleanupSetting);
-
-    return () => cleanups.forEach((fn) => fn());
+    return () => {
+      cleanupMic?.();
+    };
   }, []);
 
-  // Load motion settings and listen for changes
+  // Load motion settings from Electron Store
   useEffect(() => {
     window.electron?.getEnableIdleAnimations?.().then((value) => {
+      setEnableIdleAnimations(value);
       enableIdleAnimationsRef.current = value;
     });
     window.electron?.getEnableSpeechAnimations?.().then((value) => {
+      setEnableSpeechAnimations(value);
       enableSpeechAnimationsRef.current = value;
     });
+  }, []);
 
-    const cleanups: (() => void)[] = [];
-
-    const cleanupIdle = window.electron?.onEnableIdleAnimationsChanged?.((value) => {
-      enableIdleAnimationsRef.current = value;
+  // Listen for toggle-settings-panel from tray menu
+  useEffect(() => {
+    const cleanup = window.electron?.onToggleSettingsPanel?.(() => {
+      setShowSettings((prev) => !prev);
     });
-    if (cleanupIdle) cleanups.push(cleanupIdle);
 
-    const cleanupSpeech = window.electron?.onEnableSpeechAnimationsChanged?.((value) => {
-      enableSpeechAnimationsRef.current = value;
-    });
-    if (cleanupSpeech) cleanups.push(cleanupSpeech);
-
-    return () => cleanups.forEach((fn) => fn());
+    return () => {
+      cleanup?.();
+    };
   }, []);
 
   const handleMouthValueChange = useCallback((value: number) => {
@@ -413,17 +315,107 @@ function App() {
     }
   }, [speakText]);
 
-  // Listen for test speech requests from settings window
-  useEffect(() => {
-    if (window.electron?.onPlayTestSpeech) {
-      const cleanup = window.electron.onPlayTestSpeech(() => {
-        console.log("[App] Playing test speech");
-        speakText("こんにちは。お役に立てることはありますか？", "happy");
+  // Settings panel handlers
+  const handleVRMChange = useCallback(() => {
+    console.log("[App] VRM file changed, reloading...");
+    loadVRMFile()
+      .then((file) => {
+        if (file) {
+          const url = createBlobURL(file);
+          setVrmUrl(url);
+          console.log("[App] VRM reloaded:", file.name);
+        } else {
+          setVrmUrl(DEFAULT_VRM_URL);
+          console.log("[App] No custom VRM, using default");
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to reload VRM file:", err);
       });
+  }, []);
 
-      return cleanup;
-    }
+  const handleTestSpeech = useCallback(() => {
+    console.log("[App] Playing test speech");
+    speakText("こんにちは。お役に立てることはありますか？", "happy");
   }, [speakText]);
+
+  const handleContainerSizeChange = useCallback((newSize: number) => {
+    containerSizeRef.current = newSize;
+    setContainerSize(newSize);
+
+    // Debounce position persistence
+    const center = containerCenterRef.current;
+    const topLeftX = Math.round(center.x - newSize / 2);
+    const topLeftY = Math.round(center.y - newSize / 2);
+    window.electron?.setCharacterPosition?.(topLeftX, topLeftY);
+  }, []);
+
+  const handleEnableIdleAnimationsChange = useCallback(async (value: boolean) => {
+    setEnableIdleAnimations(value);
+    enableIdleAnimationsRef.current = value;
+    await window.electron?.setEnableIdleAnimations?.(value);
+  }, []);
+
+  const handleEnableSpeechAnimationsChange = useCallback(async (value: boolean) => {
+    setEnableSpeechAnimations(value);
+    enableSpeechAnimationsRef.current = value;
+    await window.electron?.setEnableSpeechAnimations?.(value);
+  }, []);
+
+  const handleMuteOnMicActiveChange = useCallback(async (value: boolean) => {
+    setMuteOnMicActive(value);
+    await window.electron?.setMuteOnMicActive?.(value);
+  }, []);
+
+  const handleResetCharacterPosition = useCallback(async () => {
+    await window.electron?.resetCharacterPosition?.();
+    const screenSize = await window.electron?.getScreenSize?.();
+    if (screenSize) {
+      const size = containerSizeRef.current;
+      const center = {
+        x: Math.round(screenSize.width / 2),
+        y: Math.round(screenSize.height - size / 2),
+      };
+      setContainerCenter(center);
+      containerCenterRef.current = center;
+    }
+  }, []);
+
+  const handleResetAllSettings = useCallback(async () => {
+    localStorage.clear();
+
+    try {
+      await deleteVRMFile();
+      console.log("[App] VRM file deleted");
+    } catch (err) {
+      console.error("[App] Failed to delete VRM file:", err);
+    }
+
+    await window.electron?.resetAllSettings?.();
+
+    // Reset local state
+    handleVRMChange();
+    setSpeakerId(888753760);
+    setVolumeScale(1.0);
+    setContainerSize(800);
+    containerSizeRef.current = 800;
+    setMuteOnMicActive(false);
+    setEnableIdleAnimations(true);
+    enableIdleAnimationsRef.current = true;
+    setEnableSpeechAnimations(true);
+    enableSpeechAnimationsRef.current = true;
+
+    // Reset character position
+    const screenSize = await window.electron?.getScreenSize?.();
+    if (screenSize) {
+      const center = {
+        x: Math.round(screenSize.width / 2),
+        y: Math.round(screenSize.height - 400),
+      };
+      setContainerCenter(center);
+      containerCenterRef.current = center;
+    }
+  }, [handleVRMChange, setSpeakerId, setVolumeScale]);
 
   // Custom container drag and click-through implementation
   useEffect(() => {
@@ -448,8 +440,19 @@ function App() {
       return isInsideEllipse(clientX, clientY, center.x, ellipseCenterY, radiusX, radiusY);
     };
 
+    const isInsideSettingsPanelArea = (clientX: number, clientY: number) => {
+      if (!showSettingsRef.current) return false;
+      // Settings panel is fixed to the right side, full height, SETTINGS_PANEL_WIDTH wide
+      return clientX >= window.innerWidth - SETTINGS_PANEL_WIDTH && clientY >= 0;
+    };
+
+    const isInsideInteractiveArea = (clientX: number, clientY: number) => {
+      return isInsideCharacterArea(clientX, clientY) || isInsideSettingsPanelArea(clientX, clientY);
+    };
+
     const handleMouseDown = (e: MouseEvent) => {
       if (e.button !== 0) return;
+      if (isInsideSettingsPanelArea(e.clientX, e.clientY)) return; // Don't drag from settings panel
       if (!isInsideCharacterArea(e.clientX, e.clientY)) return;
 
       isDragging = true;
@@ -460,7 +463,7 @@ function App() {
     };
 
     const handleMouseMove = (e: MouseEvent) => {
-      const isInside = isInsideCharacterArea(e.clientX, e.clientY);
+      const isInside = isInsideInteractiveArea(e.clientX, e.clientY);
 
       if (isInside !== lastInsideState) {
         lastInsideState = isInside;
@@ -558,9 +561,7 @@ function App() {
             style={{ width: "100%", height: "100%" }}
             onContextMenu={(e) => {
               e.preventDefault();
-              if (window.electron?.openSettingsWindow) {
-                window.electron.openSettingsWindow();
-              }
+              setShowSettings((prev) => !prev);
             }}
           >
             <Scene>
@@ -687,6 +688,29 @@ function App() {
             </svg>
           )}
         </div>
+      )}
+
+      {/* Settings Panel Overlay */}
+      {showSettings && (
+        <SettingsPanel
+          speakerId={speakerId}
+          onSpeakerIdChange={setSpeakerId}
+          volumeScale={volumeScale}
+          onVolumeScaleChange={setVolumeScale}
+          containerSize={containerSize}
+          onContainerSizeChange={handleContainerSizeChange}
+          onVRMChange={handleVRMChange}
+          onTestSpeech={handleTestSpeech}
+          enableIdleAnimations={enableIdleAnimations}
+          onEnableIdleAnimationsChange={handleEnableIdleAnimationsChange}
+          enableSpeechAnimations={enableSpeechAnimations}
+          onEnableSpeechAnimationsChange={handleEnableSpeechAnimationsChange}
+          muteOnMicActive={muteOnMicActive}
+          onMuteOnMicActiveChange={handleMuteOnMicActiveChange}
+          onResetCharacterPosition={handleResetCharacterPosition}
+          onResetAllSettings={handleResetAllSettings}
+          onClose={() => setShowSettings(false)}
+        />
       )}
     </div>
   );

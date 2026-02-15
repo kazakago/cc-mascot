@@ -84,7 +84,8 @@
 │  ├─ useVRMAnimation (アニメーション)       │
 │  ├─ useBlink (まばたき)                   │
 │  ├─ useCursorTracking (視線・頭部追従)    │
-│  └─ VRMAvatar (3D表示)                    │
+│  ├─ VRMAvatar (3D表示)                    │
+│  └─ SettingsPanel (設定UIオーバーレイ)    │
 └──────────┬───────────────────────────────┘
            │ HTTP API
            ↓
@@ -118,11 +119,15 @@
 - VRMキャラクター表示
 - リップシンク・感情表現
 - ドラッグ移動（楕円判定）
-- クリックスルー（キャラクター外）
-- 右クリックで設定ウィンドウを開く
+- クリックスルー（キャラクター・設定パネル外はマウスイベント無視）
+- 右クリックで設定パネルを開閉
 
-**設定ウィンドウ（通常ウィンドウ・常に最前面）:**
+**設定パネル（メインウィンドウ内オーバーレイ）:**
 
+- `src/components/SettingsPanel.tsx` で実装
+- 右サイドパネル（幅400px、全画面高さ、半透明背景 + backdrop-blur）
+- スティッキーヘッダー（スクロールしても閉じるボタンが常に表示）
+- React内で直接状態共有（リレー型IPC不要）
 - エンジン選択（AivisSpeech/VOICEVOX/Custom）
 - スピーカー選択
 - 音量調整
@@ -333,38 +338,34 @@ VRM読み込み:
 - サイズ: 可変（400〜1200px、正方形、アスペクト比1:1固定）
 - フレームレス・透過・常に最前面
 - ドラッグ移動: 楕円範囲内のみ（縦長楕円、radiusX=15%, radiusY=45%）
-- クリックスルー: 楕円外はマウスイベント無視
+- クリックスルー: 楕円外かつ設定パネル外はマウスイベント無視
 
-設定ウィンドウ:
+設定パネル:
 
-- サイズ: 600x700（固定ではないがリサイズ可能）
-- 通常ウィンドウ・常に最前面
-- 右クリックで開く
-- 単一インスタンス（既に開いている場合はフォーカス）
+- メインウィンドウ内のオーバーレイとして実装（独立BrowserWindowではない）
+- 右クリックまたはトレイメニューで開閉
+- 状態管理はRenderer内で完結（リレー型IPC不要）
 
 IPC通信:
 
 - `speak`: メイン→レンダラー（ログ監視で検出したメッセージ）
-- `vrm-changed`: 設定→メイン→メイン（VRM変更通知）
-- `speaker-changed`: 設定→メイン→メイン（スピーカー変更通知）
-- `volume-changed`: 設定→メイン→メイン（音量変更通知）
-- `play-test-speech`: 設定→メイン→メイン（テスト音声再生）
 - `set-ignore-mouse-events`: レンダラー→メイン（クリックスルー制御）
 - `get/set-character-position`: レンダラー↔メイン（キャラクター位置）
 - `reset-character-position`: レンダラー→メイン（位置リセット）
-- `get/set-character-size`: レンダラー↔メイン（キャラクターサイズ）
+- `get/set-character-size`: レンダラー↔メイン（キャラクターサイズ・永続化のみ）
 - `reset-character-size`: レンダラー→メイン（サイズリセット）
 - `get-engine-type` / `set-engine-settings` / `reset-engine-settings`: レンダラー↔メイン（エンジン設定）
-- `get/set-mute-on-mic-active`: レンダラー↔メイン（ミュート設定）
+- `get/set-mute-on-mic-active`: レンダラー↔メイン（ミュート設定・永続化＋ヘルパー制御）
 - `get-mic-active`: レンダラー→メイン（現在のマイク使用状態）
 - `mic-active-changed`: メイン→レンダラー（マイク使用状態変化）
 - `get-mic-monitor-available`: レンダラー→メイン（機能利用可否）
 - `get/set-include-sub-agents`: レンダラー↔メイン（サブエージェント設定）
-- `get/set-enable-idle-animations`: レンダラー↔メイン（待機アニメーション設定）
-- `get/set-enable-speech-animations`: レンダラー↔メイン（発話アニメーション設定）
-- `open/close-settings-window`: レンダラー→メイン（設定ウィンドウ制御）
+- `get/set-enable-idle-animations`: レンダラー↔メイン（待機アニメーション設定・永続化のみ）
+- `get/set-enable-speech-animations`: レンダラー↔メイン（発話アニメーション設定・永続化のみ）
 - `reset-all-settings`: レンダラー→メイン（全設定リセット）
-- `toggle-devtools` / `get-devtools-state`: レンダラー↔メイン（DevTools制御、開発用）
+- `toggle-settings-panel`: メイン→レンダラー（トレイメニューからの設定パネル表示切替）
+- `toggle-devtools` / `get-devtools-state`: レンダラー↔メイン（DevTools制御、メインウィンドウのみ）
+- `devtools-state-changed`: メイン→レンダラー（DevTools状態変化通知）
 
 ### 8. マイク使用中ミュート（macOS / Windows）
 
@@ -562,7 +563,7 @@ cc-mascot/
 - [ ] VRMファイルが正しく読み込まれるか
 - [ ] ウィンドウドラッグが動作するか
 - [ ] クリックスルーが動作するか
-- [ ] 設定ウィンドウが開くか
+- [ ] 設定パネルが開閉するか（右クリック・トレイメニュー）
 - [ ] テスト音声が再生されるか
 
 ### マイクミュート関連（macOS / Windows）

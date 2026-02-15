@@ -16,39 +16,6 @@ contextBridge.exposeInMainWorld("electron", {
       ipcRenderer.removeListener("speak", listener);
     };
   },
-  onVRMChanged: (callback: () => void) => {
-    const listener = () => {
-      callback();
-    };
-    ipcRenderer.on("vrm-changed", listener);
-
-    // Return cleanup function
-    return () => {
-      ipcRenderer.removeListener("vrm-changed", listener);
-    };
-  },
-  onSpeakerChanged: (callback: (speakerId: number) => void) => {
-    const listener = (_event: unknown, speakerId: number) => {
-      callback(speakerId);
-    };
-    ipcRenderer.on("speaker-changed", listener);
-
-    // Return cleanup function
-    return () => {
-      ipcRenderer.removeListener("speaker-changed", listener);
-    };
-  },
-  onVolumeChanged: (callback: (volumeScale: number) => void) => {
-    const listener = (_event: unknown, volumeScale: number) => {
-      callback(volumeScale);
-    };
-    ipcRenderer.on("volume-changed", listener);
-
-    // Return cleanup function
-    return () => {
-      ipcRenderer.removeListener("volume-changed", listener);
-    };
-  },
   getVoicevoxPath: (): Promise<string | undefined> => {
     return ipcRenderer.invoke("get-voicevox-path");
   },
@@ -85,58 +52,11 @@ contextBridge.exposeInMainWorld("electron", {
   resetCharacterPosition: (): Promise<boolean> => {
     return ipcRenderer.invoke("reset-character-position");
   },
-  onCharacterPositionReset: (callback: () => void) => {
-    const listener = () => {
-      callback();
-    };
-    ipcRenderer.on("character-position-reset", listener);
-    return () => {
-      ipcRenderer.removeListener("character-position-reset", listener);
-    };
-  },
-  onCharacterSizeChanged: (callback: (size: number) => void) => {
-    const listener = (_event: unknown, size: number) => {
-      callback(size);
-    };
-    ipcRenderer.on("character-size-changed", listener);
-    return () => {
-      ipcRenderer.removeListener("character-size-changed", listener);
-    };
-  },
   getScreenSize: (): Promise<{ width: number; height: number }> => {
     return ipcRenderer.invoke("get-screen-size");
   },
   resetAllSettings: (): Promise<boolean> => {
     return ipcRenderer.invoke("reset-all-settings");
-  },
-  openSettingsWindow: (): void => {
-    ipcRenderer.send("open-settings-window");
-  },
-  closeSettingsWindow: (): void => {
-    ipcRenderer.send("close-settings-window");
-  },
-  notifyVRMChanged: (): void => {
-    ipcRenderer.send("notify-vrm-changed");
-  },
-  notifySpeakerChanged: (speakerId: number): void => {
-    ipcRenderer.send("notify-speaker-changed", speakerId);
-  },
-  notifyVolumeChanged: (volumeScale: number): void => {
-    ipcRenderer.send("notify-volume-changed", volumeScale);
-  },
-  playTestSpeech: (): void => {
-    ipcRenderer.send("play-test-speech");
-  },
-  onPlayTestSpeech: (callback: () => void) => {
-    const listener = () => {
-      callback();
-    };
-    ipcRenderer.on("play-test-speech", listener);
-
-    // Return cleanup function
-    return () => {
-      ipcRenderer.removeListener("play-test-speech", listener);
-    };
   },
   getMicActive: (): Promise<boolean> => {
     return ipcRenderer.invoke("get-mic-active");
@@ -165,29 +85,11 @@ contextBridge.exposeInMainWorld("electron", {
   setEnableIdleAnimations: (value: boolean): Promise<boolean> => {
     return ipcRenderer.invoke("set-enable-idle-animations", value);
   },
-  onEnableIdleAnimationsChanged: (callback: (value: boolean) => void) => {
-    const listener = (_event: unknown, value: boolean) => {
-      callback(value);
-    };
-    ipcRenderer.on("enable-idle-animations-changed", listener);
-    return () => {
-      ipcRenderer.removeListener("enable-idle-animations-changed", listener);
-    };
-  },
   getEnableSpeechAnimations: (): Promise<boolean> => {
     return ipcRenderer.invoke("get-enable-speech-animations");
   },
   setEnableSpeechAnimations: (value: boolean): Promise<boolean> => {
     return ipcRenderer.invoke("set-enable-speech-animations", value);
-  },
-  onEnableSpeechAnimationsChanged: (callback: (value: boolean) => void) => {
-    const listener = (_event: unknown, value: boolean) => {
-      callback(value);
-    };
-    ipcRenderer.on("enable-speech-animations-changed", listener);
-    return () => {
-      ipcRenderer.removeListener("enable-speech-animations-changed", listener);
-    };
   },
   onMicActiveChanged: (callback: (active: boolean) => void) => {
     const listener = (_event: unknown, active: boolean) => {
@@ -196,15 +98,6 @@ contextBridge.exposeInMainWorld("electron", {
     ipcRenderer.on("mic-active-changed", listener);
     return () => {
       ipcRenderer.removeListener("mic-active-changed", listener);
-    };
-  },
-  onMuteOnMicActiveChanged: (callback: (value: boolean) => void) => {
-    const listener = (_event: unknown, value: boolean) => {
-      callback(value);
-    };
-    ipcRenderer.on("mute-on-mic-active-changed", listener);
-    return () => {
-      ipcRenderer.removeListener("mute-on-mic-active-changed", listener);
     };
   },
   onDevToolsStateChanged: (callback: (isOpen: boolean) => void) => {
@@ -218,28 +111,19 @@ contextBridge.exposeInMainWorld("electron", {
       ipcRenderer.removeListener("devtools-state-changed", listener);
     };
   },
-  toggleDevTools: (target: "main" | "settings"): Promise<boolean> => {
+  toggleDevTools: (target: "main"): Promise<boolean> => {
     return ipcRenderer.invoke("toggle-devtools", target);
   },
-  getDevToolsState: (target: "main" | "settings"): Promise<boolean> => {
+  getDevToolsState: (target: "main"): Promise<boolean> => {
     return ipcRenderer.invoke("get-devtools-state", target);
   },
-  onMainDevToolsStateChanged: (callback: (isOpen: boolean) => void) => {
-    const listener = (_event: unknown, isOpen: boolean) => {
-      callback(isOpen);
+  onToggleSettingsPanel: (callback: () => void) => {
+    const listener = () => {
+      callback();
     };
-    ipcRenderer.on("main-devtools-state-changed", listener);
+    ipcRenderer.on("toggle-settings-panel", listener);
     return () => {
-      ipcRenderer.removeListener("main-devtools-state-changed", listener);
-    };
-  },
-  onSettingsDevToolsStateChanged: (callback: (isOpen: boolean) => void) => {
-    const listener = (_event: unknown, isOpen: boolean) => {
-      callback(isOpen);
-    };
-    ipcRenderer.on("settings-devtools-state-changed", listener);
-    return () => {
-      ipcRenderer.removeListener("settings-devtools-state-changed", listener);
+      ipcRenderer.removeListener("toggle-settings-panel", listener);
     };
   },
 });
