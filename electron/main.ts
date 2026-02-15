@@ -20,7 +20,6 @@ if (isDev) {
 
 const store = new Store();
 let mainWindow: BrowserWindow | null = null;
-let settingsWindow: BrowserWindow | null = null;
 let licenseWindow: BrowserWindow | null = null;
 let logMonitor: { close: () => void } | null = null;
 let voicevoxProcess: ChildProcess | null = null;
@@ -181,7 +180,11 @@ const createTray = () => {
   const contextMenu = Menu.buildFromTemplate([
     {
       label: "設定を開く",
-      click: () => createSettingsWindow(),
+      click: () => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send("toggle-settings-panel");
+        }
+      },
     },
     { type: "separator" },
     {
@@ -483,7 +486,6 @@ const createWindow = () => {
     console.log("[Main] DevTools opened, disabling always-on-top and resizing to avoid menu bar");
     mainWindow?.setAlwaysOnTop(false);
     mainWindow?.webContents.send("devtools-state-changed", true);
-    settingsWindow?.webContents.send("main-devtools-state-changed", true);
 
     // Resize window to avoid menu bar area on macOS
     if (mainWindow && !mainWindow.isDestroyed()) {
@@ -498,7 +500,6 @@ const createWindow = () => {
     console.log("[Main] DevTools closed, enabling always-on-top and resizing to full screen");
     mainWindow?.setAlwaysOnTop(true, "pop-up-menu");
     mainWindow?.webContents.send("devtools-state-changed", false);
-    settingsWindow?.webContents.send("main-devtools-state-changed", false);
 
     // Resize window to cover menu bar area on macOS
     if (mainWindow && !mainWindow.isDestroyed()) {
@@ -508,66 +509,6 @@ const createWindow = () => {
       console.log(`[Main] Window resized to bounds: ${width}x${height} at (${x}, ${y})`);
     }
   });
-};
-
-// Create settings window
-const createSettingsWindow = () => {
-  if (settingsWindow && !settingsWindow.isDestroyed()) {
-    // If settings window already exists, focus it
-    settingsWindow.focus();
-    return;
-  }
-
-  settingsWindow = new BrowserWindow({
-    width: 600,
-    height: 700,
-    icon: getIconPath(),
-    frame: true,
-    transparent: false,
-    alwaysOnTop: true,
-    fullscreenable: false,
-    minimizable: false,
-    maximizable: false,
-    hasShadow: true,
-    resizable: true,
-    webPreferences: {
-      nodeIntegration: false,
-      contextIsolation: true,
-      preload: path.join(__dirname, "preload.js"),
-      autoplayPolicy: "no-user-gesture-required",
-    },
-  });
-
-  settingsWindow.setAlwaysOnTop(true, "pop-up-menu", 1);
-
-  // Load the settings app
-  if (process.env.VITE_DEV_SERVER_URL) {
-    // In development, load the settings.html from the dev server
-    const url = process.env.VITE_DEV_SERVER_URL.replace(/\/$/, "");
-    settingsWindow.loadURL(`${url}/settings.html`);
-  } else {
-    // In production, load the built settings.html
-    settingsWindow.loadFile(path.join(__dirname, "../dist/settings.html"));
-  }
-
-  settingsWindow.on("closed", () => {
-    settingsWindow = null;
-  });
-
-  // Notify settings window of its own DevTools state changes
-  settingsWindow.webContents.on("devtools-opened", () => {
-    settingsWindow?.webContents.send("settings-devtools-state-changed", true);
-  });
-
-  settingsWindow.webContents.on("devtools-closed", () => {
-    settingsWindow?.webContents.send("settings-devtools-state-changed", false);
-  });
-
-  // Open DevTools in development
-  if (process.env.VITE_DEV_SERVER_URL) {
-    // mainWindow?.webContents.openDevTools();
-    // settingsWindow.webContents.openDevTools();
-  }
 };
 
 // Create license window
@@ -793,11 +734,6 @@ let characterPositionDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 ipcMain.handle("set-character-size", (_event, size: number) => {
   const clampedSize = Math.max(400, Math.min(1200, Math.round(size)));
 
-  // Notify renderer immediately (before any disk I/O)
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send("character-size-changed", clampedSize);
-  }
-
   // Debounce disk persistence to avoid blocking main process during rapid slider events
   if (characterSizeDebounceTimer) clearTimeout(characterSizeDebounceTimer);
   characterSizeDebounceTimer = setTimeout(() => {
@@ -811,23 +747,12 @@ ipcMain.handle("set-character-size", (_event, size: number) => {
 ipcMain.handle("reset-character-size", () => {
   const defaultSize = 800;
   store.delete("characterSize");
-
-  // Notify renderer of size change
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send("character-size-changed", defaultSize);
-  }
-
   return defaultSize;
 });
 
 // Reset character position to default (center-bottom)
 ipcMain.handle("reset-character-position", () => {
   store.delete("characterPosition");
-
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send("character-position-reset");
-  }
-
   return true;
 });
 
@@ -869,88 +794,28 @@ ipcMain.handle("reset-all-settings", async () => {
   // Restart log monitor with default settings
   startLogMonitor();
 
-  // Notify renderer of size reset
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send("character-size-changed", 800);
-  }
-
   return started;
 });
 
-// Open settings window
-ipcMain.on("open-settings-window", () => {
-  createSettingsWindow();
-});
-
-// Close settings window
-ipcMain.on("close-settings-window", () => {
-  if (settingsWindow && !settingsWindow.isDestroyed()) {
-    settingsWindow.close();
-  }
-});
-
-// Notify main window that VRM file has changed
-ipcMain.on("notify-vrm-changed", () => {
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    console.log("[IPC] Notifying main window of VRM change");
-    mainWindow.webContents.send("vrm-changed");
-  }
-});
-
-// Notify main window that speaker has changed
-ipcMain.on("notify-speaker-changed", (_event, speakerId: number) => {
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    console.log("[IPC] Notifying main window of speaker change:", speakerId);
-    mainWindow.webContents.send("speaker-changed", speakerId);
-  }
-});
-
-// Notify main window that volume has changed
-ipcMain.on("notify-volume-changed", (_event, volumeScale: number) => {
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    console.log("[IPC] Notifying main window of volume change:", volumeScale);
-    mainWindow.webContents.send("volume-changed", volumeScale);
-  }
-});
-
-// Play test speech on main window
-ipcMain.on("play-test-speech", () => {
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    console.log("[IPC] Playing test speech on main window");
-    mainWindow.webContents.send("play-test-speech");
-  }
-});
-
-// Toggle DevTools for main or settings window
-ipcMain.handle("toggle-devtools", (_event, target: "main" | "settings") => {
-  if (target === "main") {
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      if (mainWindow.webContents.isDevToolsOpened()) {
-        mainWindow.webContents.closeDevTools();
-      } else {
-        mainWindow.webContents.openDevTools();
-      }
-      return mainWindow.webContents.isDevToolsOpened();
+// Toggle DevTools for main window
+ipcMain.handle("toggle-devtools", (_event, target: "main") => {
+  if (target === "main" && mainWindow && !mainWindow.isDestroyed()) {
+    if (mainWindow.webContents.isDevToolsOpened()) {
+      mainWindow.webContents.closeDevTools();
+    } else {
+      mainWindow.webContents.openDevTools();
     }
-  } else {
-    if (settingsWindow && !settingsWindow.isDestroyed()) {
-      if (settingsWindow.webContents.isDevToolsOpened()) {
-        settingsWindow.webContents.closeDevTools();
-      } else {
-        settingsWindow.webContents.openDevTools();
-      }
-      return settingsWindow.webContents.isDevToolsOpened();
-    }
+    return mainWindow.webContents.isDevToolsOpened();
   }
   return false;
 });
 
-// Get DevTools state for main or settings window
-ipcMain.handle("get-devtools-state", (_event, target: "main" | "settings") => {
+// Get DevTools state for main window
+ipcMain.handle("get-devtools-state", (_event, target: "main") => {
   if (target === "main") {
     return mainWindow?.webContents.isDevToolsOpened() ?? false;
   }
-  return settingsWindow?.webContents.isDevToolsOpened() ?? false;
+  return false;
 });
 
 // Get current mic active state (for initial state query from renderer)
@@ -974,13 +839,6 @@ ipcMain.handle("set-mute-on-mic-active", (_event, value: boolean) => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send("mic-active-changed", false);
     }
-  }
-  // Notify main window and settings window of the change
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send("mute-on-mic-active-changed", value);
-  }
-  if (settingsWindow && !settingsWindow.isDestroyed()) {
-    settingsWindow.webContents.send("mute-on-mic-active-changed", value);
   }
   return true;
 });
@@ -1021,12 +879,6 @@ ipcMain.handle("get-enable-idle-animations", () => {
 
 ipcMain.handle("set-enable-idle-animations", (_event, value: boolean) => {
   store.set("enableIdleAnimations", value);
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send("enable-idle-animations-changed", value);
-  }
-  if (settingsWindow && !settingsWindow.isDestroyed()) {
-    settingsWindow.webContents.send("enable-idle-animations-changed", value);
-  }
   return true;
 });
 
@@ -1037,12 +889,6 @@ ipcMain.handle("get-enable-speech-animations", () => {
 
 ipcMain.handle("set-enable-speech-animations", (_event, value: boolean) => {
   store.set("enableSpeechAnimations", value);
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send("enable-speech-animations-changed", value);
-  }
-  if (settingsWindow && !settingsWindow.isDestroyed()) {
-    settingsWindow.webContents.send("enable-speech-animations-changed", value);
-  }
   return true;
 });
 
@@ -1072,18 +918,17 @@ app.whenReady().then(async () => {
   createWindow();
   initAutoUpdater();
 
-  // Show dialog and open settings if engine is not found
+  // Show dialog and open settings panel if engine is not found
   if (!engineInstalled) {
-    createSettingsWindow();
-    // Show dialog as a child of settings window to avoid being hidden behind the transparent main window
-    if (settingsWindow && !settingsWindow.isDestroyed()) {
-      dialog.showMessageBox(settingsWindow, {
-        type: "warning",
-        title: "音声合成エンジンが見つかりません",
-        message:
-          "選択中の音声合成エンジンが見つかりませんでした。\nエンジンをインストールするか、設定画面でエンジンの設定を確認してください。",
-      });
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send("toggle-settings-panel");
     }
+    dialog.showMessageBox({
+      type: "warning",
+      title: "音声合成エンジンが見つかりません",
+      message:
+        "選択中の音声合成エンジンが見つかりませんでした。\nエンジンをインストールするか、設定画面でエンジンの設定を確認してください。",
+    });
   }
 
   app.on("activate", () => {

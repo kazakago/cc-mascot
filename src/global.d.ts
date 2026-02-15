@@ -6,9 +6,6 @@ declare global {
   interface Window {
     electron?: {
       onSpeak: (callback: (message: string) => void) => () => void;
-      onVRMChanged: (callback: () => void) => () => void;
-      onSpeakerChanged: (callback: (speakerId: number) => void) => () => void;
-      onVolumeChanged: (callback: (volumeScale: number) => void) => () => void;
       getVoicevoxPath: () => Promise<string | undefined>;
       setVoicevoxPath: (path: string) => Promise<boolean>;
       getEngineType: () => Promise<EngineType | undefined>;
@@ -21,17 +18,8 @@ declare global {
       getCharacterPosition: () => Promise<{ x: number; y: number } | undefined>;
       setCharacterPosition: (x: number, y: number) => void;
       resetCharacterPosition: () => Promise<boolean>;
-      onCharacterPositionReset: (callback: () => void) => () => void;
-      onCharacterSizeChanged: (callback: (size: number) => void) => () => void;
       getScreenSize: () => Promise<{ width: number; height: number }>;
       resetAllSettings: () => Promise<boolean>;
-      openSettingsWindow: () => void;
-      closeSettingsWindow: () => void;
-      notifyVRMChanged: () => void;
-      notifySpeakerChanged: (speakerId: number) => void;
-      notifyVolumeChanged: (volumeScale: number) => void;
-      playTestSpeech: () => void;
-      onPlayTestSpeech: (callback: () => void) => () => void;
       getMicActive: () => Promise<boolean>;
       getMuteOnMicActive: () => Promise<boolean>;
       setMuteOnMicActive: (value: boolean) => Promise<boolean>;
@@ -41,17 +29,13 @@ declare global {
       setIncludeSubAgents: (value: boolean) => Promise<boolean>;
       getEnableIdleAnimations: () => Promise<boolean>;
       setEnableIdleAnimations: (value: boolean) => Promise<boolean>;
-      onEnableIdleAnimationsChanged: (callback: (value: boolean) => void) => () => void;
       getEnableSpeechAnimations: () => Promise<boolean>;
       setEnableSpeechAnimations: (value: boolean) => Promise<boolean>;
-      onEnableSpeechAnimationsChanged: (callback: (value: boolean) => void) => () => void;
       onMicActiveChanged: (callback: (active: boolean) => void) => () => void;
-      onMuteOnMicActiveChanged: (callback: (value: boolean) => void) => () => void;
       onDevToolsStateChanged: (callback: (isOpen: boolean) => void) => () => void;
-      toggleDevTools: (target: "main" | "settings") => Promise<boolean>;
-      getDevToolsState: (target: "main" | "settings") => Promise<boolean>;
-      onMainDevToolsStateChanged: (callback: (isOpen: boolean) => void) => () => void;
-      onSettingsDevToolsStateChanged: (callback: (isOpen: boolean) => void) => () => void;
+      toggleDevTools: (target: "main") => Promise<boolean>;
+      getDevToolsState: (target: "main") => Promise<boolean>;
+      onToggleSettingsPanel: (callback: () => void) => () => void;
     };
   }
 }
