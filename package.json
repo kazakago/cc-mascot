@@ -25,6 +25,7 @@
     "@pixiv/three-vrm-animation": "^3.4.4",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
+    "@react-three/postprocessing": "^3.0.4",
     "chokidar": "^5.0.0",
     "electron-store": "^11.0.2",
     "electron-updater": "^6.7.3",
