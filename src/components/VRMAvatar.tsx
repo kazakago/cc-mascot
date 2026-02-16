@@ -43,7 +43,7 @@ export const VRMAvatar = forwardRef<VRMAvatarHandle, VRMAvatarProps>(function VR
   },
   ref,
 ) {
-  const { vrm, bounds, loading, error, setMouthOpen, setEmotion, update: updateVRM } = useVRM(url);
+  const { vrm, bounds, loading, error, isVRM0, setMouthOpen, setEmotion, update: updateVRM } = useVRM(url);
   const { update: updateAnimation } = useVRMAnimation(vrm, animationUrl || "", {
     loop: animationLoop,
     onAnimationEnd,
@@ -79,7 +79,7 @@ export const VRMAvatar = forwardRef<VRMAvatarHandle, VRMAvatarProps>(function VR
   }, [bounds]);
 
   // カーソル追従機能を有効化
-  const { updateOptions: updateCursorTracking } = useCursorTracking(vrm, cursorTrackingOptions);
+  const { updateOptions: updateCursorTracking } = useCursorTracking(vrm, isVRM0, cursorTrackingOptions);
 
   // Update cursor tracking when options change
   useEffect(() => {
@@ -143,7 +143,5 @@ export const VRMAvatar = forwardRef<VRMAvatarHandle, VRMAvatarProps>(function VR
     return null;
   }
 
-  return (
-    <group ref={groupRef} position={groupTransform.position} scale={groupTransform.scale} rotation={[0, 0, 0]} />
-  );
+  return <group ref={groupRef} position={groupTransform.position} scale={groupTransform.scale} rotation={[0, 0, 0]} />;
 });

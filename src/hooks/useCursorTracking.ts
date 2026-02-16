@@ -32,6 +32,7 @@ const MAX_HEAD_ROTATION_Y = MathUtils.degToRad(35); // Left/right limit
 
 export function useCursorTracking(
   vrm: VRM | null,
+  isVRM0: boolean = false,
   initialOptions: Partial<CursorTrackingOptions> = {},
 ): CursorTrackingHandle {
   const optionsRef = useRef<CursorTrackingOptions>({
@@ -130,7 +131,9 @@ export function useCursorTracking(
       // - When cursor is at face position (mouseY = headY), face looks forward (0)
       // - When cursor is above face (mouseY > headY), face looks up (> 0)
       // - When cursor is below face (mouseY < headY), face looks down (< 0)
-      const targetRotationX = (mouse.y - headY) * headSensitivity * MAX_HEAD_ROTATION_X;
+      // NOTE: For VRM0.x models, the rotation is inverted due to VRMUtils.rotateVRM0
+      const headYDirection = isVRM0 ? 1 : -1;
+      const targetRotationX = headYDirection * (mouse.y - headY) * headSensitivity * MAX_HEAD_ROTATION_X;
       const targetRotationY = mouse.x * headSensitivity * MAX_HEAD_ROTATION_Y;
 
       // Smoothly interpolate current rotation to target

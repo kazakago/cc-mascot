@@ -20,6 +20,7 @@ export function useVRM(url: string) {
   const [bounds, setBounds] = useState<VRMBounds | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [isVRM0, setIsVRM0] = useState<boolean>(false);
   const vrmRef = useRef<VRM | null>(null);
 
   // Track current and target emotion values for smooth transitions
@@ -51,6 +52,12 @@ export function useVRM(url: string) {
         const loadedVrm = gltf.userData.vrm as VRM;
 
         VRMUtils.combineSkeletons(gltf.scene);
+
+        // Detect VRM version
+        // VRM 1.0 has metaVersion "1", VRM 0.x has "0" or undefined
+        const vrmVersion = loadedVrm.meta?.metaVersion;
+        const isVrm0 = vrmVersion !== "1";
+        setIsVRM0(isVrm0);
 
         // Rotate VRM0.x models to match VRM1.0 coordinate system
         // VRM0.x uses a different Z-axis direction
@@ -142,5 +149,5 @@ export function useVRM(url: string) {
     [vrm],
   );
 
-  return { vrm, bounds, loading, error, setMouthOpen, setEmotion, update };
+  return { vrm, bounds, loading, error, isVRM0, setMouthOpen, setEmotion, update };
 }
