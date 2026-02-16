@@ -144,6 +144,6 @@ export const VRMAvatar = forwardRef<VRMAvatarHandle, VRMAvatarProps>(function VR
   }
 
   return (
-    <group ref={groupRef} position={groupTransform.position} scale={groupTransform.scale} rotation={[0, Math.PI, 0]} />
+    <group ref={groupRef} position={groupTransform.position} scale={groupTransform.scale} rotation={[0, 0, 0]} />
   );
 });

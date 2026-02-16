@@ -52,6 +52,10 @@ export function useVRM(url: string) {
 
         VRMUtils.combineSkeletons(gltf.scene);
 
+        // Rotate VRM0.x models to match VRM1.0 coordinate system
+        // VRM0.x uses a different Z-axis direction
+        VRMUtils.rotateVRM0(loadedVrm);
+
         // Create VRMLookAtQuaternionProxy to suppress animation warnings
         if (loadedVrm.lookAt) {
           const lookAtProxy = new VRMLookAtQuaternionProxy(loadedVrm.lookAt);
