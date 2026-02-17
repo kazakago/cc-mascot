@@ -31,6 +31,7 @@ vi.mock("@pixiv/three-vrm", () => ({
   VRMUtils: {
     combineSkeletons: vi.fn(),
     deepDispose: vi.fn(),
+    rotateVRM0: vi.fn(),
   },
 }));
 
