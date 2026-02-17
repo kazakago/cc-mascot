@@ -15,6 +15,7 @@ export function useVRMAnimation(vrm: VRM | null, animationUrl: string, options: 
   const [vrmAnimation, setVrmAnimation] = useState<VRMAnimation | null>(null);
   const mixerRef = useRef<AnimationMixer | null>(null);
   const currentActionRef = useRef<AnimationAction | null>(null);
+  const animatedBonesRef = useRef<Set<string>>(new Set());
 
   // Load VRMA file
   useEffect(() => {
@@ -56,6 +57,18 @@ export function useVRMAnimation(vrm: VRM | null, animationUrl: string, options: 
 
     const mixer = mixerRef.current;
     const clip = createVRMAnimationClip(vrmAnimation, vrm);
+
+    // Extract bone names that this animation controls
+    // Track names follow the pattern "objectName.property" (e.g. "leftIndexProximal.quaternion")
+    const boneNames = new Set<string>();
+    for (const track of clip.tracks) {
+      const dotIndex = track.name.lastIndexOf(".");
+      if (dotIndex !== -1) {
+        boneNames.add(track.name.substring(0, dotIndex));
+      }
+    }
+    animatedBonesRef.current = boneNames;
+
     const newAction = mixer.clipAction(clip);
 
     // Configure loop mode
@@ -117,5 +130,5 @@ export function useVRMAnimation(vrm: VRM | null, animationUrl: string, options: 
     mixerRef.current?.update(delta);
   }, []);
 
-  return { update };
+  return { update, animatedBonesRef };
 }

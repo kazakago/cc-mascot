@@ -53,7 +53,7 @@ vi.mock("three/examples/jsm/loaders/GLTFLoader.js", () => ({
 
 vi.mock("@pixiv/three-vrm-animation", () => ({
   VRMAnimationLoaderPlugin: vi.fn(),
-  createVRMAnimationClip: vi.fn(() => ({ name: "mock-clip" })),
+  createVRMAnimationClip: vi.fn(() => ({ name: "mock-clip", tracks: [] })),
 }));
 
 describe("useVRMAnimation", () => {

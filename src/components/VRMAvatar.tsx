@@ -5,6 +5,7 @@ import { useVRM } from "../hooks/useVRM";
 import { useVRMAnimation } from "../hooks/useVRMAnimation";
 import { useBlink } from "../hooks/useBlink";
 import { useCursorTracking } from "../hooks/useCursorTracking";
+import { useDefaultFingerPose } from "../hooks/useDefaultFingerPose";
 import type { Emotion } from "../types/emotion";
 import type { CursorTrackingOptions } from "../hooks/useCursorTracking";
 
@@ -44,7 +45,7 @@ export const VRMAvatar = forwardRef<VRMAvatarHandle, VRMAvatarProps>(function VR
   ref,
 ) {
   const { vrm, bounds, loading, error, isVRM0, setMouthOpen, setEmotion, update: updateVRM } = useVRM(url);
-  const { update: updateAnimation } = useVRMAnimation(vrm, animationUrl || "", {
+  const { update: updateAnimation, animatedBonesRef } = useVRMAnimation(vrm, animationUrl || "", {
     loop: animationLoop,
     onAnimationEnd,
     onAnimationLoop,
@@ -78,6 +79,9 @@ export const VRMAvatar = forwardRef<VRMAvatarHandle, VRMAvatarProps>(function VR
     };
   }, [bounds]);
 
+  // デフォルト指ポーズ（VRMAに指データがない場合の自然なポーズ）
+  const { applyDefaultFingerPose } = useDefaultFingerPose(vrm, isVRM0, animatedBonesRef);
+
   // カーソル追従機能を有効化
   const { updateOptions: updateCursorTracking } = useCursorTracking(vrm, isVRM0, cursorTrackingOptions);
 
@@ -102,6 +106,7 @@ export const VRMAvatar = forwardRef<VRMAvatarHandle, VRMAvatarProps>(function VR
 
   useFrame((_, delta) => {
     updateAnimation(delta);
+    applyDefaultFingerPose();
     updateVRM(delta);
 
     // Update head position for visualization
