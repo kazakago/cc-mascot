@@ -33,7 +33,7 @@ const ELLIPSE_RADIUS_X = 0.15; // コンテナ幅に対する横半径の比率
 const ELLIPSE_RADIUS_Y = 0.45; // コンテナ高さに対する縦半径の比率
 const ELLIPSE_CENTER_Y_OFFSET = 0.03; // コンテナ中心からの下方オフセット比率
 
-const DEFAULT_VRM_URL = "./models/avatar.glb";
+const DEFAULT_VRM_URL = "./models/default_model.vrm";
 const IDLE_ANIMATION_URL = "./animations/idle_loop.vrma";
 const IDLE_RANDOM_ANIMATION_URLS = [
   "./animations/idle_anim1.vrma",

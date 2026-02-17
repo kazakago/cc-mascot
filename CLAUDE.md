@@ -266,7 +266,7 @@ VRM読み込み:
 - VRMLoaderPlugin使用
 - VRM 0.x / 1.0 自動対応
 - GLB（VRM拡張付き）対応
-- デフォルト: `/models/avatar.glb`
+- デフォルト: `/models/default_model.vrm`
 - カスタム: IndexedDBから読み込み
 
 表情制御:
