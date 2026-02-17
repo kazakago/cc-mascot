@@ -4,7 +4,8 @@ import * as path from "path";
 import * as os from "os";
 import * as readline from "readline";
 import { parseClaudeCodeLog, SpeakMessage } from "./parsers/claudeCodeParser";
-import { cleanTextForSpeech } from "./filters/textFilter";
+import { cleanTextForSpeech, splitIntoSentences } from "./filters/textFilter";
+import { RuleBasedEmotionClassifier } from "./services/ruleBasedEmotionClassifier";
 
 // Track file positions to avoid re-reading
 const filePositions = new Map<string, number>();
@@ -12,6 +13,9 @@ const filePositions = new Map<string, number>();
 // Debounce map to prevent rapid-fire speech
 const lastProcessed = new Map<string, number>();
 const DEBOUNCE_MS = 100;
+
+// Emotion classifier for per-sentence re-classification
+const emotionClassifier = new RuleBasedEmotionClassifier();
 
 type BroadcastFn = (message: string) => void;
 
@@ -148,14 +152,26 @@ function processLogLine(line: string, broadcast: BroadcastFn, includeSubAgents: 
     const cleanedText = cleanTextForSpeech(message.text);
 
     if (cleanedText) {
-      console.log(`[LogMonitor] Extracted text: ${cleanedText.substring(0, 50)}...`);
+      // Split into sentences for faster sequential speech synthesis
+      const sentences = splitIntoSentences(cleanedText);
 
-      broadcast(
-        JSON.stringify({
-          ...message,
-          text: cleanedText,
-        }),
-      );
+      for (const sentence of sentences) {
+        // Skip empty sentences (e.g. from blank lines between paragraphs)
+        if (!sentence) continue;
+
+        // Re-classify emotion per sentence for more accurate expression
+        const emotion = emotionClassifier.classify(sentence);
+
+        console.log(`[LogMonitor] Extracted text: ${sentence.substring(0, 50)}...`);
+
+        broadcast(
+          JSON.stringify({
+            ...message,
+            text: sentence,
+            emotion,
+          }),
+        );
+      }
     }
   }
 }

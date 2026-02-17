@@ -24,6 +24,15 @@ vi.mock("./parsers/claudeCodeParser", () => ({
 
 vi.mock("./filters/textFilter", () => ({
   cleanTextForSpeech: vi.fn(),
+  splitIntoSentences: vi.fn((text: string) => [text]),
+}));
+
+vi.mock("./services/ruleBasedEmotionClassifier", () => ({
+  RuleBasedEmotionClassifier: class {
+    classify() {
+      return "neutral";
+    }
+  },
 }));
 
 import { createLogMonitor } from "./logMonitor";
@@ -369,7 +378,7 @@ describe("logMonitor", () => {
       expect(parseClaudeCodeLog).toHaveBeenCalled();
       expect(cleanTextForSpeech).toHaveBeenCalledWith("こんにちは！");
       expect(mockBroadcast).toHaveBeenCalledWith(
-        JSON.stringify({ type: "speak", text: "こんにちは！", emotion: "happy" }),
+        JSON.stringify({ type: "speak", text: "こんにちは！", emotion: "neutral" }),
       );
     });
 

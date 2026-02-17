@@ -96,12 +96,17 @@ export function useSpeech({ onStart, onEnd, speakerId, baseUrl, volumeScale, isM
       return;
     }
 
-    // 次に発話すべきアイテムを探す（ID順）
+    // 次に発話すべきアイテムを探す（ID順、合成中のアイテムより先には進まない）
     let nextItem: QueueItem | undefined;
+    let smallestId = Infinity;
     for (const [id, item] of queueRef.current) {
-      if (item.status === "ready") {
-        // まだ再生していない最も小さいIDのアイテムを再生
-        if (!nextItem || id < nextItem.id) {
+      if (id < smallestId) {
+        smallestId = id;
+        // 最小IDのアイテムがまだ合成中なら、順番を守って待つ
+        if (item.status === "pending" || item.status === "synthesizing") {
+          return;
+        }
+        if (item.status === "ready") {
           nextItem = item;
         }
       }

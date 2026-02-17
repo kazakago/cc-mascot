@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { cleanTextForSpeech } from "./textFilter";
+import { cleanTextForSpeech, splitIntoSentences } from "./textFilter";
 
 describe("cleanTextForSpeech", () => {
   describe("コードブロックの除去", () => {
@@ -317,5 +317,57 @@ import { describe, it, expect } from 'vitest';
       expect(result).toContain("2行目");
       expect(result).toContain("3行目");
     });
+  });
+});
+
+describe("splitIntoSentences", () => {
+  it("句点で分割する", () => {
+    const result = splitIntoSentences("これは1文目です。これは2文目です。");
+    expect(result).toEqual(["これは1文目です。", "これは2文目です。"]);
+  });
+
+  it("感嘆符で分割する", () => {
+    const result = splitIntoSentences("すごい！本当に！");
+    expect(result).toEqual(["すごい！", "本当に！"]);
+  });
+
+  it("疑問符で分割する", () => {
+    const result = splitIntoSentences("本当ですか？はい、そうです。");
+    expect(result).toEqual(["本当ですか？", "はい、そうです。"]);
+  });
+
+  it("半角の感嘆符・疑問符で分割する", () => {
+    const result = splitIntoSentences("Really? Yes!");
+    expect(result).toEqual(["Really?", "Yes!"]);
+  });
+
+  it("改行で分割する", () => {
+    const result = splitIntoSentences("1行目\n2行目\n3行目");
+    expect(result).toEqual(["1行目", "2行目", "3行目"]);
+  });
+
+  it("句点と改行が混在する場合", () => {
+    const result = splitIntoSentences("1文目です。\n2文目です。");
+    expect(result).toEqual(["1文目です。", "2文目です。"]);
+  });
+
+  it("空行を含む場合は空文字列を保持する", () => {
+    const result = splitIntoSentences("1文目です。\n\n2文目です。");
+    expect(result).toEqual(["1文目です。", "", "2文目です。"]);
+  });
+
+  it("空文字列は空文字列1つの配列を返す", () => {
+    const result = splitIntoSentences("");
+    expect(result).toEqual([""]);
+  });
+
+  it("句読点がない単一テキストはそのまま返す", () => {
+    const result = splitIntoSentences("句読点なしのテキスト");
+    expect(result).toEqual(["句読点なしのテキスト"]);
+  });
+
+  it("前後の空白をトリムする", () => {
+    const result = splitIntoSentences("  1文目です。  2文目です。  ");
+    expect(result).toEqual(["1文目です。", "2文目です。", ""]);
   });
 });

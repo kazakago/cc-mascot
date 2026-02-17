@@ -46,3 +46,15 @@ export function cleanTextForSpeech(text: string): string {
 
   return cleaned;
 }
+
+/**
+ * Split text into individual sentences for sequential speech synthesis.
+ * Splits on Japanese period (。), exclamation (！/!), question (？/?), and newlines.
+ * Returns trimmed sentences (including empty strings as spacing information).
+ */
+export function splitIntoSentences(text: string): string[] {
+  // Split on sentence-ending punctuation (keeping the punctuation attached) and newlines
+  const parts = text.split(/(?<=[。！？!?])|[\n\r]+/);
+
+  return parts.map((s) => s.trim());
+}
