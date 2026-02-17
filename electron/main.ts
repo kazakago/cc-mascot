@@ -925,16 +925,14 @@ app.whenReady().then(async () => {
   initAutoUpdater();
 
   // Show dialog and open settings panel if engine is not found
-  if (!engineInstalled) {
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send("toggle-settings-panel");
-    }
-    dialog.showMessageBox({
+  if (!engineInstalled && mainWindow && !mainWindow.isDestroyed()) {
+    await dialog.showMessageBox(mainWindow, {
       type: "warning",
       title: "音声合成エンジンが見つかりません",
       message:
         "選択中の音声合成エンジンが見つかりませんでした。\nエンジンをインストールするか、設定画面でエンジンの設定を確認してください。",
     });
+    mainWindow.webContents.send("toggle-settings-panel");
   }
 
   app.on("activate", () => {
