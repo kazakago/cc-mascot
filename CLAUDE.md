@@ -159,11 +159,13 @@
   ↓
 行ごとにJSONLパース (claudeCodeParser)
   ↓
-テキストフィルタリング (textFilter)
+テキストフィルタリング (textFilter.cleanTextForSpeech)
   ↓
-感情判定 (ruleBasedEmotionClassifier)
+文単位に分割 (textFilter.splitIntoSentences)
   ↓
-IPC送信 (speak イベント)
+文ごとに感情判定 (ruleBasedEmotionClassifier)
+  ↓
+文ごとにIPC送信 (speak イベント)
 ```
 
 ### 2. JSONL解析・感情判定
@@ -199,6 +201,14 @@ IPC送信 (speak イベント)
 - コロン除去
 - かっこの読み上げ変換（`()` `（）` → 「かっこ」「かっこ閉じ」、前後にスペース付与）
 
+文分割処理（splitIntoSentences）:
+
+- フィルタリング後のテキストを文単位に分割して個別に音声合成する
+- 分割ポイント: 句点（。）、感嘆符（！!）、疑問符（？?）、改行
+- 句読点は前の文に付与（後読み分割）
+- 空文字列は保持（分節の区切り情報として）、broadcastはスキップ
+- 分割後の各文に対して感情判定を再実行（文単位の方が精度が高い）
+
 ### 3. 音声合成システム
 
 **src/hooks/useSpeech.ts**
@@ -206,9 +216,18 @@ IPC送信 (speak イベント)
 設計方針:
 
 - キュー構造で順序保証（オーバーラップなし）
+- 音声合成は並列実行（キューに入った時点で即座にAPI呼び出し）
+- 再生は必ずID順（合成が先に完了しても前のアイテムの合成完了を待つ）
 - AudioContext初期化（Electron用に自動resume）
 - エラー時もキュー継続
 - volumeScale適用（GainNode）
+
+順序保証の仕組み:
+
+- 各アイテムにインクリメンタルIDを付与
+- processQueueでキュー内の最小IDを確認
+- 最小IDがpending/synthesizing状態なら再生を開始せず待機
+- これにより短い文の合成が先に完了しても、長い文を追い越して再生されない
 
 Web Audio APIグラフ:
 
