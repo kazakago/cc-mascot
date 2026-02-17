@@ -784,6 +784,8 @@ ipcMain.handle("reset-all-settings", async () => {
   store.delete("includeSubAgents");
   store.delete("enableIdleAnimations");
   store.delete("enableSpeechAnimations");
+  store.delete("speakerId");
+  store.delete("volumeScale");
   stopMicMonitor();
 
   await stopVoicevoxEngine();
@@ -855,6 +857,26 @@ ipcMain.handle("set-include-sub-agents", (_event, value: boolean) => {
   return true;
 });
 
+// Speaker settings
+ipcMain.handle("get-speaker-id", () => {
+  return (store.get("speakerId") as number | undefined) ?? 888753760;
+});
+
+ipcMain.handle("set-speaker-id", (_event, id: number) => {
+  store.set("speakerId", id);
+  return true;
+});
+
+// Volume settings
+ipcMain.handle("get-volume-scale", () => {
+  return (store.get("volumeScale") as number | undefined) ?? 1.0;
+});
+
+ipcMain.handle("set-volume-scale", (_event, volume: number) => {
+  store.set("volumeScale", Math.max(0, Math.min(2, volume)));
+  return true;
+});
+
 // Motion settings
 ipcMain.handle("get-enable-idle-animations", () => {
   const value = store.get("enableIdleAnimations");
@@ -903,16 +925,14 @@ app.whenReady().then(async () => {
   initAutoUpdater();
 
   // Show dialog and open settings panel if engine is not found
-  if (!engineInstalled) {
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send("toggle-settings-panel");
-    }
-    dialog.showMessageBox({
+  if (!engineInstalled && mainWindow && !mainWindow.isDestroyed()) {
+    await dialog.showMessageBox(mainWindow, {
       type: "warning",
       title: "音声合成エンジンが見つかりません",
       message:
         "選択中の音声合成エンジンが見つかりませんでした。\nエンジンをインストールするか、設定画面でエンジンの設定を確認してください。",
     });
+    mainWindow.webContents.send("toggle-settings-panel");
   }
 
   app.on("activate", () => {

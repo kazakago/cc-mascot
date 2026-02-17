@@ -79,6 +79,18 @@ contextBridge.exposeInMainWorld("electron", {
   setIncludeSubAgents: (value: boolean): Promise<boolean> => {
     return ipcRenderer.invoke("set-include-sub-agents", value);
   },
+  getSpeakerId: (): Promise<number> => {
+    return ipcRenderer.invoke("get-speaker-id");
+  },
+  setSpeakerId: (id: number): Promise<boolean> => {
+    return ipcRenderer.invoke("set-speaker-id", id);
+  },
+  getVolumeScale: (): Promise<number> => {
+    return ipcRenderer.invoke("get-volume-scale");
+  },
+  setVolumeScale: (volume: number): Promise<boolean> => {
+    return ipcRenderer.invoke("set-volume-scale", volume);
+  },
   getEnableIdleAnimations: (): Promise<boolean> => {
     return ipcRenderer.invoke("get-enable-idle-animations");
   },

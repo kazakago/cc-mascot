@@ -177,7 +177,7 @@ export default function SettingsPanel({
           if (!currentExists) {
             const firstSpeakerId = newSpeakers[0].id;
             onSpeakerIdChange(firstSpeakerId);
-            localStorage.setItem("speakerId", String(firstSpeakerId));
+            window.electron?.setSpeakerId?.(firstSpeakerId);
             console.log(`[SettingsPanel] Auto-selected first speaker: ${firstSpeakerId}`);
           }
         }
@@ -241,7 +241,7 @@ export default function SettingsPanel({
 
   const handleSpeakerChange = (newSpeakerId: number) => {
     onSpeakerIdChange(newSpeakerId);
-    localStorage.setItem("speakerId", String(newSpeakerId));
+    window.electron?.setSpeakerId?.(newSpeakerId);
     console.log(`[SettingsPanel] Speaker changed to: ${newSpeakerId}`);
   };
 
@@ -250,18 +250,17 @@ export default function SettingsPanel({
   };
 
   const handleVolumeChangeComplete = () => {
-    localStorage.setItem("volumeScale", String(volumeScale));
-    console.log(`[SettingsPanel] Volume saved to localStorage: ${volumeScale}`);
+    window.electron?.setVolumeScale?.(volumeScale);
+    console.log(`[SettingsPanel] Volume saved: ${volumeScale}`);
   };
 
-  const handleWindowSizeChange = (newSize: number) => {
+  const handleCharacterSizeChange = (newSize: number) => {
     onContainerSizeChange(newSize);
-    localStorage.setItem("windowSize", String(newSize));
 
     // Persist to Electron Store (fire and forget)
     window.electron?.setCharacterSize?.(newSize).catch((err: unknown) => {
-      console.error("Failed to change window size:", err);
-      setError("Failed to change window size");
+      console.error("Failed to change character size:", err);
+      setError("Failed to change character size");
     });
   };
 
@@ -348,17 +347,17 @@ export default function SettingsPanel({
                 </p>
               </div>
               <div className="flex flex-col gap-3">
-                <label htmlFor="window-size" className="text-sm font-medium text-slate-600">
+                <label htmlFor="character-size" className="text-sm font-medium text-slate-600">
                   キャラクターサイズ: {containerSize}px
                 </label>
                 <input
                   type="range"
-                  id="window-size"
+                  id="character-size"
                   min="400"
                   max="1200"
                   step="10"
                   value={containerSize}
-                  onChange={(e) => handleWindowSizeChange(Number(e.target.value))}
+                  onChange={(e) => handleCharacterSizeChange(Number(e.target.value))}
                   className="w-full cursor-pointer"
                 />
                 <div className="flex justify-between text-sm text-slate-400">
