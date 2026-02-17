@@ -107,6 +107,11 @@ export const VRMAvatar = forwardRef<VRMAvatarHandle, VRMAvatarProps>(function VR
   useFrame((_, delta) => {
     updateAnimation(delta);
     applyDefaultFingerPose();
+
+    // Reset spring bones every frame before VRM update to prevent
+    // hair/skirt flipping (e.g. on initial load or animation switch)
+    vrm?.springBoneManager?.reset();
+
     updateVRM(delta);
 
     // Update head position for visualization
