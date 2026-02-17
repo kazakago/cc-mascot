@@ -476,7 +476,7 @@ Electronとの統合（electron/main.ts）:
 | `enableIdleAnimations`   | boolean | true       | 待機アニメーションの有効/無効           |
 | `enableSpeechAnimations` | boolean | true       | 発話アニメーションの有効/無効           |
 | `speakerId`              | number  | 888753760  | 話者ID（AivisSpeechデフォルト）         |
-| `volumeScale`            | number  | 1.0        | 音量スケール（0.0〜2.0）               |
+| `volumeScale`            | number  | 1.0        | 音量スケール（0.0〜2.0）                |
 
 ### 12. ランディングページ（GitHub Pages）
 
