@@ -13,7 +13,7 @@
 
 https://github.com/user-attachments/assets/e9fc6cca-db2a-469a-acc0-0f62265e4016
 
-<img width="600" alt="スクリーンショット 2026-02-07 14 56 09" src="docs/screenshot.jpg" />
+<img alt="スクリーンショット 2026-02-07 14 56 09" src="docs/screenshot.jpg" />
 
 ## 特徴
 
