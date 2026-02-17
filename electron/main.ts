@@ -469,13 +469,44 @@ const createWindow = () => {
     mainWindow = null;
   });
 
-  // Resize window when display metrics change
-  screen.on("display-metrics-changed", () => {
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      const { x, y, width, height } = screen.getPrimaryDisplay().bounds;
-      mainWindow.setSize(width, height);
-      mainWindow.setPosition(x, y);
+  // Track which display the window is currently on
+  let currentDisplayId = primaryDisplay.id;
+
+  // Fit window to the display it's currently on
+  const fitWindowToCurrentDisplay = () => {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    const bounds = mainWindow.getBounds();
+    const centerX = bounds.x + Math.round(bounds.width / 2);
+    const centerY = bounds.y + Math.round(bounds.height / 2);
+    const display = screen.getDisplayNearestPoint({ x: centerX, y: centerY });
+    currentDisplayId = display.id;
+    const { x, y, width, height } = display.bounds;
+    mainWindow.setBounds({ x, y, width, height });
+  };
+
+  // Resize window when it moves to a different display
+  mainWindow.on("moved", () => {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    const bounds = mainWindow.getBounds();
+    const centerX = bounds.x + Math.round(bounds.width / 2);
+    const centerY = bounds.y + Math.round(bounds.height / 2);
+    const display = screen.getDisplayNearestPoint({ x: centerX, y: centerY });
+    if (display.id !== currentDisplayId) {
+      fitWindowToCurrentDisplay();
     }
+  });
+
+  // Resize window when display metrics change (resolution, scaling, etc.)
+  screen.on("display-metrics-changed", () => {
+    fitWindowToCurrentDisplay();
+  });
+
+  // Handle display added/removed
+  screen.on("display-added", () => {
+    fitWindowToCurrentDisplay();
+  });
+  screen.on("display-removed", () => {
+    fitWindowToCurrentDisplay();
   });
 
   // Wait for the window to be ready before starting log monitor
@@ -488,10 +519,13 @@ const createWindow = () => {
     console.log("[Main] DevTools opened, disabling always-on-top and resizing to avoid menu bar");
     mainWindow?.setAlwaysOnTop(false);
     mainWindow?.webContents.send("devtools-state-changed", true);
-    // Resize window to avoid menu bar area on macOS
+    // Resize window to avoid menu bar area on current display
     if (mainWindow && !mainWindow.isDestroyed()) {
-      const primaryDisplay = screen.getPrimaryDisplay();
-      const { x, y, width, height } = primaryDisplay.workArea;
+      const bounds = mainWindow.getBounds();
+      const centerX = bounds.x + Math.round(bounds.width / 2);
+      const centerY = bounds.y + Math.round(bounds.height / 2);
+      const display = screen.getDisplayNearestPoint({ x: centerX, y: centerY });
+      const { x, y, width, height } = display.workArea;
       mainWindow.setBounds({ x, y, width, height });
       console.log(`[Main] Window resized to workArea: ${width}x${height} at (${x}, ${y})`);
     }
@@ -501,12 +535,11 @@ const createWindow = () => {
     console.log("[Main] DevTools closed, enabling always-on-top and resizing to full screen");
     mainWindow?.setAlwaysOnTop(true, "pop-up-menu");
     mainWindow?.webContents.send("devtools-state-changed", false);
-    // Resize window to cover menu bar area on macOS
+    // Resize window to cover full display bounds
+    fitWindowToCurrentDisplay();
     if (mainWindow && !mainWindow.isDestroyed()) {
-      const primaryDisplay = screen.getPrimaryDisplay();
-      const { x, y, width, height } = primaryDisplay.bounds;
-      mainWindow.setBounds({ x, y, width, height });
-      console.log(`[Main] Window resized to bounds: ${width}x${height} at (${x}, ${y})`);
+      const bounds = mainWindow.getBounds();
+      console.log(`[Main] Window resized to bounds: ${bounds.width}x${bounds.height} at (${bounds.x}, ${bounds.y})`);
     }
   });
 };
@@ -769,10 +802,17 @@ ipcMain.on("set-character-position", (_event, x: number, y: number) => {
   }, 300);
 });
 
-// Screen size
+// Screen size (returns the size of the display the window is currently on)
 ipcMain.handle("get-screen-size", () => {
-  const primaryDisplay = screen.getPrimaryDisplay();
-  const { width, height } = primaryDisplay.bounds;
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    const bounds = mainWindow.getBounds();
+    const centerX = bounds.x + Math.round(bounds.width / 2);
+    const centerY = bounds.y + Math.round(bounds.height / 2);
+    const display = screen.getDisplayNearestPoint({ x: centerX, y: centerY });
+    const { width, height } = display.bounds;
+    return { width, height };
+  }
+  const { width, height } = screen.getPrimaryDisplay().bounds;
   return { width, height };
 });
 
