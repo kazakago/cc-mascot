@@ -190,38 +190,6 @@ describe("cleanTextForSpeech", () => {
     });
   });
 
-  describe("かっこの読み上げ変換", () => {
-    it("半角かっこを読み上げテキストに変換する", () => {
-      const text = "関数(引数)を呼び出す";
-      const result = cleanTextForSpeech(text);
-
-      expect(result).toBe("関数、かっこ、引数、かっこ閉じ、を呼び出す");
-    });
-
-    it("全角かっこを読み上げテキストに変換する", () => {
-      const text = "テキスト（補足情報）です。";
-      const result = cleanTextForSpeech(text);
-
-      expect(result).toBe("テキスト、かっこ、補足情報、かっこ閉じ、です。");
-    });
-
-    it("半角と全角が混在する場合を処理する", () => {
-      const text = "(半角)と（全角）の混在";
-      const result = cleanTextForSpeech(text);
-
-      expect(result).toBe("、かっこ、半角、かっこ閉じ、と、かっこ、全角、かっこ閉じ、の混在");
-    });
-
-    it("丸括弧以外の括弧はそのまま保持する", () => {
-      const text = "【重要】彼は「了解」と言った。『本』です。";
-      const result = cleanTextForSpeech(text);
-
-      expect(result).toContain("【重要】");
-      expect(result).toContain("「了解」");
-      expect(result).toContain("『本』");
-    });
-  });
-
   describe("複合的なクリーニング", () => {
     it("複数の要素を含むテキストを総合的にクリーニングする", () => {
       const text = `
@@ -306,7 +274,7 @@ import { describe, it, expect } from 'vitest';
       const text = "テキスト「引用」とか（括弧）など。";
       const result = cleanTextForSpeech(text);
       expect(result).toContain("「引用」");
-      expect(result).toContain("、かっこ、括弧、かっこ閉じ、");
+      expect(result).toContain("（括弧）");
     });
 
     it("改行を保持する", () => {
