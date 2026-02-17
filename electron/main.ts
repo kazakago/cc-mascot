@@ -190,7 +190,7 @@ const createTray = () => {
     {
       label: "バージョン情報",
       click: async () => {
-        const { response } = await dialog.showMessageBox({
+        const { response } = await dialog.showMessageBox(mainWindow!, {
           type: "info",
           title: "CC Mascot",
           message: `CC Mascot v${app.getVersion()}`,
@@ -199,11 +199,13 @@ const createTray = () => {
             `Chrome: v${process.versions.chrome}`,
             `Node.js: v${process.versions.node}`,
           ].join("\n"),
-          buttons: ["閉じる", "アップデートを確認", "ライセンス情報"],
+          buttons: ["閉じる", "アップデートを確認", "Webサイト", "ライセンス情報"],
         });
         if (response === 1) {
           checkForUpdatesManually();
         } else if (response === 2) {
+          shell.openExternal("https://kazakago.github.io/cc-mascot/");
+        } else if (response === 3) {
           createLicenseWindow();
         }
       },
@@ -922,7 +924,7 @@ app.whenReady().then(async () => {
   }
 
   createWindow();
-  initAutoUpdater();
+  initAutoUpdater(mainWindow!);
 
   // Show dialog and open settings panel if engine is not found
   if (!engineInstalled && mainWindow && !mainWindow.isDestroyed()) {

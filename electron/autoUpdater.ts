@@ -1,4 +1,4 @@
-import { app, dialog } from "electron";
+import { app, dialog, BrowserWindow } from "electron";
 import pkg from "electron-updater";
 const { autoUpdater } = pkg;
 
@@ -7,12 +7,20 @@ autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = false;
 
 let isCheckingManually = false;
+let parentWindow: BrowserWindow | null = null;
+
+function showMessageBox(options: Electron.MessageBoxOptions): Promise<Electron.MessageBoxReturnValue> {
+  if (parentWindow && !parentWindow.isDestroyed()) {
+    return dialog.showMessageBox(parentWindow, options);
+  }
+  return dialog.showMessageBox(options);
+}
 
 function setupEventHandlers(): void {
   autoUpdater.on("update-available", async (info) => {
     console.log(`[AutoUpdater] Update available: v${info.version}`);
 
-    const { response } = await dialog.showMessageBox({
+    const { response } = await showMessageBox({
       type: "info",
       title: "アップデート",
       message: `新しいバージョン v${info.version} が利用可能です`,
@@ -33,7 +41,7 @@ function setupEventHandlers(): void {
 
     if (isCheckingManually) {
       isCheckingManually = false;
-      dialog.showMessageBox({
+      showMessageBox({
         type: "info",
         title: "アップデート",
         message: "最新バージョンです",
@@ -46,7 +54,7 @@ function setupEventHandlers(): void {
   autoUpdater.on("update-downloaded", async () => {
     console.log("[AutoUpdater] Update downloaded");
 
-    const { response } = await dialog.showMessageBox({
+    const { response } = await showMessageBox({
       type: "info",
       title: "アップデート",
       message: "アップデートのダウンロードが完了しました",
@@ -67,7 +75,7 @@ function setupEventHandlers(): void {
 
     if (isCheckingManually) {
       isCheckingManually = false;
-      dialog.showMessageBox({
+      showMessageBox({
         type: "error",
         title: "アップデート",
         message: "アップデートの確認に失敗しました",
@@ -78,7 +86,9 @@ function setupEventHandlers(): void {
   });
 }
 
-export function initAutoUpdater(): void {
+export function initAutoUpdater(window: BrowserWindow): void {
+  parentWindow = window;
+
   if (!app.isPackaged) {
     console.log("[AutoUpdater] Skipping update check in development mode");
     return;
@@ -105,7 +115,7 @@ export function initAutoUpdater(): void {
 export function checkForUpdatesManually(): void {
   if (!app.isPackaged) {
     console.log("[AutoUpdater] Skipping update check in development mode");
-    dialog.showMessageBox({
+    showMessageBox({
       type: "info",
       title: "アップデート",
       message: "開発モードではアップデートを確認できません",
