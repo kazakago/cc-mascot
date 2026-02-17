@@ -40,10 +40,6 @@ export function cleanTextForSpeech(text: string): string {
   // 10. Remove inline code backticks but keep the content  (`...`)
   cleaned = cleaned.replace(/`([^`]+)`/g, "$1");
 
-  // 11. Replace brackets with readable text
-  cleaned = cleaned.replace(/[(\uff08]/g, "、かっこ、");
-  cleaned = cleaned.replace(/[)\uff09]/g, "、かっこ閉じ、");
-
   return cleaned;
 }
 
