@@ -784,6 +784,8 @@ ipcMain.handle("reset-all-settings", async () => {
   store.delete("includeSubAgents");
   store.delete("enableIdleAnimations");
   store.delete("enableSpeechAnimations");
+  store.delete("speakerId");
+  store.delete("volumeScale");
   stopMicMonitor();
 
   await stopVoicevoxEngine();
@@ -852,6 +854,26 @@ ipcMain.handle("set-include-sub-agents", (_event, value: boolean) => {
   store.set("includeSubAgents", value);
   console.log(`[IPC] includeSubAgents set to ${value}, restarting log monitor`);
   startLogMonitor();
+  return true;
+});
+
+// Speaker settings
+ipcMain.handle("get-speaker-id", () => {
+  return (store.get("speakerId") as number | undefined) ?? 888753760;
+});
+
+ipcMain.handle("set-speaker-id", (_event, id: number) => {
+  store.set("speakerId", id);
+  return true;
+});
+
+// Volume settings
+ipcMain.handle("get-volume-scale", () => {
+  return (store.get("volumeScale") as number | undefined) ?? 1.0;
+});
+
+ipcMain.handle("set-volume-scale", (_event, volume: number) => {
+  store.set("volumeScale", Math.max(0, Math.min(2, volume)));
   return true;
 });
 

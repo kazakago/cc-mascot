@@ -7,7 +7,6 @@ import type { VRMAvatarHandle } from "./components/VRMAvatar";
 import SettingsPanel from "./components/SettingsPanel";
 import { useSpeech } from "./hooks/useSpeech";
 import { useLipSync } from "./hooks/useLipSync";
-import { useLocalStorage } from "./hooks/useLocalStorage";
 import { loadVRMFile, createBlobURL, deleteVRMFile } from "./utils/vrmStorage";
 import type { Emotion } from "./types/emotion";
 import type { CursorTrackingOptions } from "./hooks/useCursorTracking";
@@ -56,8 +55,8 @@ const SETTINGS_PANEL_WIDTH = 400;
 
 function App() {
   const avatarRef = useRef<VRMAvatarHandle>(null);
-  const [speakerId, setSpeakerId] = useLocalStorage("speakerId", 888753760);
-  const [volumeScale, setVolumeScale] = useLocalStorage("volumeScale", 1.0);
+  const [speakerId, setSpeakerId] = useState(888753760);
+  const [volumeScale, setVolumeScale] = useState(1.0);
   const [vrmUrl, setVrmUrl] = useState<string>(DEFAULT_VRM_URL);
   const [currentAnimationUrl, setCurrentAnimationUrl] = useState<string>(IDLE_ANIMATION_URL);
   const [currentEmotion, setCurrentEmotion] = useState<Emotion>("neutral");
@@ -174,6 +173,12 @@ function App() {
       .catch((err) => {
         console.error("Failed to load VRM file:", err);
       });
+  }, []);
+
+  // Load speaker and volume settings from Electron Store
+  useEffect(() => {
+    window.electron?.getSpeakerId?.().then(setSpeakerId);
+    window.electron?.getVolumeScale?.().then(setVolumeScale);
   }, []);
 
   // Load muteOnMicActive setting, initial mic state, and listen for changes
@@ -383,8 +388,6 @@ function App() {
   }, []);
 
   const handleResetAllSettings = useCallback(async () => {
-    localStorage.clear();
-
     try {
       await deleteVRMFile();
       console.log("[App] VRM file deleted");
@@ -416,7 +419,7 @@ function App() {
       setContainerCenter(center);
       containerCenterRef.current = center;
     }
-  }, [handleVRMChange, setSpeakerId, setVolumeScale]);
+  }, [handleVRMChange]);
 
   // Custom container drag and click-through implementation
   useEffect(() => {
