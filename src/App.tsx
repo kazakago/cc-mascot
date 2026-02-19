@@ -35,18 +35,20 @@ const ELLIPSE_CENTER_Y_OFFSET = 0.03; // コンテナ中心からの下方オフ
 const DEFAULT_VRM_URL = "./models/default_model.vrm";
 const IDLE_ANIMATION_URL = "./animations/idle_loop.vrma";
 const IDLE_RANDOM_ANIMATION_URLS = [
-  "./animations/idle_anim1.vrma",
-  "./animations/idle_anim2.vrma",
-  "./animations/idle_anim3.vrma",
-  "./animations/idle_anim4.vrma",
+  "./animations/thinking.vrma",
+  "./animations/dwarf_idle_2.vrma",
+  "./animations/dwarf_idle_3.vrma",
+  "./animations/look_around.vrma",
+  "./animations/looking.vrma",
+  "./animations/yawn.vrma"
 ];
 const IDLE_RANDOM_MIN_INTERVAL = 30000; // 30秒
 const IDLE_RANDOM_MAX_INTERVAL = 60000; // 60秒
 const EMOTION_ANIMATION_URLS: Partial<Record<Emotion, string[]>> = {
-  happy: ["./animations/happy1.vrma", "./animations/happy2.vrma"],
-  angry: ["./animations/angry.vrma"],
-  sad: ["./animations/sad.vrma"],
-  relaxed: ["./animations/relaxed.vrma"],
+  happy: ["./animations/v_sign.vrma", "./animations/thankful.vrma"],
+  angry: ["./animations/shaking_head_no.vrma", "./animations/angry.vrma"],
+  sad: ["./animations/shaking_head_no.vrma"],
+  relaxed: ["./animations/head_nod_yes.vrma"],
 };
 const VOICEVOX_BASE_URL = "http://localhost:8564";
 
