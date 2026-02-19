@@ -11,7 +11,7 @@
   <a href="https://github.com/kazakago/cc-mascot/actions/workflows/validate.yml"><img src="https://github.com/kazakago/cc-mascot/actions/workflows/validate.yml/badge.svg" alt="Validate"></a>
 </p>
 
-https://github.com/user-attachments/assets/e9fc6cca-db2a-469a-acc0-0f62265e4016
+https://github.com/user-attachments/assets/f2742eac-1df3-436a-b79c-f7221e677474
 
 <img alt="スクリーンショット 2026-02-07 14 56 09" src="docs/screenshot.jpg" />
 
