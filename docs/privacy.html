@@ -83,7 +83,7 @@
       </section>
 
       <section class="mb-8">
-        <h2 class="mb-3 text-xl font-700">ローカルでの通信</h2>
+        <h2 class="mb-3 text-xl font-700">ローカル通信</h2>
         <p class="text-slate-600">
           本アプリは音声合成のため、ローカルで起動している音声合成エンジン（AivisSpeech /
           VOICEVOX等）のAPIに対して、テキストデータを送信します。この通信はユーザーのデバイス内（localhost）で完結します。
@@ -92,11 +92,13 @@
 
       <section class="mb-8">
         <h2 class="mb-3 text-xl font-700">インターネット通信</h2>
-        <p class="mb-3 text-slate-600">本アプリが行うインターネット通信は以下のみです。</p>
+        <p class="mb-3 text-slate-600">
+          本アプリが行うインターネット通信は以下のみです。設定でオフにすることで、インターネット通信を一切行わない完全オフライン動作も可能です。
+        </p>
         <ul class="list-disc space-y-2 pl-6 text-slate-600">
           <li>
-            <span class="font-500 text-slate-800">自動更新チェック</span><br />
-            アプリの最新バージョンを確認するため、GitHubのリリース情報に定期的にアクセスします。この際、個人を特定する情報は送信されません。
+            <span class="font-500 text-slate-800">アップデート確認（オプション）</span><br />
+            「起動時にアップデートを確認する」設定を有効にした場合のみ、アプリ起動時にGitHubのリリース情報にアクセスします。この際、個人を特定する情報は送信されません。
           </li>
         </ul>
       </section>
