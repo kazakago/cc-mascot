@@ -133,4 +133,10 @@ contextBridge.exposeInMainWorld("electron", {
       ipcRenderer.removeListener("toggle-settings-panel", listener);
     };
   },
+  getAutoUpdateCheck: (): Promise<boolean> => {
+    return ipcRenderer.invoke("get-auto-update-check");
+  },
+  setAutoUpdateCheck: (value: boolean): Promise<boolean> => {
+    return ipcRenderer.invoke("set-auto-update-check", value);
+  },
 });

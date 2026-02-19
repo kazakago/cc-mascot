@@ -62,6 +62,7 @@ export default function SettingsPanel({
   const [testAudioError, setTestAudioError] = useState("");
   const [micMonitorAvailable, setMicMonitorAvailable] = useState(false);
   const [includeSubAgents, setIncludeSubAgents] = useState(false);
+  const [autoUpdateCheck, setAutoUpdateCheck] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -128,6 +129,11 @@ export default function SettingsPanel({
       if (window.electron?.getIncludeSubAgents) {
         const include = await window.electron.getIncludeSubAgents();
         setIncludeSubAgents(include);
+      }
+
+      if (window.electron?.getAutoUpdateCheck) {
+        const enabled = await window.electron.getAutoUpdateCheck();
+        setAutoUpdateCheck(enabled);
       }
 
       // Load VRM file name from IndexedDB
@@ -267,6 +273,11 @@ export default function SettingsPanel({
   const handleIncludeSubAgentsChange = async (value: boolean) => {
     setIncludeSubAgents(value);
     await window.electron?.setIncludeSubAgents?.(value);
+  };
+
+  const handleAutoUpdateCheckChange = async (value: boolean) => {
+    setAutoUpdateCheck(value);
+    await window.electron?.setAutoUpdateCheck?.(value);
   };
 
   const handleTestSpeech = () => {
@@ -576,6 +587,20 @@ export default function SettingsPanel({
                   <span className="font-normal">サブエージェントの発言も含める</span>
                 </label>
                 <p className="text-sm text-slate-400 m-0">サブエージェントの内容も発話の対象とします</p>
+              </div>
+              <div className="flex flex-col gap-3">
+                <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-800">
+                  <input
+                    type="checkbox"
+                    checked={autoUpdateCheck}
+                    onChange={(e) => handleAutoUpdateCheckChange(e.target.checked)}
+                    className="w-4 h-4 m-0 cursor-pointer accent-primary"
+                  />
+                  <span className="font-normal">起動時にアップデートを確認する</span>
+                </label>
+                <p className="text-sm text-slate-400 m-0">
+                  インターネット通信を行い、新しいバージョンがあるかチェックします。
+                </p>
               </div>
             </div>
           </section>
