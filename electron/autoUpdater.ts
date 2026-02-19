@@ -86,7 +86,7 @@ function setupEventHandlers(): void {
   });
 }
 
-export function initAutoUpdater(window: BrowserWindow): void {
+export function initAutoUpdater(window: BrowserWindow, enabled: boolean): void {
   parentWindow = window;
 
   if (!app.isPackaged) {
@@ -94,22 +94,18 @@ export function initAutoUpdater(window: BrowserWindow): void {
     return;
   }
 
-  setupEventHandlers();
+  if (!enabled) {
+    console.log("[AutoUpdater] Auto-update check disabled by user setting");
+    return;
+  }
 
-  // Check every 24 hours (1 day)
-  const CHECK_INTERVAL = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+  setupEventHandlers();
 
   // Initial check with delay to allow UI to initialize
   setTimeout(() => {
     console.log("[AutoUpdater] Checking for updates...");
     autoUpdater.checkForUpdates();
   }, 5_000);
-
-  // Periodic check every 24 hours
-  setInterval(() => {
-    console.log("[AutoUpdater] Scheduled daily update check...");
-    autoUpdater.checkForUpdates();
-  }, CHECK_INTERVAL);
 }
 
 export function checkForUpdatesManually(): void {

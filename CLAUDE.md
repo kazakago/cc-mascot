@@ -8,7 +8,7 @@
 
 ### コンセプト
 
-- **完全オフライン動作**: ローカル環境で完結、インターネット接続不要
+- **オフライン動作**: ローカル環境で完結、インターネット接続不要
 - **日本語専用**: 日本語の音声合成とルールベース感情分析に最適化
 - **プラグイン不要**: Claude Codeのログファイル監視による自動連携
 - **シンプルな構成**: Electron + React + Three.js + VRM
@@ -132,6 +132,7 @@
 - 音量調整
 - マイク使用中ミュート設定
 - サブエージェント発言の包含設定
+- 起動時アップデート確認の有効/無効
 - キャラクターサイズ調整
 - VRMファイル選択
 - 待機アニメーション・発話アニメーションの有効/無効
@@ -377,6 +378,7 @@ IPC通信:
 - `mic-active-changed`: メイン→レンダラー（マイク使用状態変化）
 - `get-mic-monitor-available`: レンダラー→メイン（機能利用可否）
 - `get/set-include-sub-agents`: レンダラー↔メイン（サブエージェント設定）
+- `get/set-auto-update-check`: レンダラー↔メイン（起動時アップデート確認・永続化のみ）
 - `get/set-enable-idle-animations`: レンダラー↔メイン（待機アニメーション設定・永続化のみ）
 - `get/set-enable-speech-animations`: レンダラー↔メイン（発話アニメーション設定・永続化のみ）
 - `get/set-speaker-id`: レンダラー↔メイン（話者ID・永続化のみ）
@@ -449,10 +451,11 @@ Electronとの統合（electron/main.ts）:
 **electron/autoUpdater.ts**
 
 - electron-updater を使用した自動更新機能
-- 起動5秒後に初回チェック、以降24時間ごとに自動チェック
+- 起動5秒後に1回のみチェック（定期チェックなし）
+- `autoUpdateCheck` 設定が無効の場合はチェックをスキップ（完全オフライン動作）
 - ダウンロード確認ダイアログ → インストール確認ダイアログの2段階UI
 - 開発モードではスキップ（`app.isPackaged` で判定）
-- トレイメニューの「バージョン情報」から手動チェックも可能
+- トレイメニューの「バージョン情報」から手動チェックも可能（設定に関わらず動作）
 
 ### 10. システムトレイ
 
@@ -495,6 +498,7 @@ Electronとの統合（electron/main.ts）:
 | `enableSpeechAnimations` | boolean | true       | 発話アニメーションの有効/無効           |
 | `speakerId`              | number  | 888753760  | 話者ID（AivisSpeechデフォルト）         |
 | `volumeScale`            | number  | 1.0        | 音量スケール（0.0〜2.0）                |
+| `autoUpdateCheck`        | boolean | true       | 起動時にアップデートを確認するか        |
 
 ### 12. ランディングページ（GitHub Pages）
 

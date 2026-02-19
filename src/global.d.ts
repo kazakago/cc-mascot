@@ -39,6 +39,8 @@ declare global {
       onDevToolsStateChanged: (callback: (isOpen: boolean) => void) => () => void;
       openDevTools: () => Promise<void>;
       onToggleSettingsPanel: (callback: () => void) => () => void;
+      getAutoUpdateCheck: () => Promise<boolean>;
+      setAutoUpdateCheck: (value: boolean) => Promise<boolean>;
     };
   }
 }

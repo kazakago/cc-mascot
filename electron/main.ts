@@ -828,6 +828,7 @@ ipcMain.handle("reset-all-settings", async () => {
   store.delete("enableSpeechAnimations");
   store.delete("speakerId");
   store.delete("volumeScale");
+  store.delete("autoUpdateCheck");
   stopMicMonitor();
 
   await stopVoicevoxEngine();
@@ -940,6 +941,16 @@ ipcMain.handle("set-enable-speech-animations", (_event, value: boolean) => {
   return true;
 });
 
+ipcMain.handle("get-auto-update-check", () => {
+  const value = store.get("autoUpdateCheck");
+  return value === undefined ? true : (value as boolean);
+});
+
+ipcMain.handle("set-auto-update-check", (_event, value: boolean) => {
+  store.set("autoUpdateCheck", value);
+  return true;
+});
+
 ipcMain.on("set-ignore-mouse-events", (_event, ignore: boolean) => {
   if (mainWindow && !mainWindow.isDestroyed()) {
     // Always use forward: true to keep receiving mouse move events even when ignoring clicks
@@ -964,7 +975,8 @@ app.whenReady().then(async () => {
   }
 
   createWindow();
-  initAutoUpdater(mainWindow!);
+  const autoUpdateCheck = (store.get("autoUpdateCheck") as boolean | undefined) ?? true;
+  initAutoUpdater(mainWindow!, autoUpdateCheck);
 
   // Show dialog and open settings panel if engine is not found
   if (!engineInstalled && mainWindow && !mainWindow.isDestroyed()) {
