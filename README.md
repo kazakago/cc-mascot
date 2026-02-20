@@ -7,7 +7,7 @@
   <a href="https://kazakago.github.io/cc-mascot/">https://kazakago.github.io/cc-mascot/</a>
 </p>
 <p align="center">
-  <img src="https://img.shields.io/badge/license-Apache%202.0-blue" alt="License">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache%202.0-blue" alt="License"></a>
   <a href="https://github.com/kazakago/cc-mascot/actions/workflows/validate.yml"><img src="https://github.com/kazakago/cc-mascot/actions/workflows/validate.yml/badge.svg" alt="Validate"></a>
 </p>
 
