@@ -9,6 +9,7 @@ import { useSpeech } from "./hooks/useSpeech";
 import { useLipSync } from "./hooks/useLipSync";
 import { loadVRMFile, createBlobURL, deleteVRMFile } from "./utils/vrmStorage";
 import type { Emotion } from "./types/emotion";
+import type { AnimationManifest } from "./global";
 import type { CursorTrackingOptions } from "./hooks/useCursorTracking";
 
 // Helper function to check if point is inside ellipse
@@ -33,23 +34,9 @@ const ELLIPSE_RADIUS_Y = 0.45; // コンテナ高さに対する縦半径の比�
 const ELLIPSE_CENTER_Y_OFFSET = 0.03; // コンテナ中心からの下方オフセット比率
 
 const DEFAULT_VRM_URL = "./models/aone.vrm";
-const IDLE_ANIMATION_URL = "./animations/idle_loop.vrma";
-const IDLE_RANDOM_ANIMATION_URLS = [
-  "./animations/thinking.vrma",
-  "./animations/dwarf_idle_2.vrma",
-  "./animations/dwarf_idle_3.vrma",
-  "./animations/look_around.vrma",
-  "./animations/looking.vrma",
-  "./animations/yawn.vrma",
-];
+const FALLBACK_IDLE_LOOP_URL = "./animations/idle_loop.vrma";
 const IDLE_RANDOM_MIN_INTERVAL = 30000; // 30秒
 const IDLE_RANDOM_MAX_INTERVAL = 60000; // 60秒
-const EMOTION_ANIMATION_URLS: Partial<Record<Emotion, string[]>> = {
-  happy: ["./animations/v_sign.vrma", "./animations/thankful.vrma"],
-  angry: ["./animations/shaking_head_no.vrma", "./animations/angry.vrma"],
-  sad: ["./animations/shaking_head_no.vrma"],
-  relaxed: ["./animations/head_nod_yes.vrma"],
-};
 const VOICEVOX_BASE_URL = "http://localhost:8564";
 
 // Settings panel width constant for click-through calculation
@@ -60,7 +47,8 @@ function App() {
   const [speakerId, setSpeakerId] = useState(888753760);
   const [volumeScale, setVolumeScale] = useState(1.0);
   const [vrmUrl, setVrmUrl] = useState<string>(DEFAULT_VRM_URL);
-  const [currentAnimationUrl, setCurrentAnimationUrl] = useState<string>(IDLE_ANIMATION_URL);
+  const animationManifestRef = useRef<AnimationManifest | null>(null);
+  const [currentAnimationUrl, setCurrentAnimationUrl] = useState<string>(FALLBACK_IDLE_LOOP_URL);
   const [currentEmotion, setCurrentEmotion] = useState<Emotion>("neutral");
   const [containerCenter, setContainerCenter] = useState({ x: 0, y: 0 });
   const [containerSize, setContainerSize] = useState(800);
@@ -91,6 +79,14 @@ function App() {
     lastIdleAnimTimeRef.current = Date.now();
     nextIdleIntervalRef.current =
       IDLE_RANDOM_MIN_INTERVAL + Math.random() * (IDLE_RANDOM_MAX_INTERVAL - IDLE_RANDOM_MIN_INTERVAL);
+  }, []);
+
+  // アニメーションマニフェストをロード
+  useEffect(() => {
+    window.electron?.getAnimationManifest?.().then((manifest) => {
+      animationManifestRef.current = manifest;
+      setCurrentAnimationUrl(manifest.idle_loop);
+    });
   }, []);
 
   // Cursor tracking settings (fixed values)
@@ -237,8 +233,8 @@ function App() {
       avatarRef.current?.setEmotion(emotion);
 
       // Select animation based on emotion (randomly choose from array)
-      if (enableSpeechAnimationsRef.current) {
-        const animationUrls = EMOTION_ANIMATION_URLS[emotion];
+      if (enableSpeechAnimationsRef.current && emotion !== "neutral") {
+        const animationUrls = animationManifestRef.current?.emotions[emotion];
         if (animationUrls && animationUrls.length > 0) {
           const randomIndex = Math.floor(Math.random() * animationUrls.length);
           const animationUrl = animationUrls[randomIndex];
@@ -266,7 +262,7 @@ function App() {
 
   const handleAnimationEnd = useCallback(() => {
     // When animation ends, return to idle and reset random idle timer
-    setCurrentAnimationUrl(IDLE_ANIMATION_URL);
+    setCurrentAnimationUrl(animationManifestRef.current?.idle_loop ?? FALLBACK_IDLE_LOOP_URL);
     lastIdleAnimTimeRef.current = Date.now();
     nextIdleIntervalRef.current =
       IDLE_RANDOM_MIN_INTERVAL + Math.random() * (IDLE_RANDOM_MAX_INTERVAL - IDLE_RANDOM_MIN_INTERVAL);
@@ -277,8 +273,10 @@ function App() {
     if (!enableIdleAnimationsRef.current) return;
     const elapsed = Date.now() - lastIdleAnimTimeRef.current;
     if (elapsed < nextIdleIntervalRef.current) return;
-    const randomIndex = Math.floor(Math.random() * IDLE_RANDOM_ANIMATION_URLS.length);
-    setCurrentAnimationUrl(IDLE_RANDOM_ANIMATION_URLS[randomIndex]);
+    const idleUrls = animationManifestRef.current?.idle;
+    if (!idleUrls || idleUrls.length === 0) return;
+    const randomIndex = Math.floor(Math.random() * idleUrls.length);
+    setCurrentAnimationUrl(idleUrls[randomIndex]);
   }, []);
 
   const { speakText } = useSpeech({
@@ -576,7 +574,7 @@ function App() {
                 ref={avatarRef}
                 url={vrmUrl}
                 animationUrl={currentAnimationUrl}
-                animationLoop={currentAnimationUrl === IDLE_ANIMATION_URL}
+                animationLoop={currentAnimationUrl === FALLBACK_IDLE_LOOP_URL}
                 onAnimationEnd={handleAnimationEnd}
                 onAnimationLoop={handleAnimationLoop}
                 cursorTrackingOptions={cursorTrackingOptions}
