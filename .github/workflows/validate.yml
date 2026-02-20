@@ -22,7 +22,7 @@ jobs:
           ssh-private-key: ${{ secrets.CC_MASCOT_PRIVATE_DEPLOY_KEY }}
 
       - name: Initialize private submodule
-        run: git submodule update --init private-src
+        run: git submodule update --init
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -32,9 +32,6 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-
-      - name: Setup private
-        run: npm run setup:private
 
       - name: Build project
         run: npm run build
