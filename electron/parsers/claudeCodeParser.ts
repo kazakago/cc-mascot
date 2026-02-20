@@ -1,8 +1,9 @@
 /**
- * Claude Code JSONL log parser
- * Parses Claude Code session logs and extracts assistant messages
+ * Claude Code JSONLログパーサー
+ * Claude Codeのセッションログを解析し、アシスタントメッセージを抽出する
  */
 
+import * as fs from "fs";
 import { RuleBasedEmotionClassifier } from "../services/ruleBasedEmotionClassifier";
 
 // グローバル感情分類器インスタンス
@@ -26,27 +27,67 @@ interface AssistantMessage {
 }
 
 interface LogEntry {
+  parentUuid?: string;
   message?: AssistantMessage;
 }
 
 /**
- * Parse a Claude Code JSONL log line and extract text messages
- * @param line - A single line from the JSONL log file
- * @param includeSubAgents - Whether to include sub-agent messages
- * @returns Array of speak messages (may be empty if line doesn't contain text)
+ * local-command-stdout メッセージがSkill結果かCLIコマンド出力かを判定する
+ * ログファイルからparentUuidに一致する親メッセージを探し、<command-name>タグの有無で判定する
+ * @param parentUuid - local-command-stdoutメッセージのparentUuid
+ * @param logFilePath - JSONLログファイルのパス
+ * @returns Skill結果の場合true（<command-name>タグなし）、CLIコマンドの場合false
  */
-export function parseClaudeCodeLog(line: string, includeSubAgents = false): SpeakMessage[] {
+function isSkillOutput(parentUuid: string, logFilePath: string): boolean {
+  try {
+    const fileContent = fs.readFileSync(logFilePath, "utf8");
+    const lines = fileContent.split("\n");
+
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      try {
+        const entry = JSON.parse(line);
+        if (entry.uuid === parentUuid) {
+          // 親メッセージを発見 - <command-name>タグを含むか確認
+          const content = entry.message?.content;
+          if (typeof content === "string") {
+            // 親が<command-name>を含む場合はCLIコマンド（Skillではない）
+            return !content.includes("<command-name>");
+          }
+          // 親のcontentが文字列でない or 存在しない場合はSkill結果として扱う
+          return true;
+        }
+      } catch {
+        // 不正なJSON行はスキップ
+      }
+    }
+  } catch {
+    // ファイル読み込みエラー - デフォルトにフォールスルー
+  }
+
+  // 親メッセージが見つからない場合はSkill結果として扱う（読み上げ対象）
+  return true;
+}
+
+/**
+ * Claude CodeのJSONLログ行を解析してテキストメッセージを抽出する
+ * @param line - JSONLログファイルの1行
+ * @param includeSubAgents - サブエージェントのメッセージを含めるかどうか
+ * @param logFilePath - JSONLログファイルのパス（local-command-stdoutの親メッセージ参照用、省略可）
+ * @returns SpeakMessageの配列（テキストを含まない行の場合は空配列）
+ */
+export function parseClaudeCodeLog(line: string, includeSubAgents = false, logFilePath?: string): SpeakMessage[] {
   const messages: SpeakMessage[] = [];
 
   try {
     const entry: LogEntry = JSON.parse(line);
 
-    // Case 1: Standard assistant messages
-    // Filter: must have message with assistant role and message type
+    // ケース1: 通常のアシスタントメッセージ
+    // フィルタ: assistantロールかつmessageタイプのみ処理
     if (entry.message?.role === "assistant" && entry.message?.type === "message") {
-      // Filter: must have content array
+      // フィルタ: contentが配列であること
       if (Array.isArray(entry.message.content)) {
-        // Extract text content items only
+        // テキストタイプのコンテンツのみ抽出
         for (const item of entry.message.content) {
           if (item.type === "text" && item.text) {
             const text = item.text.trim();
@@ -64,18 +105,27 @@ export function parseClaudeCodeLog(line: string, includeSubAgents = false): Spea
       }
     }
 
-    // Case 2: Local command stdout messages (user role with specific tag)
-    // Note: This handles a specific case where Claude Code emits command output
-    // as user role messages wrapped in <local-command-stdout> tags.
-    // This behavior may be specific to the current version and could change.
-    // Only process when sub-agents are excluded (includeSubAgents === false).
+    // ケース2: ローカルコマンド標準出力メッセージ（userロール、特定タグ付き）
+    // Claude Codeがコマンド出力を<local-command-stdout>タグで囲んだuserロールメッセージとして出力する特殊ケースに対応。
+    // 加えて、親メッセージの<command-name>タグ有無でSkill結果（読み上げ）とCLIコマンド出力（スキップ）を判別する。
+    // この挙動は将来変更される可能性がある。
+    //
+    // サブエージェント無効時のみ処理する（includeSubAgents === false）。
     else if (!includeSubAgents && entry.message?.role === "user") {
-      // Check if content is a string (not an array)
+      // contentが文字列であるか確認（配列ではない）
       if (typeof entry.message.content === "string") {
         const text = entry.message.content.trim();
-        // Check if content is wrapped in <local-command-stdout> tags
+        // <local-command-stdout>タグで囲まれているか確認
         if (text.startsWith("<local-command-stdout>") && text.endsWith("</local-command-stdout>")) {
-          // Extract content between tags
+          // logFilePathが指定されている場合、Skill結果かCLIコマンド出力かを判定
+          if (logFilePath && entry.parentUuid) {
+            if (!isSkillOutput(entry.parentUuid, logFilePath)) {
+              // CLIコマンド出力 - スキップ（読み上げない）
+              return messages;
+            }
+          }
+
+          // タグ間のコンテンツを抽出
           const content = text
             .replace(/^<local-command-stdout>/, "")
             .replace(/<\/local-command-stdout>$/, "")
@@ -94,7 +144,7 @@ export function parseClaudeCodeLog(line: string, includeSubAgents = false): Spea
       }
     }
   } catch {
-    // Invalid JSON line, skip silently
+    // 不正なJSON行は無視
   }
 
   return messages;
