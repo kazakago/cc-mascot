@@ -139,4 +139,11 @@ contextBridge.exposeInMainWorld("electron", {
   setAutoUpdateCheck: (value: boolean): Promise<boolean> => {
     return ipcRenderer.invoke("set-auto-update-check", value);
   },
+  getAnimationManifest: (): Promise<{
+    idle_loop: string;
+    idle: string[];
+    emotions: Partial<Record<string, string[]>>;
+  }> => {
+    return ipcRenderer.invoke("get-animation-manifest");
+  },
 });

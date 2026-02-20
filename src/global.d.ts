@@ -2,6 +2,12 @@ export {};
 
 export type EngineType = "aivis" | "voicevox" | "custom";
 
+export type AnimationManifest = {
+  idle_loop: string;
+  idle: string[];
+  emotions: Partial<Record<string, string[]>>;
+};
+
 declare global {
   interface Window {
     electron?: {
@@ -41,6 +47,7 @@ declare global {
       onToggleSettingsPanel: (callback: () => void) => () => void;
       getAutoUpdateCheck: () => Promise<boolean>;
       setAutoUpdateCheck: (value: boolean) => Promise<boolean>;
+      getAnimationManifest: () => Promise<AnimationManifest>;
     };
   }
 }
