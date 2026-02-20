@@ -151,6 +151,10 @@ npm run build:mic-monitor
 npm run dev
 ```
 
+> [!NOTE]
+> アニメーションファイル（`.vrma`）はライセンスの都合上このリポジトリには含まれていません。
+> `npm run setup:private` でプライベートリポジトリからセットアップできますが、アクセス権がない場合はデフォルトの待機アニメーション（`idle_loop.vrma`）のみで動作します。
+
 `npm run build:mic-monitor` でネイティブヘルパー（マイク監視）をビルドします。
 プラットフォームごとに以下の前提条件があります。
 
