@@ -1,5 +1,8 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
 import { parseClaudeCodeLog } from "./claudeCodeParser";
+import * as fs from "fs";
+import * as os from "os";
+import * as path from "path";
 
 describe("parseClaudeCodeLog", () => {
   describe("正常なJSONLログの解析", () => {
@@ -485,6 +488,126 @@ describe("parseClaudeCodeLog", () => {
       expect(userResult).toHaveLength(1);
       expect(userResult[0].text).toBe("テスト実行が成功しました！");
       expect(userResult[0].emotion).toBe("happy");
+    });
+  });
+
+  describe("local-command-stdout の Skill結果 vs CLIコマンド出力の判別", () => {
+    let tmpDir: string;
+    let tmpFile: string;
+
+    function createTmpLogFile(content: string): string {
+      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "cc-mascot-test-"));
+      tmpFile = path.join(tmpDir, "test.jsonl");
+      fs.writeFileSync(tmpFile, content, "utf8");
+      return tmpFile;
+    }
+
+    afterEach(() => {
+      if (tmpFile && fs.existsSync(tmpFile)) fs.unlinkSync(tmpFile);
+      if (tmpDir && fs.existsSync(tmpDir)) fs.rmdirSync(tmpDir);
+    });
+
+    it("Skill結果（<command-name>なしの親）は読み上げ対象になる", () => {
+      const parentUuid = "parent-uuid-123";
+      const parentLine = JSON.stringify({
+        uuid: parentUuid,
+        message: {
+          type: "message",
+          role: "user",
+          content: "<skill>commit</skill>\nPlease commit the changes.",
+        },
+      });
+
+      const line = JSON.stringify({
+        parentUuid: parentUuid,
+        message: {
+          type: "message",
+          role: "user",
+          content: "<local-command-stdout>コミットが完了しました！</local-command-stdout>",
+        },
+      });
+
+      const logFile = createTmpLogFile(parentLine + "\n" + line);
+      const result = parseClaudeCodeLog(line, false, logFile);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].text).toBe("コミットが完了しました！");
+    });
+
+    it("CLIコマンド出力（<command-name>ありの親）はスキップされる", () => {
+      const parentUuid = "parent-uuid-456";
+      const parentLine = JSON.stringify({
+        uuid: parentUuid,
+        message: {
+          type: "message",
+          role: "user",
+          content: "<command-name>/clear</command-name>",
+        },
+      });
+
+      const line = JSON.stringify({
+        parentUuid: parentUuid,
+        message: {
+          type: "message",
+          role: "user",
+          content: "<local-command-stdout>クリアしました</local-command-stdout>",
+        },
+      });
+
+      const logFile = createTmpLogFile(parentLine + "\n" + line);
+      const result = parseClaudeCodeLog(line, false, logFile);
+
+      expect(result).toHaveLength(0);
+    });
+
+    it("親メッセージが見つからない場合はフォールバックで読み上げ対象にする", () => {
+      const line = JSON.stringify({
+        parentUuid: "nonexistent-uuid",
+        message: {
+          type: "message",
+          role: "user",
+          content: "<local-command-stdout>何かの出力</local-command-stdout>",
+        },
+      });
+
+      const logFile = createTmpLogFile('{"uuid":"other-uuid"}\n');
+      const result = parseClaudeCodeLog(line, false, logFile);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].text).toBe("何かの出力");
+    });
+
+    it("logFilePath未指定時は既存動作（読み上げ対象）が維持される", () => {
+      const line = JSON.stringify({
+        parentUuid: "some-uuid",
+        message: {
+          type: "message",
+          role: "user",
+          content: "<local-command-stdout>出力結果</local-command-stdout>",
+        },
+      });
+
+      // logFilePath を渡さない場合、isSkillOutput は呼ばれない
+      const result = parseClaudeCodeLog(line, false);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].text).toBe("出力結果");
+    });
+
+    it("parentUuidがない場合は既存動作（読み上げ対象）が維持される", () => {
+      const line = JSON.stringify({
+        message: {
+          type: "message",
+          role: "user",
+          content: "<local-command-stdout>出力結果</local-command-stdout>",
+        },
+      });
+
+      const logFile = createTmpLogFile("");
+      const result = parseClaudeCodeLog(line, false, logFile);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].text).toBe("出力結果");
     });
   });
 

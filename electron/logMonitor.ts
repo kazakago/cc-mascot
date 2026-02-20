@@ -104,7 +104,7 @@ async function processFileChanges(filePath: string, broadcast: BroadcastFn, incl
 
     // Process each new line
     for (const line of newContent) {
-      processLogLine(line, broadcast, includeSubAgents);
+      processLogLine(line, broadcast, includeSubAgents, filePath);
     }
   } catch (err) {
     console.error(`[LogMonitor] Error processing ${filePath}:`, err);
@@ -142,9 +142,9 @@ async function readNewLines(filePath: string, startPosition: number, endPosition
  * @param broadcast - Callback function to send messages to the renderer process
  * @param includeSubAgents - Whether to include sub-agent messages
  */
-function processLogLine(line: string, broadcast: BroadcastFn, includeSubAgents: boolean) {
+function processLogLine(line: string, broadcast: BroadcastFn, includeSubAgents: boolean, logFilePath?: string) {
   // Parse the log line using Claude Code parser
-  const messages: SpeakMessage[] = parseClaudeCodeLog(line, includeSubAgents);
+  const messages: SpeakMessage[] = parseClaudeCodeLog(line, includeSubAgents, logFilePath);
 
   // Process each message
   for (const message of messages) {
