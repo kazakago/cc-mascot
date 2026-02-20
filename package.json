@@ -18,8 +18,7 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage",
-    "setup:private": "node scripts/setup-private.mjs"
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@pixiv/three-vrm": "^3.4.4",
