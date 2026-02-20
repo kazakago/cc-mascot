@@ -951,6 +951,43 @@ ipcMain.handle("set-auto-update-check", (_event, value: boolean) => {
   return true;
 });
 
+const ANIMATION_CATEGORIES = ["idle", "happy", "angry", "sad", "relaxed", "surprised"] as const;
+
+ipcMain.handle("get-animation-manifest", () => {
+  const animationsDir = process.env.VITE_DEV_SERVER_URL
+    ? path.join(__dirname, "../public/animations")
+    : path.join(__dirname, "../dist/animations");
+
+  const manifest: {
+    idle_loop: string;
+    idle: string[];
+    emotions: Partial<Record<string, string[]>>;
+  } = {
+    idle_loop: "./animations/idle_loop.vrma",
+    idle: [],
+    emotions: {},
+  };
+
+  for (const category of ANIMATION_CATEGORIES) {
+    const categoryDir = path.join(animationsDir, category);
+    if (!fs.existsSync(categoryDir)) continue;
+
+    const files = fs
+      .readdirSync(categoryDir)
+      .filter((f) => f.endsWith(".vrma"))
+      .sort();
+    const paths = files.map((f) => `./animations/${category}/${f}`);
+
+    if (category === "idle") {
+      manifest.idle = paths;
+    } else if (paths.length > 0) {
+      manifest.emotions[category] = paths;
+    }
+  }
+
+  return manifest;
+});
+
 ipcMain.on("set-ignore-mouse-events", (_event, ignore: boolean) => {
   if (mainWindow && !mainWindow.isDestroyed()) {
     // Always use forward: true to keep receiving mouse move events even when ignoring clicks

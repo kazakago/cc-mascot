@@ -157,6 +157,10 @@ npm run dev
 - **macOS**: Xcode Command Line Tools（`xcode-select --install`）
 - **Windows**: Visual Studio Build Tools with C++（[インストール手順](https://visualstudio.microsoft.com/ja/visual-cpp-build-tools/)）
 
+> [!NOTE]
+> 一部のアニメーションファイル（`.vrma`）はこのリポジトリには含まれていません。
+> `npm run setup:private` でプライベートリポジトリからセットアップできますが、アクセス権がない場合はデフォルトの待機アニメーション（`idle_loop.vrma`）のみで動作します。
+
 ### 技術スタック
 
 - **Electron**: デスクトップアプリケーション

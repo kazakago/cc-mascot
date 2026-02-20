@@ -668,6 +668,35 @@ npm install
 npm run build:mic-monitor  # 初回必須
 ```
 
+### アニメーションアセットのセットアップ
+
+VRMAアニメーションファイル（`idle_loop.vrma` を除く）はプライベートリポジトリ
+[kazakago/cc-mascot-private](https://github.com/kazakago/cc-mascot-private) で管理されており、
+Gitサブモジュールとして `private-src/` に配置されます。
+
+**アニメーションファイルを `public/animations/` に展開:**
+
+```bash
+npm run setup:private
+```
+
+このスクリプトはサブモジュールを最新状態に更新し、`private-src/animations/<category>/` のVRMAファイルを
+`public/animations/<category>/` にコピーします。
+サブモジュール（`private-src/`）が未初期化の場合は自動で `git submodule update --init` を実行します。
+アニメーションのファイルリストはアプリ起動時に Main プロセスが `public/animations/` をスキャンして IPC 経由で取得します。
+
+> **注意:** プライベートリポジトリへのアクセス権がない場合はアニメーション（`idle_loop.vrma`）
+> のみ動作します。
+
+### アニメーションファイルの追加方法
+
+1. `kazakago/cc-mascot-private` リポジトリの対応カテゴリディレクトリにVRMAファイルを追加
+   - `idle/`, `happy/`, `angry/`, `sad/`, `relaxed/`, `surprised/`
+2. `private-src/` でサブモジュールを更新（`git pull`）
+3. `npm run setup:private` を再実行
+
+ソースコードの変更は不要です。
+
 ### macOS固有の要件
 
 マイク監視機能を使用する場合、Xcode Command Line Toolsが必要：
