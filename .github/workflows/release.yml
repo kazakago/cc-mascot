@@ -63,6 +63,11 @@ jobs:
         with:
           ref: ${{ needs.bump-version.outputs.version }}
 
+      - name: Initialize animation submodule
+        run: |
+          git config --global url."https://oauth2:${{ secrets.CC_MASCOT_PRIVATE_PAT }}@github.com/".insteadOf "https://github.com/"
+          git submodule update --init private-src
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -71,6 +76,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Setup animations
+        run: npm run setup:private
 
       - name: Setup Apple API key
         env:
@@ -110,6 +118,11 @@ jobs:
         with:
           ref: ${{ needs.bump-version.outputs.version }}
 
+      - name: Initialize animation submodule
+        run: |
+          git config --global url."https://oauth2:${{ secrets.CC_MASCOT_PRIVATE_PAT }}@github.com/".insteadOf "https://github.com/"
+          git submodule update --init private-src
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -118,6 +131,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Setup animations
+        run: npm run setup:private
 
       - name: Build and package
         run: npm run package
