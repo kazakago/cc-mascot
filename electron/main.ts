@@ -969,19 +969,30 @@ ipcMain.handle("get-animation-manifest", () => {
   };
 
   for (const category of ANIMATION_CATEGORIES) {
-    const categoryDir = path.join(animationsDir, category);
-    if (!fs.existsSync(categoryDir)) continue;
+    const allPaths: string[] = [];
 
-    const files = fs
-      .readdirSync(categoryDir)
-      .filter((f) => f.endsWith(".vrma"))
-      .sort();
-    const paths = files.map((f) => `./animations/${category}/${f}`);
+    const publicCategoryDir = path.join(animationsDir, category);
+    if (fs.existsSync(publicCategoryDir)) {
+      const files = fs
+        .readdirSync(publicCategoryDir)
+        .filter((f) => f.endsWith(".vrma"))
+        .sort();
+      allPaths.push(...files.map((f) => `./animations/${category}/${f}`));
+    }
+
+    const proprietaryCategoryDir = path.join(animationsDir, "proprietary", category);
+    if (fs.existsSync(proprietaryCategoryDir)) {
+      const files = fs
+        .readdirSync(proprietaryCategoryDir)
+        .filter((f) => f.endsWith(".vrma"))
+        .sort();
+      allPaths.push(...files.map((f) => `./animations/proprietary/${category}/${f}`));
+    }
 
     if (category === "idle") {
-      manifest.idle = paths;
-    } else if (paths.length > 0) {
-      manifest.emotions[category] = paths;
+      manifest.idle = allPaths;
+    } else if (allPaths.length > 0) {
+      manifest.emotions[category] = allPaths;
     }
   }
 
