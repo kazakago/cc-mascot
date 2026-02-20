@@ -16,10 +16,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Initialize animation submodule
-        run: |
-          git config --global url."https://oauth2:${{ secrets.CC_MASCOT_PRIVATE_PAT }}@github.com/".insteadOf "https://github.com/"
-          git submodule update --init private-src
+      - name: Setup SSH for private submodule
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.CC_MASCOT_PRIVATE_DEPLOY_KEY }}
+
+      - name: Initialize private submodule
+        run: git submodule update --init private-src
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -30,7 +33,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Setup animations
+      - name: Setup private
         run: npm run setup:private
 
       - name: Build project
