@@ -1,6 +1,16 @@
 {
   "permissions": {
-    "allow": ["Bash", "WebFetch", "WebSearch", "Write", "Edit", "Skill", "mcp__electron"],
+    "allow": [
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:github.io)",
+      "WebFetch(domain:api.github.com)",
+      "WebFetch(domain:electronjs.org)",
+      "WebSearch",
+      "Write",
+      "Edit",
+      "Skill",
+      "mcp__electron"
+    ],
     "deny": [
       "Read(**/coverage/**)",
       "Read(**/dist/**)",
