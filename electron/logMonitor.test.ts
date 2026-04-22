@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import * as fsMod from "fs";
 import * as readlineMod from "readline";
 import * as chokidarMod from "chokidar";
+import type { HarnessAdapter } from "./adapters/harnessAdapter";
 
 // モックを設定
 vi.mock("fs", () => ({
@@ -16,10 +17,6 @@ vi.mock("readline", () => ({
 
 vi.mock("chokidar", () => ({
   watch: vi.fn(),
-}));
-
-vi.mock("./parsers/claudeCodeParser", () => ({
-  parseClaudeCodeLog: vi.fn(),
 }));
 
 vi.mock("./filters/textFilter", () => ({
@@ -37,6 +34,22 @@ vi.mock("./services/ruleBasedEmotionClassifier", () => ({
 
 import { createLogMonitor } from "./logMonitor";
 
+/** テスト用のシンプルなアダプターを作成する */
+function createMockAdapter(overrides: Partial<HarnessAdapter> = {}): HarnessAdapter {
+  return {
+    getWatchPaths: () => ["/mock/watch/path"],
+    getWatchOptions: () => ({
+      ignored: (filePath: string, stats?: { isFile(): boolean }) =>
+        stats?.isFile() === true && !filePath.endsWith(".jsonl"),
+      awaitWriteFinish: { stabilityThreshold: 100, pollInterval: 50 },
+      depth: 1,
+    }),
+    parseLine: vi.fn().mockReturnValue([]),
+    shouldProcessFile: vi.fn().mockReturnValue(true),
+    ...overrides,
+  };
+}
+
 describe("logMonitor", () => {
   const mockBroadcast = vi.fn();
 
@@ -51,46 +64,44 @@ describe("logMonitor", () => {
   });
 
   describe("createLogMonitor", () => {
-    it("chokidar.watchをデフォルトオプション（メインエージェントのみ）で呼び出す", () => {
+    it("アダプターのgetWatchPathsとgetWatchOptionsでchokidar.watchを呼び出す", () => {
       const mockWatcher = {
         on: vi.fn(),
         close: vi.fn(),
       };
       (chokidarMod.watch as any).mockReturnValue(mockWatcher as any);
+      const adapter = createMockAdapter();
 
-      createLogMonitor(mockBroadcast);
+      createLogMonitor(mockBroadcast, adapter);
 
-      expect(chokidarMod.watch).toHaveBeenCalled();
-      const watchCall = (chokidarMod.watch as any).mock.calls[0];
-      expect(watchCall[1]).toMatchObject({
-        depth: 1, // デフォルト: メインエージェントのみ
-        awaitWriteFinish: {
-          stabilityThreshold: 100,
-          pollInterval: 50,
-        },
-      });
-      expect(watchCall[1]?.ignored).toBeTypeOf("function");
+      expect(chokidarMod.watch).toHaveBeenCalledWith(
+        ["/mock/watch/path"],
+        expect.objectContaining({
+          depth: 1,
+          awaitWriteFinish: { stabilityThreshold: 100, pollInterval: 50 },
+        }),
+      );
     });
 
-    it("includeSubAgents=trueでサブエージェントも監視する", () => {
+    it("depth: 3のオプションを持つアダプターを渡せる（サブエージェント用）", () => {
       const mockWatcher = {
         on: vi.fn(),
         close: vi.fn(),
       };
       (chokidarMod.watch as any).mockReturnValue(mockWatcher as any);
+      const adapter = createMockAdapter({
+        getWatchOptions: () => ({
+          ignored: () => false,
+          awaitWriteFinish: { stabilityThreshold: 100, pollInterval: 50 },
+          depth: 3,
+        }),
+      });
 
-      createLogMonitor(mockBroadcast, true);
+      createLogMonitor(mockBroadcast, adapter);
 
       expect(chokidarMod.watch).toHaveBeenCalled();
       const watchCall = (chokidarMod.watch as any).mock.calls[0];
-      expect(watchCall[1]).toMatchObject({
-        depth: 3, // サブエージェントも含める
-        awaitWriteFinish: {
-          stabilityThreshold: 100,
-          pollInterval: 50,
-        },
-      });
-      expect(watchCall[1]?.ignored).toBeTypeOf("function");
+      expect(watchCall[1]).toMatchObject({ depth: 3 });
     });
 
     it("ignoredオプションで.jsonlファイルのみを監視する", () => {
@@ -99,8 +110,9 @@ describe("logMonitor", () => {
         close: vi.fn(),
       };
       (chokidarMod.watch as any).mockReturnValue(mockWatcher as any);
+      const adapter = createMockAdapter();
 
-      createLogMonitor(mockBroadcast);
+      createLogMonitor(mockBroadcast, adapter);
 
       const watchCall = (chokidarMod.watch as any).mock.calls[0];
       const ignoredFn = watchCall[1]?.ignored as (path: string, stats?: any) => boolean;
@@ -120,13 +132,14 @@ describe("logMonitor", () => {
         close: vi.fn(),
       };
       (chokidarMod.watch as any).mockReturnValue(mockWatcher as any);
+      const adapter = createMockAdapter();
 
-      createLogMonitor(mockBroadcast);
+      createLogMonitor(mockBroadcast, adapter);
 
       const watchCall = (chokidarMod.watch as any).mock.calls[0];
       const ignoredFn = watchCall[1]?.ignored as (path: string, stats?: any) => boolean;
 
-      // ディレクトリは監視対象（depth: 1でサブディレクトリも含める）
+      // ディレクトリは監視対象
       expect(ignoredFn("/test/dir", { isFile: () => false })).toBe(false);
     });
 
@@ -142,7 +155,7 @@ describe("logMonitor", () => {
       (chokidarMod.watch as any).mockReturnValue(mockWatcher as any);
       (fsMod.statSync as any).mockReturnValue({ size: 1000 } as fsMod.Stats);
 
-      createLogMonitor(mockBroadcast);
+      createLogMonitor(mockBroadcast, createMockAdapter());
 
       expect(fsMod.statSync).toHaveBeenCalledWith("/test/file.jsonl");
     });
@@ -162,7 +175,7 @@ describe("logMonitor", () => {
         throw new Error("File not found");
       });
 
-      createLogMonitor(mockBroadcast);
+      createLogMonitor(mockBroadcast, createMockAdapter());
 
       // エラーが発生しても監視は続く
       expect(mockWatcher.on).toHaveBeenCalledWith("add", expect.any(Function));
@@ -180,7 +193,7 @@ describe("logMonitor", () => {
       };
       (chokidarMod.watch as any).mockReturnValue(mockWatcher as any);
 
-      createLogMonitor(mockBroadcast);
+      createLogMonitor(mockBroadcast, createMockAdapter());
 
       expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining("[LogMonitor] Monitoring"));
     });
@@ -198,7 +211,7 @@ describe("logMonitor", () => {
       };
       (chokidarMod.watch as any).mockReturnValue(mockWatcher as any);
 
-      createLogMonitor(mockBroadcast);
+      createLogMonitor(mockBroadcast, createMockAdapter());
 
       expect(consoleSpy).toHaveBeenCalledWith("[LogMonitor] Watcher error:", mockError);
     });
@@ -210,7 +223,7 @@ describe("logMonitor", () => {
       };
       (chokidarMod.watch as any).mockReturnValue(mockWatcher as any);
 
-      const monitor = createLogMonitor(mockBroadcast);
+      const monitor = createLogMonitor(mockBroadcast, createMockAdapter());
       monitor.close();
 
       expect(mockWatcher.close).toHaveBeenCalled();
@@ -237,7 +250,7 @@ describe("logMonitor", () => {
       // 初期サイズ: 1000
       (fsMod.statSync as any).mockReturnValue({ size: 1000 } as fsMod.Stats);
 
-      createLogMonitor(mockBroadcast);
+      createLogMonitor(mockBroadcast, createMockAdapter());
 
       // 変更イベント（サイズは同じ1000）
       (fsMod.statSync as any).mockReturnValue({ size: 1000 } as fsMod.Stats);
@@ -264,7 +277,7 @@ describe("logMonitor", () => {
       };
       (chokidarMod.watch as any).mockReturnValue(mockWatcher as any);
 
-      createLogMonitor(mockBroadcast);
+      createLogMonitor(mockBroadcast, createMockAdapter());
 
       // 初期サイズ: 1000
       (fsMod.statSync as any).mockReturnValueOnce({ size: 1000 } as fsMod.Stats);
@@ -296,7 +309,7 @@ describe("logMonitor", () => {
       // 初期サイズ: 1000
       (fsMod.statSync as any).mockReturnValue({ size: 1000 } as fsMod.Stats);
 
-      createLogMonitor(mockBroadcast);
+      createLogMonitor(mockBroadcast, createMockAdapter());
 
       // 1回目の変更（サイズ: 1200）
       (fsMod.statSync as any).mockReturnValue({ size: 1200 } as fsMod.Stats);
@@ -328,13 +341,15 @@ describe("logMonitor", () => {
   });
 
   describe("ログ行のパースとブロードキャスト", () => {
-    it("ファイル変更時にパース・フィルタ・ブロードキャストのパイプラインが実行される", async () => {
+    it("ファイル変更時にアダプターのparseLine・フィルタ・ブロードキャストのパイプラインが実行される", async () => {
       vi.spyOn(console, "log").mockImplementation(() => {});
-      const { parseClaudeCodeLog } = await import("./parsers/claudeCodeParser");
       const { cleanTextForSpeech } = await import("./filters/textFilter");
 
-      (parseClaudeCodeLog as any).mockReturnValue([{ type: "speak", text: "こんにちは！", emotion: "happy" }]);
       (cleanTextForSpeech as any).mockReturnValue("こんにちは！");
+
+      const adapter = createMockAdapter({
+        parseLine: vi.fn().mockReturnValue([{ type: "speak", text: "こんにちは！", emotion: "happy" }]),
+      });
 
       let addCallback: ((filePath: string) => void) | null = null;
       let changeCallback: ((filePath: string) => void) | null = null;
@@ -363,7 +378,7 @@ describe("logMonitor", () => {
 
       // 初期サイズ100
       (fsMod.statSync as any).mockReturnValue({ size: 100 } as fsMod.Stats);
-      createLogMonitor(mockBroadcast);
+      createLogMonitor(mockBroadcast, adapter);
       addCallback!("/test/pipe.jsonl");
 
       // サイズ増加でchange発火
@@ -375,7 +390,7 @@ describe("logMonitor", () => {
       await Promise.resolve();
       await Promise.resolve();
 
-      expect(parseClaudeCodeLog).toHaveBeenCalled();
+      expect(adapter.parseLine).toHaveBeenCalled();
       expect(cleanTextForSpeech).toHaveBeenCalledWith("こんにちは！");
       expect(mockBroadcast).toHaveBeenCalledWith(
         JSON.stringify({ type: "speak", text: "こんにちは！", emotion: "neutral" }),
@@ -384,11 +399,13 @@ describe("logMonitor", () => {
 
     it("フィルタ後に空文字になった場合はブロードキャストしない", async () => {
       vi.spyOn(console, "log").mockImplementation(() => {});
-      const { parseClaudeCodeLog } = await import("./parsers/claudeCodeParser");
       const { cleanTextForSpeech } = await import("./filters/textFilter");
 
-      (parseClaudeCodeLog as any).mockReturnValue([{ type: "speak", text: "```code block```", emotion: "neutral" }]);
       (cleanTextForSpeech as any).mockReturnValue("");
+
+      const adapter = createMockAdapter({
+        parseLine: vi.fn().mockReturnValue([{ type: "speak", text: "```code block```", emotion: "neutral" }]),
+      });
 
       let addCallback: ((filePath: string) => void) | null = null;
       let changeCallback: ((filePath: string) => void) | null = null;
@@ -416,7 +433,7 @@ describe("logMonitor", () => {
       (readlineMod.createInterface as any).mockReturnValue(mockRl as any);
 
       (fsMod.statSync as any).mockReturnValue({ size: 50 } as fsMod.Stats);
-      createLogMonitor(mockBroadcast);
+      createLogMonitor(mockBroadcast, adapter);
       addCallback!("/test/empty.jsonl");
 
       (fsMod.statSync as any).mockReturnValue({ size: 150 } as fsMod.Stats);
@@ -440,7 +457,7 @@ describe("logMonitor", () => {
       (chokidarMod.watch as any).mockReturnValue(mockWatcher as any);
 
       // 正常にインスタンス化されることを確認
-      expect(() => createLogMonitor(mockBroadcast)).not.toThrow();
+      expect(() => createLogMonitor(mockBroadcast, createMockAdapter())).not.toThrow();
       expect(mockWatcher.on).toHaveBeenCalledWith("error", expect.any(Function));
     });
   });
@@ -448,11 +465,13 @@ describe("logMonitor", () => {
   describe("セッションフィルタリング", () => {
     it("getActiveSessionIdが未指定の場合は全ファイルを処理する", async () => {
       vi.spyOn(console, "log").mockImplementation(() => {});
-      const { parseClaudeCodeLog } = await import("./parsers/claudeCodeParser");
       const { cleanTextForSpeech } = await import("./filters/textFilter");
 
-      (parseClaudeCodeLog as any).mockReturnValue([{ type: "speak", text: "テスト", emotion: "neutral" }]);
       (cleanTextForSpeech as any).mockReturnValue("テスト");
+
+      const adapter = createMockAdapter({
+        parseLine: vi.fn().mockReturnValue([{ type: "speak", text: "テスト", emotion: "neutral" }]),
+      });
 
       let addCallback: ((filePath: string) => void) | null = null;
       let changeCallback: ((filePath: string) => void) | null = null;
@@ -480,7 +499,7 @@ describe("logMonitor", () => {
       (readlineMod.createInterface as any).mockReturnValue(mockRl as any);
 
       (fsMod.statSync as any).mockReturnValue({ size: 100 } as fsMod.Stats);
-      createLogMonitor(mockBroadcast); // getActiveSessionId未指定
+      createLogMonitor(mockBroadcast, adapter); // getActiveSessionId未指定
       addCallback!("/test/any-session.jsonl");
 
       (fsMod.statSync as any).mockReturnValue({ size: 200 } as fsMod.Stats);
@@ -495,11 +514,13 @@ describe("logMonitor", () => {
 
     it("getActiveSessionIdがnullを返す場合は全ファイルを処理する", async () => {
       vi.spyOn(console, "log").mockImplementation(() => {});
-      const { parseClaudeCodeLog } = await import("./parsers/claudeCodeParser");
       const { cleanTextForSpeech } = await import("./filters/textFilter");
 
-      (parseClaudeCodeLog as any).mockReturnValue([{ type: "speak", text: "テスト", emotion: "neutral" }]);
       (cleanTextForSpeech as any).mockReturnValue("テスト");
+
+      const adapter = createMockAdapter({
+        parseLine: vi.fn().mockReturnValue([{ type: "speak", text: "テスト", emotion: "neutral" }]),
+      });
 
       let addCallback: ((filePath: string) => void) | null = null;
       let changeCallback: ((filePath: string) => void) | null = null;
@@ -527,7 +548,7 @@ describe("logMonitor", () => {
       (readlineMod.createInterface as any).mockReturnValue(mockRl as any);
 
       (fsMod.statSync as any).mockReturnValue({ size: 100 } as fsMod.Stats);
-      createLogMonitor(mockBroadcast, false, () => null);
+      createLogMonitor(mockBroadcast, adapter, () => null);
       addCallback!("/test/null-filter-session.jsonl");
 
       (fsMod.statSync as any).mockReturnValue({ size: 200 } as fsMod.Stats);
@@ -540,13 +561,17 @@ describe("logMonitor", () => {
       expect(mockBroadcast).toHaveBeenCalled();
     });
 
-    it("アクティブセッションIDとファイル名が一致する場合は処理する", async () => {
+    it("アクティブセッションIDと一致する場合はアダプターのshouldProcessFileを通過してブロードキャストする", async () => {
       vi.spyOn(console, "log").mockImplementation(() => {});
-      const { parseClaudeCodeLog } = await import("./parsers/claudeCodeParser");
       const { cleanTextForSpeech } = await import("./filters/textFilter");
 
-      (parseClaudeCodeLog as any).mockReturnValue([{ type: "speak", text: "テスト", emotion: "neutral" }]);
       (cleanTextForSpeech as any).mockReturnValue("テスト");
+
+      const sessionId = "abc-123-def";
+      const adapter = createMockAdapter({
+        parseLine: vi.fn().mockReturnValue([{ type: "speak", text: "テスト", emotion: "neutral" }]),
+        shouldProcessFile: vi.fn((filePath: string, id: string) => filePath.includes(id)),
+      });
 
       let addCallback: ((filePath: string) => void) | null = null;
       let changeCallback: ((filePath: string) => void) | null = null;
@@ -573,9 +598,8 @@ describe("logMonitor", () => {
       (fsMod.createReadStream as any).mockReturnValue(mockStream as any);
       (readlineMod.createInterface as any).mockReturnValue(mockRl as any);
 
-      const sessionId = "abc-123-def";
       (fsMod.statSync as any).mockReturnValue({ size: 100 } as fsMod.Stats);
-      createLogMonitor(mockBroadcast, false, () => sessionId);
+      createLogMonitor(mockBroadcast, adapter, () => sessionId);
       addCallback!(`/home/user/.claude/projects/test/${sessionId}.jsonl`);
 
       (fsMod.statSync as any).mockReturnValue({ size: 200 } as fsMod.Stats);
@@ -588,7 +612,7 @@ describe("logMonitor", () => {
       expect(mockBroadcast).toHaveBeenCalled();
     });
 
-    it("アクティブセッションIDとファイル名が一致しない場合はスキップし位置を進める", () => {
+    it("アダプターのshouldProcessFileがfalseを返す場合はスキップし位置を進める", () => {
       vi.spyOn(console, "log").mockImplementation(() => {});
       let addCallback: ((filePath: string) => void) | null = null;
       let changeCallback: ((filePath: string) => void) | null = null;
@@ -602,9 +626,12 @@ describe("logMonitor", () => {
 
       (chokidarMod.watch as any).mockReturnValue(mockWatcher as any);
 
-      const activeSessionId = "active-session-123";
+      const adapter = createMockAdapter({
+        shouldProcessFile: vi.fn().mockReturnValue(false),
+      });
+
       (fsMod.statSync as any).mockReturnValue({ size: 100 } as fsMod.Stats);
-      createLogMonitor(mockBroadcast, false, () => activeSessionId);
+      createLogMonitor(mockBroadcast, adapter, () => "active-session-123");
       addCallback!("/test/other-session-456.jsonl");
 
       // ファイルが変更された（サイズが増加）
@@ -616,94 +643,48 @@ describe("logMonitor", () => {
       expect(fsMod.createReadStream).not.toHaveBeenCalled();
     });
 
-    it("サブエージェントのファイルは親ディレクトリ名でセッションIDを判定する", async () => {
-      vi.spyOn(console, "log").mockImplementation(() => {});
-      const { parseClaudeCodeLog } = await import("./parsers/claudeCodeParser");
-      const { cleanTextForSpeech } = await import("./filters/textFilter");
-
-      (parseClaudeCodeLog as any).mockReturnValue([{ type: "speak", text: "テスト", emotion: "neutral" }]);
-      (cleanTextForSpeech as any).mockReturnValue("テスト");
-
-      let addCallback: ((filePath: string) => void) | null = null;
-      let changeCallback: ((filePath: string) => void) | null = null;
-      const mockRl = {
-        on: vi.fn((event: string, callback: (line?: string) => void) => {
-          if (event === "line") callback("some-json-line");
-          if (event === "close") callback();
-        }),
-      };
-      const mockStream = {
-        on: vi.fn((event: string, callback: () => void) => {
-          if (event === "close") callback();
-        }),
-      };
-      const mockWatcher = {
-        on: vi.fn((event: string, callback: (arg?: any) => void) => {
-          if (event === "add") addCallback = callback as (filePath: string) => void;
-          if (event === "change") changeCallback = callback as (filePath: string) => void;
-        }),
-        close: vi.fn(),
-      };
-
-      (chokidarMod.watch as any).mockReturnValue(mockWatcher as any);
-      (fsMod.createReadStream as any).mockReturnValue(mockStream as any);
-      (readlineMod.createInterface as any).mockReturnValue(mockRl as any);
-
-      const sessionId = "main-session-789";
-      const subAgentFile = `/home/user/.claude/projects/test/${sessionId}/sub-agent-001.jsonl`;
-
-      (fsMod.statSync as any).mockReturnValue({ size: 100 } as fsMod.Stats);
-      createLogMonitor(mockBroadcast, true, () => sessionId);
-      addCallback!(subAgentFile);
-
-      (fsMod.statSync as any).mockReturnValue({ size: 200 } as fsMod.Stats);
-      changeCallback!(subAgentFile);
-
-      await Promise.resolve();
-      await Promise.resolve();
-      await Promise.resolve();
-
-      expect(mockBroadcast).toHaveBeenCalled();
-    });
-
     it("フィルタ解除後にスキップされた内容が再生されない（skipFileChanges）", async () => {
       vi.spyOn(console, "log").mockImplementation(() => {});
-      const { parseClaudeCodeLog } = await import("./parsers/claudeCodeParser");
       const { cleanTextForSpeech } = await import("./filters/textFilter");
 
-      (parseClaudeCodeLog as any).mockReturnValue([{ type: "speak", text: "テスト", emotion: "neutral" }]);
       (cleanTextForSpeech as any).mockReturnValue("テスト");
-
-      let addCallback: ((filePath: string) => void) | null = null;
-      let changeCallback: ((filePath: string) => void) | null = null;
-      const mockRl = {
-        on: vi.fn((event: string, callback: (line?: string) => void) => {
-          if (event === "line") callback("some-json-line");
-          if (event === "close") callback();
-        }),
-      };
-      const mockStream = {
-        on: vi.fn((event: string, callback: () => void) => {
-          if (event === "close") callback();
-        }),
-      };
-      const mockWatcher = {
-        on: vi.fn((event: string, callback: (arg?: any) => void) => {
-          if (event === "add") addCallback = callback as (filePath: string) => void;
-          if (event === "change") changeCallback = callback as (filePath: string) => void;
-        }),
-        close: vi.fn(),
-      };
-
-      (chokidarMod.watch as any).mockReturnValue(mockWatcher as any);
-      (fsMod.createReadStream as any).mockReturnValue(mockStream as any);
-      (readlineMod.createInterface as any).mockReturnValue(mockRl as any);
 
       let activeSessionId: string | null = "active-session";
       const filePath = "/test/other-session.jsonl";
 
+      // shouldProcessFileはactiveSessionIdがnullの場合はtrue、そうでない場合はfalseを返す
+      const adapter = createMockAdapter({
+        parseLine: vi.fn().mockReturnValue([{ type: "speak", text: "テスト", emotion: "neutral" }]),
+        shouldProcessFile: vi.fn().mockReturnValue(false),
+      });
+
+      let addCallback: ((filePath: string) => void) | null = null;
+      let changeCallback: ((filePath: string) => void) | null = null;
+      const mockRl = {
+        on: vi.fn((event: string, callback: (line?: string) => void) => {
+          if (event === "line") callback("some-json-line");
+          if (event === "close") callback();
+        }),
+      };
+      const mockStream = {
+        on: vi.fn((event: string, callback: () => void) => {
+          if (event === "close") callback();
+        }),
+      };
+      const mockWatcher = {
+        on: vi.fn((event: string, callback: (arg?: any) => void) => {
+          if (event === "add") addCallback = callback as (filePath: string) => void;
+          if (event === "change") changeCallback = callback as (filePath: string) => void;
+        }),
+        close: vi.fn(),
+      };
+
+      (chokidarMod.watch as any).mockReturnValue(mockWatcher as any);
+      (fsMod.createReadStream as any).mockReturnValue(mockStream as any);
+      (readlineMod.createInterface as any).mockReturnValue(mockRl as any);
+
       (fsMod.statSync as any).mockReturnValue({ size: 100 } as fsMod.Stats);
-      createLogMonitor(mockBroadcast, false, () => activeSessionId);
+      createLogMonitor(mockBroadcast, adapter, () => activeSessionId);
       addCallback!(filePath);
 
       // フィルタ中にファイルが変更される（サイズ100→500）
