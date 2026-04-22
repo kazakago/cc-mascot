@@ -165,7 +165,9 @@ export default function SettingsPanel({
 
   // Fetch speakers on mount
   useEffect(() => {
-    fetchSpeakers();
+    (async () => {
+      await fetchSpeakers();
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // fetchSpeakers is stable (useCallback with empty deps)
 

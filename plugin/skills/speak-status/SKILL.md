@@ -17,11 +17,13 @@ CC Mascotアプリの現在の発話フィルタ状態を確認し、報告し�
 OSに応じて以下のいずれかのBashコマンドを実行してください:
 
 macOS:
+
 ```bash
 cat "$HOME/Library/Application Support/cc-mascot/active-session" 2>/dev/null
 ```
 
 Windows:
+
 ```bash
 cat "$APPDATA/cc-mascot/active-session" 2>/dev/null
 ```
