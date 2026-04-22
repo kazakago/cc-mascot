@@ -5,15 +5,13 @@
 
 import * as fs from "fs";
 import { RuleBasedEmotionClassifier } from "../services/ruleBasedEmotionClassifier";
+import type { SpeakMessage } from "../adapters/harnessAdapter";
 
 // グローバル感情分類器インスタンス
 const emotionClassifier = new RuleBasedEmotionClassifier();
 
-export interface SpeakMessage {
-  type: "speak";
-  text: string;
-  emotion?: "neutral" | "happy" | "angry" | "sad" | "relaxed" | "surprised";
-}
+// 後方互換性のため再エクスポート
+export type { SpeakMessage };
 
 interface ContentItem {
   type: string;

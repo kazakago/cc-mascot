@@ -3,6 +3,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { spawn, execSync, ChildProcess } from "child_process";
 import { createLogMonitor } from "./logMonitor";
+import { createClaudeCodeAdapter } from "./adapters/claudeCodeAdapter";
 import { createActiveSessionMonitor, clearActiveSessionFile } from "./activeSessionMonitor";
 import { initAutoUpdater, checkForUpdatesManually } from "./autoUpdater";
 import fs from "fs";
@@ -59,7 +60,8 @@ function startLogMonitor(): void {
 
   const includeSubAgents = (store.get("includeSubAgents") as boolean | undefined) ?? false;
   console.log(`[LogMonitor] Starting with includeSubAgents=${includeSubAgents}`);
-  logMonitor = createLogMonitor(broadcast, includeSubAgents, () => activeSessionId);
+  const adapter = createClaudeCodeAdapter({ includeSubAgents });
+  logMonitor = createLogMonitor(broadcast, adapter, () => activeSessionId);
 }
 
 // Get mic-monitor binary path

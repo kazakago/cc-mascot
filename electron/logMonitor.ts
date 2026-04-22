@@ -1,9 +1,7 @@
 import * as chokidar from "chokidar";
 import * as fs from "fs";
-import * as path from "path";
-import * as os from "os";
 import * as readline from "readline";
-import { parseClaudeCodeLog, SpeakMessage } from "./parsers/claudeCodeParser";
+import type { HarnessAdapter, SpeakMessage } from "./adapters/harnessAdapter";
 import { cleanTextForSpeech, splitIntoSentences } from "./filters/textFilter";
 import { RuleBasedEmotionClassifier } from "./services/ruleBasedEmotionClassifier";
 
@@ -20,28 +18,18 @@ const emotionClassifier = new RuleBasedEmotionClassifier();
 type BroadcastFn = (message: string) => void;
 
 /**
- * Create a log monitor that watches Claude Code session logs
+ * Create a log monitor that watches harness session logs via the given adapter
  * @param broadcast - Callback function to send messages to the renderer process
- * @param includeSubAgents - Whether to monitor sub-agent logs (depth: 3) or only main agent (depth: 1)
+ * @param adapter - Harness adapter that provides watch paths, options, and log parsing
  * @param getActiveSessionId - Optional getter that returns the active session ID for filtering.
  *                             When it returns a non-null value, only logs from that session are broadcast.
  */
 export function createLogMonitor(
   broadcast: BroadcastFn,
-  includeSubAgents = false,
+  adapter: HarnessAdapter,
   getActiveSessionId?: () => string | null,
 ) {
-  const claudeConfigDir = process.env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), ".claude");
-  const claudeProjectsDir = path.join(claudeConfigDir, "projects");
-
-  const watcher = chokidar.watch(claudeProjectsDir, {
-    ignored: (path, stats) => stats?.isFile() === true && !path.endsWith(".jsonl"), // only watch jsonl files
-    awaitWriteFinish: {
-      stabilityThreshold: 100,
-      pollInterval: 50,
-    },
-    depth: includeSubAgents ? 3 : 1, // Sub-agents (depth: 3) or main agent only (depth: 1)
-  });
+  const watcher = chokidar.watch(adapter.getWatchPaths(), adapter.getWatchOptions());
 
   watcher.on("add", (filePath: string) => {
     initializeFilePosition(filePath);
@@ -50,13 +38,13 @@ export function createLogMonitor(
   watcher.on("change", (filePath: string) => {
     // Filter by active session ID if set
     const activeSessionId = getActiveSessionId?.() ?? null;
-    if (activeSessionId && !shouldProcessFile(filePath, activeSessionId)) {
+    if (activeSessionId && !adapter.shouldProcessFile(filePath, activeSessionId)) {
       // Advance file position without processing so content is discarded
       skipFileChanges(filePath);
       return;
     }
     console.log(`[LogMonitor] File changes detected: ${filePath}`);
-    processFileChanges(filePath, broadcast, includeSubAgents);
+    processFileChanges(filePath, broadcast, adapter);
   });
 
   watcher.on("error", (error: unknown) => {
@@ -98,7 +86,7 @@ function skipFileChanges(filePath: string) {
   }
 }
 
-async function processFileChanges(filePath: string, broadcast: BroadcastFn, includeSubAgents: boolean) {
+async function processFileChanges(filePath: string, broadcast: BroadcastFn, adapter: HarnessAdapter) {
   // Debounce check
   const now = Date.now();
   const lastTime = lastProcessed.get(filePath) || 0;
@@ -130,7 +118,7 @@ async function processFileChanges(filePath: string, broadcast: BroadcastFn, incl
 
     // Process each new line
     for (const line of newContent) {
-      processLogLine(line, broadcast, includeSubAgents, filePath);
+      processLogLine(line, broadcast, adapter, filePath);
     }
   } catch (err) {
     console.error(`[LogMonitor] Error processing ${filePath}:`, err);
@@ -164,43 +152,19 @@ async function readNewLines(filePath: string, startPosition: number, endPosition
 
 /**
  * Process a single log line and broadcast speak messages
- * @param line - A single line from the JSONL log file
- * @param broadcast - Callback function to send messages to the renderer process
- * @param includeSubAgents - Whether to include sub-agent messages
  */
-/**
- * Check if a log file should be processed based on the active session ID.
- * JSONL files are named {sessionId}.jsonl, and sub-agent files are in {sessionId}/{subId}.jsonl.
- */
-function shouldProcessFile(filePath: string, activeSessionId: string): boolean {
-  const basename = path.basename(filePath, ".jsonl");
-  if (basename === activeSessionId) return true;
+function processLogLine(line: string, broadcast: BroadcastFn, adapter: HarnessAdapter, logFilePath?: string) {
+  const messages: SpeakMessage[] = adapter.parseLine(line, logFilePath);
 
-  // Sub-agent: parent directory name is the session ID
-  const parentDir = path.basename(path.dirname(filePath));
-  if (parentDir === activeSessionId) return true;
-
-  return false;
-}
-
-function processLogLine(line: string, broadcast: BroadcastFn, includeSubAgents: boolean, logFilePath?: string) {
-  // Parse the log line using Claude Code parser
-  const messages: SpeakMessage[] = parseClaudeCodeLog(line, includeSubAgents, logFilePath);
-
-  // Process each message
   for (const message of messages) {
-    // Apply text filtering to clean up markdown and other syntax
     const cleanedText = cleanTextForSpeech(message.text);
 
     if (cleanedText) {
-      // Split into sentences for faster sequential speech synthesis
       const sentences = splitIntoSentences(cleanedText);
 
       for (const sentence of sentences) {
-        // Skip empty sentences (e.g. from blank lines between paragraphs)
         if (!sentence) continue;
 
-        // Re-classify emotion per sentence for more accurate expression
         const emotion = emotionClassifier.classify(sentence);
 
         console.log(`[LogMonitor] Extracted text: ${sentence.substring(0, 50)}...`);
