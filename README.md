@@ -2,7 +2,7 @@
   <img src="docs/icon.png" alt="CC Mascot" width="64" height="64">
 </p>
 <h1 align="center">CC Mascot</h1>
-<p align="center">Claude Codeからの返答をVRMキャラクターがリアルタイムで読み上げ。<br />感情表現・リップシンク・視線追従で、コーディングに楽しいパートナーを。</p>
+<p align="center">AIコーディングエージェントからの返答をVRMキャラクターがリアルタイムで読み上げ。<br />感情表現・リップシンク・視線追従で、コーディングに楽しいパートナーを。</p>
 <p align="center">
   <a href="https://kazakago.github.io/cc-mascot/">https://kazakago.github.io/cc-mascot/</a>
 </p>
@@ -19,7 +19,7 @@ https://github.com/user-attachments/assets/f2742eac-1df3-436a-b79c-f7221e677474
 
 - **オフライン動作**: インターネット接続不要でローカル環境で完結
 - **日本語特化**: 日本語の音声合成とルールベース感情分析に最適化
-- **自動ログ監視**: Claude Codeのログファイルを監視して自動的に発言を読み上げ
+- **自動ログ監視**: AIコーディングエージェントのログファイルを監視して自動的に発言を読み上げ
 - **音声合成エンジン**: AivisSpeech / VOICEVOX / 互換エンジンに対応
 - **リップシンク**: 音声に同期した自然な口の動き
 - **感情表現**: テキストから感情を自動判定してキャラクターに反映
@@ -31,7 +31,12 @@ https://github.com/user-attachments/assets/f2742eac-1df3-436a-b79c-f7221e677474
 - macOS
   - Apple Silicon搭載機種のみ対応
 - Windows
-  - WSL環境にインストールしたClaude Codeには非対応
+  - WSL環境にインストールしたエージェントには非対応
+
+## 対応エージェント
+
+- [Claude Code](https://claude.com/product/claude-code)
+- [Gemini CLI](https://geminicli.com/)
 
 ## セットアップ
 
@@ -71,14 +76,14 @@ https://github.com/kazakago/cc-mascot/releases
 
 音声合成エンジンが見つからない場合はその旨を示すダイアログが起動時に表示されるので 「1. 音声合成エンジンのインストール」を参照して対応してください。
 
-### 4. Claude Codeで会話を開始
+### 4. AIコーディングエージェントで会話を開始
 
-アプリを起動した状態でClaude Codeで会話すると、自動的にキャラクターが喋ります。
+アプリを起動した状態でAIコーディングエージェントで会話すると、自動的にキャラクターが喋ります。
 
 **仕組み:**
 
-- `~/.claude/projects/` 配下のログファイルをリアルタイム監視
-- Claude Codeの応答を自動検出
+- 各エージェントのログファイルをリアルタイム監視
+- エージェントの応答を自動検出
 - テキストから感情を自動判定
 - 音声合成してキャラクターが発話
 
@@ -121,10 +126,12 @@ https://github.com/kazakago/cc-mascot/releases
 ### 高度な設定
 
 - **マイク使用中はミュートにする**: 別のアプリがOSのマイクを使用している最中は、キャラクターの発話音声をミュートにします。スピーカー利用時のマイク使用中に意図せずキャラの声が入り込んでしまうことを防ぎます。
-- **サブエージェントの発言を含める**: サブエージェントの内容も発話の対象とします。
 - **起動時にアップデートを確認する**: インターネット通信を行い、新しいバージョンがあるかチェックします。
 
-## セッションフィルタリング（Claude Codeプラグイン）
+## セッションフィルタリング（Claude Code専用プラグイン）
+
+> [!NOTE]
+> この機能は **Claude Code** 専用です。
 
 Claude Codeを複数セッション並列で使用している場合、デフォルトではすべてのセッションを発話対象しますが、別途専用のClaude Codeプラグインを用いることで特定のセッションのみを発話対象としてフィルタリングできます。
 
@@ -155,10 +162,10 @@ CC Mascotの設定画面からもフィルタの状態確認・解除が可能�
 ### 全体的な仕組み
 
 ```
-Claude Code
-    ↓ JSONLログ出力
-~/.claude/projects/**/*.jsonl
-    ↓ chokidar監視
+Claude Code                          Gemini CLI
+    ↓ JSONLログ出力                      ↓ JSONログ出力
+~/.claude/projects/**/*.jsonl    ~/.gemini/tmp/*/chats/*.json
+    ↓ chokidar監視（HarnessAdapter経由で各形式に対応）
 Electron Main Process
     ↓ ログパース & 感情判定
 Electron Renderer Process

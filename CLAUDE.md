@@ -2,15 +2,17 @@
 
 ## プロジェクト概要
 
-**Claude Codeを擬人化するためのVRMキャラクターシステム**
+**AIコーディングエージェントを擬人化するためのVRMキャラクターシステム**
 
-このアプリケーションは、Claude Codeの発言をリアルタイムで音声化し、3DのVRMキャラクターでビジュアル化するためのElectronアプリケーションです。
+このアプリケーションは、AIコーディングエージェントの発言をリアルタイムで音声化し、3DのVRMキャラクターでビジュアル化するためのElectronアプリケーションです。
+
+対応AIコーディングエージェント: **Claude Code** / **Gemini CLI**
 
 ### コンセプト
 
 - **オフライン動作**: ローカル環境で完結、インターネット接続不要
 - **日本語専用**: 日本語の音声合成とルールベース感情分析に最適化
-- **プラグイン不要**: Claude Codeのログファイル監視による自動連携（オプションでプラグイン連携も可能）
+- **プラグイン不要**: ログファイル監視による自動連携（Claude Codeはオプションでプラグイン連携も可能）
 - **シンプルな構成**: Electron + React + Three.js + VRM
 
 ### 技術スタック
@@ -31,7 +33,8 @@
 **ファイル監視:**
 
 - chokidar (ログファイル監視)
-- 対象: `~/.claude/projects/**/*.jsonl`
+- Claude Code: `~/.claude/projects/**/*.jsonl`（JSONL形式、差分読み取り）
+- Gemini CLI: `~/.gemini/tmp/*/chats/*.json`（JSON形式、メッセージID重複排除）
 
 **ネイティブヘルパー（macOS / Windows）:**
 
@@ -54,26 +57,32 @@
 ### システム構成図
 
 ```
-┌──────────────────────┐
-│   Claude Code CLI    │
-└──────────┬───────────┘
-           │ ログ出力 (.jsonl)
-           ↓
-┌──────────────────────┐
-│  ~/.claude/projects/ │
-│  └─ **/*.jsonl       │
-└──────────┬───────────┘
-           │ chokidar監視 (リアルタイム差分読み取り)
-           ↓
-┌─────────────────────────────────────────────┐
-│  Electron Main Process                      │
-│  ├─ logMonitor.ts (ファイル監視)              │
-│  ├─ activeSessionMonitor.ts (セッションフィルタ) │
-│  ├─ claudeCodeParser.ts (JSONL解析)          │
-│  ├─ textFilter.ts (Markdown除去)             │
-│  ├─ ruleBasedEmotionClassifier.ts (感情判定) │
-│  └─ IPC送信 ('speak' イベント)                │
-└──────────┬──────────────────────────────────┘
+┌──────────────────────┐   ┌──────────────────────┐
+│   Claude Code CLI    │   │     Gemini CLI        │
+└──────────┬───────────┘   └──────────┬────────────┘
+           │ ログ出力 (.jsonl)          │ ログ出力 (.json)
+           ↓                          ↓
+┌──────────────────────┐   ┌──────────────────────────┐
+│  ~/.claude/projects/ │   │  ~/.gemini/tmp/*/chats/  │
+│  └─ **/*.jsonl       │   │  └─ session-*.json        │
+└──────────┬───────────┘   └──────────┬───────────────┘
+           │                          │
+           └──────────┬───────────────┘
+                      │ chokidar監視 (HarnessAdapter経由)
+                      ↓
+┌─────────────────────────────────────────────────────┐
+│  Electron Main Process                              │
+│  ├─ logMonitor.ts (ファイル監視・mode分岐)            │
+│  ├─ adapters/ (HarnessAdapter)                      │
+│  │   ├─ claudeCodeAdapter.ts (JSONL・差分読み取り)   │
+│  │   └─ geminiCliAdapter.ts (JSON・ID重複排除)       │
+│  ├─ activeSessionMonitor.ts (セッションフィルタ)      │
+│  ├─ parsers/claudeCodeParser.ts (JSONL解析)         │
+│  ├─ parsers/geminiCliParser.ts (JSON解析)           │
+│  ├─ textFilter.ts (Markdown除去)                    │
+│  ├─ ruleBasedEmotionClassifier.ts (感情判定)        │
+│  └─ IPC送信 ('speak' イベント)                       │
+└──────────┬──────────────────────────────────────────┘
            │ IPC通信
            ↓
 ┌──────────────────────────────────────────┐
@@ -133,7 +142,6 @@
 - スピーカー選択
 - 音量調整
 - マイク使用中ミュート設定
-- サブエージェント発言の包含設定
 - 起動時アップデート確認の有効/無効
 - キャラクターサイズ調整
 - VRMファイル選択
@@ -144,25 +152,36 @@
 
 ### 1. ログ監視システム
 
-**electron/logMonitor.ts**
+**electron/logMonitor.ts** / **electron/adapters/**
 
 設計方針:
 
-- `~/.claude/projects/**/*.jsonl` を監視（depth=1〜3、`includeSubAgents`設定で変動）
-- ファイルごとに位置を記録、差分のみ読み取り（既存ログは無視）
+- `HarnessAdapter` インターフェース経由で複数ハーネスのログを並列監視
+- アダプターが `mode: "jsonl" | "json"` を宣言し、logMonitor が処理方式を切り替える
 - デバウンス処理（100ms）で過剰な処理を防ぐ
-- 非同期ストリーム読み込みで大容量ファイルにも対応
+- インスタンスごとに独立した状態（複数モニター並列動作をサポート）
 
-データフロー:
+**HarnessAdapter インターフェース** (`electron/adapters/harnessAdapter.ts`):
+
+- `JsonlHarnessAdapter` (mode: "jsonl"): 差分読み取り（ファイル位置ベース）、`parseLine()` を使用
+- `JsonHarnessAdapter` (mode: "json"): ファイル全体読み取り、`parseFile()` でメッセージIDによる重複排除
+
+**各アダプターの監視対象:**
+
+| アダプター             | ファイルパス                    | 形式                  |
+| ---------------------- | ------------------------------- | --------------------- |
+| `claudeCodeAdapter.ts` | `~/.claude/projects/**/*.jsonl` | JSONL（差分読み取り） |
+| `geminiCliAdapter.ts`  | `~/.gemini/tmp/*/chats/*.json`  | JSON（ID重複排除）    |
+
+データフロー（共通部分）:
 
 ```
 ファイル変更検出 (chokidar)
   ↓
-セッションフィルタ判定 (ファイルパスベース)
-  ↓ フィルタ外のファイルはファイル位置のみ進めてスキップ
-差分読み取り (readline)
+セッションフィルタ判定 (adapter.shouldProcessFile)
   ↓
-行ごとにJSONLパース (claudeCodeParser)
+[mode: "jsonl"] 差分読み取り → adapter.parseLine(line)
+[mode: "json"]  全体読み取り → adapter.parseFile(filePath)
   ↓
 テキストフィルタリング (textFilter.cleanTextForSpeech)
   ↓
@@ -173,15 +192,23 @@
 文ごとにIPC送信 (speak イベント)
 ```
 
-### 2. JSONL解析・感情判定
+### 2. ログ解析・感情判定
 
-**electron/parsers/claudeCodeParser.ts**
+**electron/parsers/claudeCodeParser.ts**（Claude Code 専用）
 
 解析ルール:
 
 - `message.role === "assistant"` のみ処理
 - `message.type === "message"` のみ処理
 - `content[].type === "text"` のみ抽出（thinking, tool_useは除外）
+- `<local-command-stdout>` タグで囲まれた Skill 出力も読み上げ対象
+
+**electron/parsers/geminiCliParser.ts**（Gemini CLI 専用）
+
+解析ルール:
+
+- `type === "gemini"` の行のみ処理
+- `content` フィールドは文字列型（将来の配列形式にも対応）
 
 **electron/services/ruleBasedEmotionClassifier.ts**
 
@@ -381,7 +408,6 @@ IPC通信:
 - `get-mic-active`: レンダラー→メイン（現在のマイク使用状態）
 - `mic-active-changed`: メイン→レンダラー（マイク使用状態変化）
 - `get-mic-monitor-available`: レンダラー→メイン（機能利用可否）
-- `get/set-include-sub-agents`: レンダラー↔メイン（サブエージェント設定）
 - `get/set-auto-update-check`: レンダラー↔メイン（起動時アップデート確認・永続化のみ）
 - `get/set-enable-idle-animations`: レンダラー↔メイン（待機アニメーション設定・永続化のみ）
 - `get/set-enable-speech-animations`: レンダラー↔メイン（発話アニメーション設定・永続化のみ）
@@ -496,7 +522,7 @@ Claude Codeの並列実行時に特定セッションのみを発話対象にフ
 フィルタリングロジック（logMonitor.ts）:
 
 - ファイルパスのベースネーム（拡張子除去）がセッションIDと一致 → 通過
-- 親ディレクトリ名がセッションIDと一致（サブエージェント） → 通過
+- 親ディレクトリ名がセッションIDと一致 → 通過
 - フィルタ外のファイルは `skipFileChanges()` でファイル位置のみ進めてスキップ（フィルタ解除後に過去の発話が再生されるのを防ぐ）
 
 操作方法:
@@ -580,7 +606,6 @@ claude --plugin-dir ./plugin
 | `characterSize`          | number  | 800        | キャラクターサイズ（400〜1200）         |
 | `characterPosition`      | object  | undefined  | キャラクター位置 { x, y }               |
 | `muteOnMicActive`        | boolean | false      | マイク使用中にミュートするか            |
-| `includeSubAgents`       | boolean | false      | サブエージェントの発言を含めるか        |
 | `enableIdleAnimations`   | boolean | true       | 待機アニメーションの有効/無効           |
 | `enableSpeechAnimations` | boolean | true       | 発話アニメーションの有効/無効           |
 | `speakerId`              | number  | 888753760  | 話者ID（AivisSpeechデフォルト）         |
@@ -619,7 +644,11 @@ GitHub Pagesで公開しているプロダクトLP。Electronアプリ本体と�
 
 ```
 cc-mascot/
-├── electron/          # Electronメインプロセス（ログ監視・JSONL解析・感情判定・IPC）
+├── electron/          # Electronメインプロセス（ログ監視・解析・感情判定・IPC）
+│   ├── adapters/      # HarnessAdapterインターフェース・各ハーネス実装
+│   ├── parsers/       # ハーネスごとのログパーサー
+│   ├── filters/       # テキストフィルタリング
+│   └── services/      # 感情分類器など共通サービス
 ├── helpers/           # ネイティブヘルパーソース（マイク監視 Swift/C++）
 ├── scripts/           # ビルドスクリプト（ネイティブヘルパー・コード署名）
 ├── resources/         # パッケージングリソース（アイコン・コンパイル済みバイナリ）
@@ -640,9 +669,9 @@ cc-mascot/
 
 ### ファイル監視
 
-- depth=1〜3（`includeSubAgents`設定で変動）
 - デバウンス100ms（過剰な処理防止）
-- 差分読み取り（全体読み込み回避）
+- Claude Code: depth=1、差分読み取り（全体読み込み回避）
+- Gemini CLI: depth=2、メッセージID重複排除（追記ではなく全体書き換え形式のため）
 
 ### VRM読み込み
 
