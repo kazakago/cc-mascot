@@ -11,6 +11,9 @@ release
 .turbo
 coverage
 
+# Static sites
+docs
+
 # IDE
 .vscode
 .idea

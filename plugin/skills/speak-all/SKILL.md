@@ -18,11 +18,13 @@ OSに応じて以下のいずれかのBashコマンドを実行してくださ�
 このコマンドはプロジェクト外のディレクトリにアクセスするため、sandboxが有効な場合は無効にして実行する必要があります:
 
 macOS:
+
 ```bash
 rm -f "$HOME/Library/Application Support/cc-mascot/active-session"
 ```
 
 Windows:
+
 ```bash
 rm -f "$APPDATA/cc-mascot/active-session"
 ```
