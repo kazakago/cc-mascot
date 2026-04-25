@@ -36,6 +36,7 @@ https://github.com/user-attachments/assets/f2742eac-1df3-436a-b79c-f7221e677474
 ## 対応エージェント
 
 - [Claude Code](https://claude.com/product/claude-code)
+- [Codex](https://openai.com/codex/)
 - [Gemini CLI](https://geminicli.com/)
 
 ## セットアップ
@@ -86,6 +87,14 @@ https://github.com/kazakago/cc-mascot/releases
 - エージェントの応答を自動検出
 - テキストから感情を自動判定
 - 音声合成してキャラクターが発話
+
+**監視対象ログ:**
+
+| エージェント | ログパス                        | 形式  |
+| ------------ | ------------------------------- | ----- |
+| Claude Code  | `~/.claude/projects/**/*.jsonl` | JSONL |
+| Codex        | `~/.codex/sessions/**/*.jsonl`  | JSONL |
+| Gemini CLI   | `~/.gemini/tmp/*/chats/*.json`  | JSON  |
 
 ## 基本操作
 
@@ -162,9 +171,9 @@ CC Mascotの設定画面からもフィルタの状態確認・解除が可能�
 ### 全体的な仕組み
 
 ```
-Claude Code                          Gemini CLI
-    ↓ JSONLログ出力                      ↓ JSONログ出力
-~/.claude/projects/**/*.jsonl    ~/.gemini/tmp/*/chats/*.json
+Claude Code                  Codex                         Gemini CLI
+    ↓ JSONLログ出力              ↓ JSONLログ出力                 ↓ JSONログ出力
+~/.claude/projects/**/*.jsonl  ~/.codex/sessions/**/*.jsonl  ~/.gemini/tmp/*/chats/*.json
     ↓ chokidar監視（HarnessAdapter経由で各形式に対応）
 Electron Main Process
     ↓ ログパース & 感情判定
