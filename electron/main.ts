@@ -3,6 +3,8 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { spawn, execSync, ChildProcess } from "child_process";
 import { createLogMonitor } from "./logMonitor";
+import { createClaudeCodeAdapter } from "./adapters/claudeCodeAdapter";
+import { createGeminiCliAdapter } from "./adapters/geminiCliAdapter";
 import { createActiveSessionMonitor, clearActiveSessionFile } from "./activeSessionMonitor";
 import { initAutoUpdater, checkForUpdatesManually } from "./autoUpdater";
 import fs from "fs";
@@ -57,9 +59,9 @@ function startLogMonitor(): void {
     }
   };
 
-  const includeSubAgents = (store.get("includeSubAgents") as boolean | undefined) ?? false;
-  console.log(`[LogMonitor] Starting with includeSubAgents=${includeSubAgents}`);
-  logMonitor = createLogMonitor(broadcast, includeSubAgents, () => activeSessionId);
+  const adapters = [createClaudeCodeAdapter(), createGeminiCliAdapter()];
+  const monitors = adapters.map((adapter) => createLogMonitor(broadcast, adapter, () => activeSessionId));
+  logMonitor = { close: () => monitors.forEach((m) => m.close()) };
 }
 
 // Get mic-monitor binary path
@@ -855,7 +857,6 @@ ipcMain.handle("reset-all-settings", async () => {
   store.delete("characterSize");
   store.delete("characterPosition");
   store.delete("muteOnMicActive");
-  store.delete("includeSubAgents");
   store.delete("enableIdleAnimations");
   store.delete("enableSpeechAnimations");
   store.delete("speakerId");
@@ -919,18 +920,6 @@ ipcMain.handle("get-default-engine-path", (_event, engineType: Exclude<EngineTyp
 
 ipcMain.handle("get-mic-monitor-available", () => {
   return getMicMonitorPath() !== undefined;
-});
-
-ipcMain.handle("get-include-sub-agents", () => {
-  const value = store.get("includeSubAgents");
-  return value === undefined ? false : (value as boolean);
-});
-
-ipcMain.handle("set-include-sub-agents", (_event, value: boolean) => {
-  store.set("includeSubAgents", value);
-  console.log(`[IPC] includeSubAgents set to ${value}, restarting log monitor`);
-  startLogMonitor();
-  return true;
 });
 
 // Speaker settings

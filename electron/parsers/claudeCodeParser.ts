@@ -5,15 +5,10 @@
 
 import * as fs from "fs";
 import { RuleBasedEmotionClassifier } from "../services/ruleBasedEmotionClassifier";
+import type { SpeakMessage } from "../adapters/harnessAdapter";
 
 // グローバル感情分類器インスタンス
 const emotionClassifier = new RuleBasedEmotionClassifier();
-
-export interface SpeakMessage {
-  type: "speak";
-  text: string;
-  emotion?: "neutral" | "happy" | "angry" | "sad" | "relaxed" | "surprised";
-}
 
 interface ContentItem {
   type: string;
@@ -72,11 +67,10 @@ function isSkillOutput(parentUuid: string, logFilePath: string): boolean {
 /**
  * Claude CodeのJSONLログ行を解析してテキストメッセージを抽出する
  * @param line - JSONLログファイルの1行
- * @param includeSubAgents - サブエージェントのメッセージを含めるかどうか
  * @param logFilePath - JSONLログファイルのパス（local-command-stdoutの親メッセージ参照用、省略可）
  * @returns SpeakMessageの配列（テキストを含まない行の場合は空配列）
  */
-export function parseClaudeCodeLog(line: string, includeSubAgents = false, logFilePath?: string): SpeakMessage[] {
+export function parseClaudeCodeLog(line: string, logFilePath?: string): SpeakMessage[] {
   const messages: SpeakMessage[] = [];
 
   try {
@@ -109,9 +103,7 @@ export function parseClaudeCodeLog(line: string, includeSubAgents = false, logFi
     // Claude Codeがコマンド出力を<local-command-stdout>タグで囲んだuserロールメッセージとして出力する特殊ケースに対応。
     // 加えて、親メッセージの<command-name>タグ有無でSkill結果（読み上げ）とCLIコマンド出力（スキップ）を判別する。
     // この挙動は将来変更される可能性がある。
-    //
-    // サブエージェント無効時のみ処理する（includeSubAgents === false）。
-    else if (!includeSubAgents && entry.message?.role === "user") {
+    else if (entry.message?.role === "user") {
       // contentが文字列であるか確認（配列ではない）
       if (typeof entry.message.content === "string") {
         const text = entry.message.content.trim();

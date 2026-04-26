@@ -305,7 +305,7 @@ describe("parseClaudeCodeLog", () => {
   });
 
   describe("local-command-stdout メッセージの処理", () => {
-    it("サブエージェント無効時: <local-command-stdout>タグで囲まれたuserメッセージを抽出する", () => {
+    it("<local-command-stdout>タグで囲まれたuserメッセージを抽出する", () => {
       const line = JSON.stringify({
         message: {
           type: "message",
@@ -314,7 +314,7 @@ describe("parseClaudeCodeLog", () => {
         },
       });
 
-      const result = parseClaudeCodeLog(line, false);
+      const result = parseClaudeCodeLog(line);
 
       expect(result).toHaveLength(1);
       expect(result[0]).toMatchObject({
@@ -322,20 +322,6 @@ describe("parseClaudeCodeLog", () => {
         text: "コマンドの出力結果",
         emotion: "neutral",
       });
-    });
-
-    it("サブエージェント有効時: <local-command-stdout>メッセージは無視される", () => {
-      const line = JSON.stringify({
-        message: {
-          type: "message",
-          role: "user",
-          content: "<local-command-stdout>コマンドの出力結果</local-command-stdout>",
-        },
-      });
-
-      const result = parseClaudeCodeLog(line, true);
-
-      expect(result).toHaveLength(0);
     });
 
     it("タグを正しく除去する", () => {
@@ -477,8 +463,8 @@ describe("parseClaudeCodeLog", () => {
         },
       });
 
-      const assistantResult = parseClaudeCodeLog(assistantLine, false);
-      const userResult = parseClaudeCodeLog(userLine, false);
+      const assistantResult = parseClaudeCodeLog(assistantLine);
+      const userResult = parseClaudeCodeLog(userLine);
 
       // 両方とも正しく処理される
       expect(assistantResult).toHaveLength(1);
@@ -528,7 +514,7 @@ describe("parseClaudeCodeLog", () => {
       });
 
       const logFile = createTmpLogFile(parentLine + "\n" + line);
-      const result = parseClaudeCodeLog(line, false, logFile);
+      const result = parseClaudeCodeLog(line, logFile);
 
       expect(result).toHaveLength(1);
       expect(result[0].text).toBe("コミットが完了しました！");
@@ -555,7 +541,7 @@ describe("parseClaudeCodeLog", () => {
       });
 
       const logFile = createTmpLogFile(parentLine + "\n" + line);
-      const result = parseClaudeCodeLog(line, false, logFile);
+      const result = parseClaudeCodeLog(line, logFile);
 
       expect(result).toHaveLength(0);
     });
@@ -571,7 +557,7 @@ describe("parseClaudeCodeLog", () => {
       });
 
       const logFile = createTmpLogFile('{"uuid":"other-uuid"}\n');
-      const result = parseClaudeCodeLog(line, false, logFile);
+      const result = parseClaudeCodeLog(line, logFile);
 
       expect(result).toHaveLength(1);
       expect(result[0].text).toBe("何かの出力");
@@ -588,7 +574,7 @@ describe("parseClaudeCodeLog", () => {
       });
 
       // logFilePath を渡さない場合、isSkillOutput は呼ばれない
-      const result = parseClaudeCodeLog(line, false);
+      const result = parseClaudeCodeLog(line);
 
       expect(result).toHaveLength(1);
       expect(result[0].text).toBe("出力結果");
@@ -604,7 +590,7 @@ describe("parseClaudeCodeLog", () => {
       });
 
       const logFile = createTmpLogFile("");
-      const result = parseClaudeCodeLog(line, false, logFile);
+      const result = parseClaudeCodeLog(line, logFile);
 
       expect(result).toHaveLength(1);
       expect(result[0].text).toBe("出力結果");

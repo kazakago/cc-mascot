@@ -73,12 +73,6 @@ contextBridge.exposeInMainWorld("electron", {
   getMicMonitorAvailable: (): Promise<boolean> => {
     return ipcRenderer.invoke("get-mic-monitor-available");
   },
-  getIncludeSubAgents: (): Promise<boolean> => {
-    return ipcRenderer.invoke("get-include-sub-agents");
-  },
-  setIncludeSubAgents: (value: boolean): Promise<boolean> => {
-    return ipcRenderer.invoke("set-include-sub-agents", value);
-  },
   getSpeakerId: (): Promise<number> => {
     return ipcRenderer.invoke("get-speaker-id");
   },

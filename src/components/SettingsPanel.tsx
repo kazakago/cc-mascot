@@ -61,7 +61,6 @@ export default function SettingsPanel({
   const [isPlayingTest, setIsPlayingTest] = useState(false);
   const [testAudioError, setTestAudioError] = useState("");
   const [micMonitorAvailable, setMicMonitorAvailable] = useState(false);
-  const [includeSubAgents, setIncludeSubAgents] = useState(false);
   const [autoUpdateCheck, setAutoUpdateCheck] = useState(true);
   const [activeSession, setActiveSession] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -125,11 +124,6 @@ export default function SettingsPanel({
       if (window.electron?.getMicMonitorAvailable) {
         const available = await window.electron.getMicMonitorAvailable();
         setMicMonitorAvailable(available);
-      }
-
-      if (window.electron?.getIncludeSubAgents) {
-        const include = await window.electron.getIncludeSubAgents();
-        setIncludeSubAgents(include);
       }
 
       if (window.electron?.getAutoUpdateCheck) {
@@ -284,11 +278,6 @@ export default function SettingsPanel({
       console.error("Failed to change character size:", err);
       setError("Failed to change character size");
     });
-  };
-
-  const handleIncludeSubAgentsChange = async (value: boolean) => {
-    setIncludeSubAgents(value);
-    await window.electron?.setIncludeSubAgents?.(value);
   };
 
   const handleAutoUpdateCheckChange = async (value: boolean) => {
@@ -616,18 +605,6 @@ export default function SettingsPanel({
                   <p className="text-sm text-slate-400 m-0">マイク使用中は、キャラクターの発話音声をミュートにします</p>
                 </div>
               )}
-              <div className="flex flex-col gap-3">
-                <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-800">
-                  <input
-                    type="checkbox"
-                    checked={includeSubAgents}
-                    onChange={(e) => handleIncludeSubAgentsChange(e.target.checked)}
-                    className="w-4 h-4 m-0 cursor-pointer accent-primary"
-                  />
-                  <span className="font-normal">サブエージェントの発言も含める</span>
-                </label>
-                <p className="text-sm text-slate-400 m-0">サブエージェントの内容も発話の対象とします</p>
-              </div>
               <div className="flex flex-col gap-3">
                 <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-800">
                   <input

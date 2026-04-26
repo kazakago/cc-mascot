@@ -3,18 +3,18 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CC Mascot - Claude Code向けデスクトップマスコット</title>
-    <meta name="description" content="Claude Codeからの応答を喋ってくれるデスクトップマスコット" />
+    <title>CC Mascot - AIコーディングエージェント向けデスクトップマスコット</title>
+    <meta name="description" content="AIコーディングエージェントからの応答を喋ってくれるデスクトップマスコット" />
 
     <!-- OGP -->
-    <meta property="og:title" content="CC Mascot - Claude Code向けデスクトップマスコット" />
-    <meta property="og:description" content="Claude Codeからの応答を喋ってくれるデスクトップマスコット" />
+    <meta property="og:title" content="CC Mascot - AIコーディングエージェント向けデスクトップマスコット" />
+    <meta property="og:description" content="AIコーディングエージェントからの応答を喋ってくれるデスクトップマスコット" />
     <meta property="og:image" content="https://kazakago.github.io/cc-mascot/icon.png" />
     <meta property="og:url" content="https://kazakago.github.io/cc-mascot/" />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="CC Mascot - Claude Code向けデスクトップマスコット" />
-    <meta name="twitter:description" content="Claude Codeからの応答を喋ってくれるデスクトップマスコット" />
+    <meta name="twitter:title" content="CC Mascot - AIコーディングエージェント向けデスクトップマスコット" />
+    <meta name="twitter:description" content="AIコーディングエージェントからの応答を喋ってくれるデスクトップマスコット" />
     <meta name="twitter:image" content="https://kazakago.github.io/cc-mascot/icon.png" />
 
     <link rel="icon" href="icon.png" />
@@ -65,11 +65,10 @@
       <div class="fade-in relative z-10 mx-auto max-w-5xl text-center">
         <img src="icon.png" alt="CC Mascot アイコン" class="mx-auto mb-8 h-28 w-28 rounded-3xl drop-shadow-lg" />
         <h1 class="mb-4 text-5xl font-900 tracking-tight md:text-6xl">CC Mascot</h1>
-        <p class="gradient-text mb-8 text-xl font-700 md:text-2xl">Claude Codeの応答を喋るデスクトップマスコット</p>
+        <p class="gradient-text mb-8 text-xl font-700 md:text-2xl">AIコーディングエージェントの応答を喋るデスクトップマスコット</p>
         <p class="mx-auto mb-10 max-w-2xl text-lg text-slate-600">
-          Claude Codeからの返答をVRMキャラクターがリアルタイムで読み上げ。<br />感情表現・リップシンク・視線追従で、コーディングに楽しいパートナーを。
+          エージェントからの返答をVRMキャラクターがリアルタイムで読み上げ。<br />感情表現・リップシンク・視線追従で、コーディングに楽しいパートナーを。
         </p>
-
         <!-- Demo Video -->
         <div class="mb-10">
           <div class="relative overflow-hidden rounded-2xl shadow-2xl">
@@ -114,6 +113,34 @@
       </div>
     </section>
 
+    <!-- Supported Agents -->
+    <section class="px-4 py-20">
+      <div class="fade-in mx-auto max-w-4xl text-center">
+        <h2 class="mb-4 text-3xl font-900 md:text-4xl">対応エージェント</h2>
+        <p class="mb-12 text-slate-600">以下のAIコーディングエージェントに対応しています。</p>
+        <div class="grid gap-6 sm:grid-cols-2">
+          <a
+            href="https://claude.com/product/claude-code"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="feature-card flex flex-col items-center rounded-2xl bg-white/80 p-8 shadow-md backdrop-blur-sm transition-transform hover:scale-105"
+          >
+            <h3 class="mb-2 text-xl font-700">Claude Code</h3>
+            <p class="text-sm text-slate-600">Anthropic公式のAIコーディングエージェント</p>
+          </a>
+          <a
+            href="https://geminicli.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="feature-card flex flex-col items-center rounded-2xl bg-white/80 p-8 shadow-md backdrop-blur-sm transition-transform hover:scale-105"
+          >
+            <h3 class="mb-2 text-xl font-700">Gemini CLI</h3>
+            <p class="text-sm text-slate-600">Google公式のAIコーディングエージェント</p>
+          </a>
+        </div>
+      </div>
+    </section>
+
     <!-- Features -->
     <section class="section-features px-4 py-20">
       <div class="fade-in mx-auto max-w-6xl">
@@ -139,7 +166,7 @@
             <div class="mb-4 text-4xl">📡</div>
             <h3 class="mb-2 text-lg font-700">自動ログ監視</h3>
             <p class="text-sm text-slate-600">
-              Claude Codeのログファイルを自動監視。プラグイン不要で、起動するだけで連携開始。
+              AIコーディングエージェントのログファイルを自動監視。起動するだけで連携開始。
             </p>
           </div>
           <div class="feature-card rounded-2xl bg-white/80 p-6 shadow-md backdrop-blur-sm">
@@ -164,7 +191,7 @@
           <div class="feature-card rounded-2xl bg-white/80 p-6 shadow-md backdrop-blur-sm">
             <div class="mb-4 text-4xl">🎯</div>
             <h3 class="mb-2 text-lg font-700">セッション絞り込み</h3>
-            <p class="text-sm text-slate-600">別途プラグインを導入すると、複数セッション実行時に特定セッションの発話だけに絞り込める。</p>
+            <p class="text-sm text-slate-600">複数セッション実行時に特定セッションの発話だけに絞り込める。（Claude Code専用プラグイン）</p>
           </div>
           <div class="feature-card rounded-2xl bg-white/80 p-6 shadow-md backdrop-blur-sm">
             <div class="mb-4 text-4xl">🎨</div>
@@ -179,7 +206,7 @@
     <section class="section-how px-4 py-20">
       <div class="fade-in mx-auto max-w-4xl">
         <h2 class="mb-4 text-center text-3xl font-900 md:text-4xl">仕組み</h2>
-        <p class="mb-12 text-center text-slate-600">Claude Codeのログを監視して、自動的にキャラクターが喋ります。</p>
+        <p class="mb-12 text-center text-slate-600">AIエージェントのログを監視して、自動的にキャラクターが喋ります。</p>
         <div class="grid gap-8 md:grid-cols-4">
           <div class="step-card text-center">
             <div
@@ -187,8 +214,8 @@
             >
               1
             </div>
-            <h3 class="mb-2 font-700">Claude Codeで会話</h3>
-            <p class="text-sm text-slate-600">いつも通りClaude Codeを使うだけ。特別な設定は不要。</p>
+            <h3 class="mb-2 font-700">エージェントで会話</h3>
+            <p class="text-sm text-slate-600">いつも通りAIコーディングエージェントを使うだけ。特別な設定は不要。</p>
           </div>
           <div class="step-card text-center">
             <div
@@ -197,7 +224,7 @@
               2
             </div>
             <h3 class="mb-2 font-700">ログを自動検出</h3>
-            <p class="text-sm text-slate-600">JSONLログファイルをリアルタイム監視し、応答を自動検出。</p>
+            <p class="text-sm text-slate-600">ログファイルをリアルタイム監視し、応答を自動検出。</p>
           </div>
           <div class="step-card text-center">
             <div
@@ -270,7 +297,7 @@
                 <span class="mt-0.5 text-lg">🪟</span>
                 <div>
                   <span class="font-500 text-slate-800">Windows</span>
-                  <br />WSL環境にインストールしたClaude Codeには非対応
+                  <br />WSL環境にインストールしたCLIには非対応
                 </div>
               </li>
             </ul>
@@ -284,9 +311,13 @@
                   <span class="font-500 text-slate-800"
                     ><a href="https://claude.com/ja-jp/product/claude-code" class="underline hover:text-slate-800"
                       >Claude Code</a
+                    >
+                    /
+                    <a href="https://github.com/google-gemini/gemini-cli" class="underline hover:text-slate-800"
+                      >Gemini CLI</a
                     ></span
                   >
-                  <br />Anthropic公式のCLIツール
+                  <br />Anthropic公式、またはGoogle公式のCLIツール
                 </div>
               </li>
               <li class="flex items-start gap-2">
@@ -327,7 +358,7 @@
             <div class="mb-2 text-sm font-700 text-violet-500">Step 3</div>
             <h3 class="mb-2 font-700">起動して会話</h3>
             <p class="text-sm text-slate-600">
-              アプリを起動してClaude Codeで会話するだけ。キャラクターが自動で喋り始める。
+              アプリを起動してAIコーディングエージェントで会話するだけ。キャラクターが自動で喋り始める。
             </p>
           </div>
         </div>
