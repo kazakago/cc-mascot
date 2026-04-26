@@ -345,9 +345,13 @@ VRM読み込み:
 - VRMAnimationLoaderPlugin使用
 - ループ再生対応
 - デフォルト: `/animations/idle_loop.vrma`（待機ループモーション）
-- 待機アニメーション: `/animations/idle_anim1〜4.vrma`（ランダム再生）
-- 感情別アニメーション: `/animations/happy1.vrma`, `/animations/happy2.vrma`, `/animations/angry.vrma`, `/animations/sad.vrma`, `/animations/relaxed.vrma`
+- 待機アニメーション: `/animations/idle/*.vrma` と `/animations/proprietary/idle/*.vrma` からランダム再生
+- 感情別アニメーション: `/animations/<emotion>/*.vrma` と `/animations/proprietary/<emotion>/*.vrma` からランダム再生
 - `enableIdleAnimations` / `enableSpeechAnimations` 設定で有効/無効を切替可能
+- `includeCoolAnimations` / `includeCuteAnimations` 設定でモーションの雰囲気をフィルタ可能
+- ファイル名が `__cool.vrma` で終わるモーションはクール系、`__cute.vrma` で終わるモーションはかわいい系として扱う
+- `__cool.vrma` / `__cute.vrma` 以外のモーションはナチュラル扱いで常に候補に含まれる
+- 同じVRMAを連続で再生する場合でも再生トリガーが走るよう、URLとは別に `animationPlayKey` を更新する
 
 **src/hooks/useBlink.ts**
 
@@ -424,6 +428,8 @@ IPC通信:
 - `get/set-auto-update-check`: レンダラー↔メイン（起動時アップデート確認・永続化のみ）
 - `get/set-enable-idle-animations`: レンダラー↔メイン（待機アニメーション設定・永続化のみ）
 - `get/set-enable-speech-animations`: レンダラー↔メイン（発話アニメーション設定・永続化のみ）
+- `get/set-include-cool-animations`: レンダラー↔メイン（クール系モーションを候補に含めるか）
+- `get/set-include-cute-animations`: レンダラー↔メイン（かわいい系モーションを候補に含めるか）
 - `get/set-speaker-id`: レンダラー↔メイン（話者ID・永続化のみ）
 - `get/set-volume-scale`: レンダラー↔メイン（音量スケール・永続化のみ）
 - `get-active-session`: レンダラー→メイン（現在のセッションフィルタID取得）
@@ -624,6 +630,8 @@ claude --plugin-dir ./plugin
 | `muteOnMicActive`        | boolean | false      | マイク使用中にミュートするか            |
 | `enableIdleAnimations`   | boolean | true       | 待機アニメーションの有効/無効           |
 | `enableSpeechAnimations` | boolean | true       | 発話アニメーションの有効/無効           |
+| `includeCoolAnimations`  | boolean | true       | クール系モーションを候補に含めるか      |
+| `includeCuteAnimations`  | boolean | true       | かわいい系モーションを候補に含めるか    |
 | `speakerId`              | number  | 888753760  | 話者ID（AivisSpeechデフォルト）         |
 | `volumeScale`            | number  | 1.0        | 音量スケール（0.0〜2.0）                |
 | `autoUpdateCheck`        | boolean | true       | 起動時にアップデートを確認するか        |
@@ -825,6 +833,14 @@ Gitサブモジュールとして `public/animations/proprietary/` に直接配�
 
 - `public/animations/<category>/` （公開アニメーション）
 - `public/animations/proprietary/<category>/` （プライベートアニメーション）
+
+モーションの雰囲気分類はファイル名の拡張子直前サフィックスで判定します。
+
+- `__cool.vrma`: クール系モーション（`includeCoolAnimations` が有効な場合のみ候補）
+- `__cute.vrma`: かわいい系モーション（`includeCuteAnimations` が有効な場合のみ候補）
+- 上記以外: ナチュラルなモーション（常に候補）
+
+例: `happy/v_sign__cute.vrma` はかわいい系、`happy/thankful.vrma` はナチュラル扱い。
 
 > **注意:** プライベートリポジトリへのアクセス権がない場合は公開アニメーションのみ動作します。
 

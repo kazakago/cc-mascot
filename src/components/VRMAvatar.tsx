@@ -24,6 +24,7 @@ interface VRMAvatarProps {
   url: string;
   animationUrl?: string;
   animationLoop?: boolean;
+  animationPlayKey?: number;
   onAnimationEnd?: () => void;
   onAnimationLoop?: () => void;
   cursorTrackingOptions?: Partial<CursorTrackingOptions>;
@@ -36,6 +37,7 @@ export const VRMAvatar = forwardRef<VRMAvatarHandle, VRMAvatarProps>(function VR
     url,
     animationUrl,
     animationLoop = true,
+    animationPlayKey = 0,
     onAnimationEnd,
     onAnimationLoop,
     cursorTrackingOptions,
@@ -47,6 +49,7 @@ export const VRMAvatar = forwardRef<VRMAvatarHandle, VRMAvatarProps>(function VR
   const { vrm, bounds, loading, error, isVRM0, setMouthOpen, setEmotion, update: updateVRM } = useVRM(url);
   const { update: updateAnimation, animatedBonesRef } = useVRMAnimation(vrm, animationUrl || "", {
     loop: animationLoop,
+    playKey: animationPlayKey,
     onAnimationEnd,
     onAnimationLoop,
   });

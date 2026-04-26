@@ -6,12 +6,13 @@ import type { VRM } from "@pixiv/three-vrm";
 
 interface UseVRMAnimationOptions {
   loop?: boolean;
+  playKey?: number;
   onAnimationEnd?: () => void;
   onAnimationLoop?: () => void;
 }
 
 export function useVRMAnimation(vrm: VRM | null, animationUrl: string, options: UseVRMAnimationOptions = {}) {
-  const { loop = true, onAnimationEnd, onAnimationLoop } = options;
+  const { loop = true, playKey = 0, onAnimationEnd, onAnimationLoop } = options;
   const [vrmAnimation, setVrmAnimation] = useState<VRMAnimation | null>(null);
   const mixerRef = useRef<AnimationMixer | null>(null);
   const currentActionRef = useRef<AnimationAction | null>(null);
@@ -124,7 +125,7 @@ export function useVRMAnimation(vrm: VRM | null, animationUrl: string, options: 
         mixer.removeEventListener("loop", handleLoop);
       };
     }
-  }, [vrm, vrmAnimation, loop, onAnimationEnd, onAnimationLoop]);
+  }, [vrm, vrmAnimation, loop, playKey, onAnimationEnd, onAnimationLoop]);
 
   const update = useCallback((delta: number) => {
     mixerRef.current?.update(delta);

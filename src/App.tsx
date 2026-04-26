@@ -39,8 +39,24 @@ const IDLE_RANDOM_MIN_INTERVAL = 30000; // 30秒
 const IDLE_RANDOM_MAX_INTERVAL = 60000; // 60秒
 const VOICEVOX_BASE_URL = "http://localhost:8564";
 
+type MotionStyle = "natural" | "cool" | "cute";
+
 // Settings panel width constant for click-through calculation
 const SETTINGS_PANEL_WIDTH = 400;
+
+function getMotionStyle(animationUrl: string): MotionStyle {
+  const fileName = animationUrl.split("/").pop() ?? animationUrl;
+  const match = fileName.match(/__(cool|cute)\.vrma$/i);
+  return match ? (match[1].toLowerCase() as MotionStyle) : "natural";
+}
+
+function filterAnimationUrls(animationUrls: string[] | undefined, includeCool: boolean, includeCute: boolean) {
+  if (!animationUrls) return [];
+  return animationUrls.filter((url) => {
+    const style = getMotionStyle(url);
+    return style === "natural" || (style === "cool" && includeCool) || (style === "cute" && includeCute);
+  });
+}
 
 function App() {
   const avatarRef = useRef<VRMAvatarHandle>(null);
@@ -49,6 +65,7 @@ function App() {
   const [vrmUrl, setVrmUrl] = useState<string>(DEFAULT_VRM_URL);
   const animationManifestRef = useRef<AnimationManifest | null>(null);
   const [currentAnimationUrl, setCurrentAnimationUrl] = useState<string>(FALLBACK_IDLE_LOOP_URL);
+  const [currentAnimationPlayKey, setCurrentAnimationPlayKey] = useState(0);
   const [currentEmotion, setCurrentEmotion] = useState<Emotion>("neutral");
   const [containerCenter, setContainerCenter] = useState({ x: 0, y: 0 });
   const [containerSize, setContainerSize] = useState(800);
@@ -60,6 +77,8 @@ function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [enableIdleAnimations, setEnableIdleAnimations] = useState(true);
   const [enableSpeechAnimations, setEnableSpeechAnimations] = useState(true);
+  const [includeCoolAnimations, setIncludeCoolAnimations] = useState(true);
+  const [includeCuteAnimations, setIncludeCuteAnimations] = useState(true);
   const [isCharacterVisible, setIsCharacterVisible] = useState(true);
 
   // ランダム待機アニメーション用ref
@@ -69,6 +88,8 @@ function App() {
   const nextIdleIntervalRef = useRef(0);
   const enableIdleAnimationsRef = useRef(true);
   const enableSpeechAnimationsRef = useRef(true);
+  const includeCoolAnimationsRef = useRef(true);
+  const includeCuteAnimationsRef = useRef(true);
   const showSettingsRef = useRef(false);
 
   // Keep refs in sync with state
@@ -92,13 +113,18 @@ function App() {
       IDLE_RANDOM_MIN_INTERVAL + Math.random() * (IDLE_RANDOM_MAX_INTERVAL - IDLE_RANDOM_MIN_INTERVAL);
   }, []);
 
+  const playAnimation = useCallback((animationUrl: string) => {
+    setCurrentAnimationUrl(animationUrl);
+    setCurrentAnimationPlayKey((key) => key + 1);
+  }, []);
+
   // アニメーションマニフェストをロード
   useEffect(() => {
     window.electron?.getAnimationManifest?.().then((manifest) => {
       animationManifestRef.current = manifest;
-      setCurrentAnimationUrl(manifest.idle_loop);
+      playAnimation(manifest.idle_loop);
     });
-  }, []);
+  }, [playAnimation]);
 
   // Cursor tracking settings (fixed values)
   const cursorTrackingOptions: Partial<CursorTrackingOptions> = useMemo(
@@ -215,6 +241,14 @@ function App() {
       setEnableSpeechAnimations(value);
       enableSpeechAnimationsRef.current = value;
     });
+    window.electron?.getIncludeCoolAnimations?.().then((value) => {
+      setIncludeCoolAnimations(value);
+      includeCoolAnimationsRef.current = value;
+    });
+    window.electron?.getIncludeCuteAnimations?.().then((value) => {
+      setIncludeCuteAnimations(value);
+      includeCuteAnimationsRef.current = value;
+    });
   }, []);
 
   // Listen for toggle-character-visibility from tray menu
@@ -256,18 +290,22 @@ function App() {
 
       // Select animation based on emotion (randomly choose from array)
       if (enableSpeechAnimationsRef.current && emotion !== "neutral") {
-        const animationUrls = animationManifestRef.current?.emotions[emotion];
+        const animationUrls = filterAnimationUrls(
+          animationManifestRef.current?.emotions[emotion],
+          includeCoolAnimationsRef.current,
+          includeCuteAnimationsRef.current,
+        );
         if (animationUrls && animationUrls.length > 0) {
           const randomIndex = Math.floor(Math.random() * animationUrls.length);
           const animationUrl = animationUrls[randomIndex];
-          setCurrentAnimationUrl(animationUrl);
+          playAnimation(animationUrl);
         }
       }
       // If disabled or no animation for this emotion, keep current animation (idle)
 
       startLipSync(analyser);
     },
-    [startLipSync],
+    [playAnimation, startLipSync],
   );
 
   const handleSpeechEnd = useCallback(() => {
@@ -284,22 +322,26 @@ function App() {
 
   const handleAnimationEnd = useCallback(() => {
     // When animation ends, return to idle and reset random idle timer
-    setCurrentAnimationUrl(animationManifestRef.current?.idle_loop ?? FALLBACK_IDLE_LOOP_URL);
+    playAnimation(animationManifestRef.current?.idle_loop ?? FALLBACK_IDLE_LOOP_URL);
     lastIdleAnimTimeRef.current = Date.now();
     nextIdleIntervalRef.current =
       IDLE_RANDOM_MIN_INTERVAL + Math.random() * (IDLE_RANDOM_MAX_INTERVAL - IDLE_RANDOM_MIN_INTERVAL);
-  }, []);
+  }, [playAnimation]);
 
   const handleAnimationLoop = useCallback(() => {
     if (isSpeakingRef.current) return;
     if (!enableIdleAnimationsRef.current) return;
     const elapsed = Date.now() - lastIdleAnimTimeRef.current;
     if (elapsed < nextIdleIntervalRef.current) return;
-    const idleUrls = animationManifestRef.current?.idle;
+    const idleUrls = filterAnimationUrls(
+      animationManifestRef.current?.idle,
+      includeCoolAnimationsRef.current,
+      includeCuteAnimationsRef.current,
+    );
     if (!idleUrls || idleUrls.length === 0) return;
     const randomIndex = Math.floor(Math.random() * idleUrls.length);
-    setCurrentAnimationUrl(idleUrls[randomIndex]);
-  }, []);
+    playAnimation(idleUrls[randomIndex]);
+  }, [playAnimation]);
 
   const { speakText } = useSpeech({
     onStart: handleSpeechStart,
@@ -390,6 +432,18 @@ function App() {
     await window.electron?.setEnableSpeechAnimations?.(value);
   }, []);
 
+  const handleIncludeCoolAnimationsChange = useCallback(async (value: boolean) => {
+    setIncludeCoolAnimations(value);
+    includeCoolAnimationsRef.current = value;
+    await window.electron?.setIncludeCoolAnimations?.(value);
+  }, []);
+
+  const handleIncludeCuteAnimationsChange = useCallback(async (value: boolean) => {
+    setIncludeCuteAnimations(value);
+    includeCuteAnimationsRef.current = value;
+    await window.electron?.setIncludeCuteAnimations?.(value);
+  }, []);
+
   const handleMuteOnMicActiveChange = useCallback(async (value: boolean) => {
     setMuteOnMicActive(value);
     await window.electron?.setMuteOnMicActive?.(value);
@@ -430,6 +484,10 @@ function App() {
     enableIdleAnimationsRef.current = true;
     setEnableSpeechAnimations(true);
     enableSpeechAnimationsRef.current = true;
+    setIncludeCoolAnimations(true);
+    includeCoolAnimationsRef.current = true;
+    setIncludeCuteAnimations(true);
+    includeCuteAnimationsRef.current = true;
 
     // Reset character position
     const screenSize = await window.electron?.getScreenSize?.();
@@ -599,6 +657,7 @@ function App() {
                 url={vrmUrl}
                 animationUrl={currentAnimationUrl}
                 animationLoop={currentAnimationUrl === FALLBACK_IDLE_LOOP_URL}
+                animationPlayKey={currentAnimationPlayKey}
                 onAnimationEnd={handleAnimationEnd}
                 onAnimationLoop={handleAnimationLoop}
                 cursorTrackingOptions={cursorTrackingOptions}
@@ -698,6 +757,10 @@ function App() {
           onEnableIdleAnimationsChange={handleEnableIdleAnimationsChange}
           enableSpeechAnimations={enableSpeechAnimations}
           onEnableSpeechAnimationsChange={handleEnableSpeechAnimationsChange}
+          includeCoolAnimations={includeCoolAnimations}
+          onIncludeCoolAnimationsChange={handleIncludeCoolAnimationsChange}
+          includeCuteAnimations={includeCuteAnimations}
+          onIncludeCuteAnimationsChange={handleIncludeCuteAnimationsChange}
           muteOnMicActive={muteOnMicActive}
           onMuteOnMicActiveChange={handleMuteOnMicActiveChange}
           onResetCharacterPosition={handleResetCharacterPosition}

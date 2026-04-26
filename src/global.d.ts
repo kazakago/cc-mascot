@@ -39,6 +39,10 @@ declare global {
       setEnableIdleAnimations: (value: boolean) => Promise<boolean>;
       getEnableSpeechAnimations: () => Promise<boolean>;
       setEnableSpeechAnimations: (value: boolean) => Promise<boolean>;
+      getIncludeCoolAnimations: () => Promise<boolean>;
+      setIncludeCoolAnimations: (value: boolean) => Promise<boolean>;
+      getIncludeCuteAnimations: () => Promise<boolean>;
+      setIncludeCuteAnimations: (value: boolean) => Promise<boolean>;
       onMicActiveChanged: (callback: (active: boolean) => void) => () => void;
       onDevToolsStateChanged: (callback: (isOpen: boolean) => void) => () => void;
       openDevTools: () => Promise<void>;
