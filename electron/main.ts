@@ -4,6 +4,7 @@ import { fileURLToPath } from "url";
 import { spawn, execSync, ChildProcess } from "child_process";
 import { createLogMonitor } from "./logMonitor";
 import { createClaudeCodeAdapter } from "./adapters/claudeCodeAdapter";
+import { createCodexAdapter } from "./adapters/codexAdapter";
 import { createGeminiCliAdapter } from "./adapters/geminiCliAdapter";
 import { createActiveSessionMonitor, clearActiveSessionFile } from "./activeSessionMonitor";
 import { initAutoUpdater, checkForUpdatesManually } from "./autoUpdater";
@@ -59,7 +60,7 @@ function startLogMonitor(): void {
     }
   };
 
-  const adapters = [createClaudeCodeAdapter(), createGeminiCliAdapter()];
+  const adapters = [createClaudeCodeAdapter(), createCodexAdapter(), createGeminiCliAdapter()];
   const monitors = adapters.map((adapter) => createLogMonitor(broadcast, adapter, () => activeSessionId));
   logMonitor = { close: () => monitors.forEach((m) => m.close()) };
 }

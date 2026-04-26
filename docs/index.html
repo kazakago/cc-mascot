@@ -113,34 +113,6 @@
       </div>
     </section>
 
-    <!-- Supported Agents -->
-    <section class="px-4 py-20">
-      <div class="fade-in mx-auto max-w-4xl text-center">
-        <h2 class="mb-4 text-3xl font-900 md:text-4xl">対応エージェント</h2>
-        <p class="mb-12 text-slate-600">以下のAIコーディングエージェントに対応しています。</p>
-        <div class="grid gap-6 sm:grid-cols-2">
-          <a
-            href="https://claude.com/product/claude-code"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="feature-card flex flex-col items-center rounded-2xl bg-white/80 p-8 shadow-md backdrop-blur-sm transition-transform hover:scale-105"
-          >
-            <h3 class="mb-2 text-xl font-700">Claude Code</h3>
-            <p class="text-sm text-slate-600">Anthropic公式のAIコーディングエージェント</p>
-          </a>
-          <a
-            href="https://geminicli.com/"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="feature-card flex flex-col items-center rounded-2xl bg-white/80 p-8 shadow-md backdrop-blur-sm transition-transform hover:scale-105"
-          >
-            <h3 class="mb-2 text-xl font-700">Gemini CLI</h3>
-            <p class="text-sm text-slate-600">Google公式のAIコーディングエージェント</p>
-          </a>
-        </div>
-      </div>
-    </section>
-
     <!-- Features -->
     <section class="section-features px-4 py-20">
       <div class="fade-in mx-auto max-w-6xl">
@@ -198,6 +170,49 @@
             <h3 class="mb-2 text-lg font-700">カスタマイズ</h3>
             <p class="text-sm text-slate-600">好きなVRMモデルや音声スタイルに変更可能。あなただけのマスコットに。</p>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Supported Agents -->
+    <section class="px-4 py-20">
+      <div class="fade-in mx-auto max-w-4xl text-center">
+        <h2 class="mb-4 text-3xl font-900 md:text-4xl">対応エージェント</h2>
+        <p class="mb-12 text-slate-600">以下のAIコーディングエージェントに対応しています。</p>
+        <div class="grid gap-6 sm:grid-cols-3">
+          <a
+            href="https://claude.com/product/claude-code"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="feature-card flex flex-col items-center rounded-2xl bg-white/80 p-8 shadow-md backdrop-blur-sm transition-transform hover:scale-105"
+          >
+            <div class="mb-5 flex h-16 w-16 items-center justify-center">
+              <img src="claude-code.svg" alt="Claude Code ロゴ" class="h-full w-full object-contain" loading="lazy" />
+            </div>
+            <h3 class="mb-2 text-xl font-700">Claude Code</h3>
+          </a>
+          <a
+            href="https://openai.com/codex/"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="feature-card flex flex-col items-center rounded-2xl bg-white/80 p-8 shadow-md backdrop-blur-sm transition-transform hover:scale-105"
+          >
+            <div class="mb-5 flex h-16 w-16 items-center justify-center">
+              <img src="codex.png" alt="Codex ロゴ" class="h-full w-full object-contain" loading="lazy" />
+            </div>
+            <h3 class="mb-2 text-xl font-700">Codex</h3>
+          </a>
+          <a
+            href="https://geminicli.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="feature-card flex flex-col items-center rounded-2xl bg-white/80 p-8 shadow-md backdrop-blur-sm transition-transform hover:scale-105"
+          >
+            <div class="mb-5 flex h-16 w-16 items-center justify-center">
+              <img src="gemini-cli.png" alt="Gemini CLI ロゴ" class="h-full w-full object-contain" loading="lazy" />
+            </div>
+            <h3 class="mb-2 text-xl font-700">Gemini CLI</h3>
+          </a>
         </div>
       </div>
     </section>
@@ -309,15 +324,17 @@
                 <span class="mt-0.5 text-lg">🤖</span>
                 <div>
                   <span class="font-500 text-slate-800"
-                    ><a href="https://claude.com/ja-jp/product/claude-code" class="underline hover:text-slate-800"
+                    ><a href="https://claude.com/product/claude-code" class="underline hover:text-slate-800"
                       >Claude Code</a
                     >
+                    /
+                    <a href="https://openai.com/codex/" class="underline hover:text-slate-800">Codex</a>
                     /
                     <a href="https://github.com/google-gemini/gemini-cli" class="underline hover:text-slate-800"
                       >Gemini CLI</a
                     ></span
                   >
-                  <br />Anthropic公式、またはGoogle公式のCLIツール
+                  <br />Anthropic公式、OpenAI公式、またはGoogle公式のCLIツール
                 </div>
               </li>
               <li class="flex items-start gap-2">
@@ -358,7 +375,7 @@
             <div class="mb-2 text-sm font-700 text-violet-500">Step 3</div>
             <h3 class="mb-2 font-700">起動して会話</h3>
             <p class="text-sm text-slate-600">
-              アプリを起動してAIコーディングエージェントで会話するだけ。キャラクターが自動で喋り始める。
+              アプリを起動してAIコーディングエージェントで会話するだけ。
             </p>
           </div>
         </div>

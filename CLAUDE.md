@@ -6,7 +6,7 @@
 
 このアプリケーションは、AIコーディングエージェントの発言をリアルタイムで音声化し、3DのVRMキャラクターでビジュアル化するためのElectronアプリケーションです。
 
-対応AIコーディングエージェント: **Claude Code** / **Gemini CLI**
+対応AIコーディングエージェント: **Claude Code** / **Codex** / **Gemini CLI**
 
 ### コンセプト
 
@@ -34,6 +34,7 @@
 
 - chokidar (ログファイル監視)
 - Claude Code: `~/.claude/projects/**/*.jsonl`（JSONL形式、差分読み取り）
+- Codex: `~/.codex/sessions/**/*.jsonl`（JSONL形式、差分読み取り）
 - Gemini CLI: `~/.gemini/tmp/*/chats/*.json`（JSON形式、メッセージID重複排除）
 
 **ネイティブヘルパー（macOS / Windows）:**
@@ -57,27 +58,29 @@
 ### システム構成図
 
 ```
-┌──────────────────────┐   ┌──────────────────────┐
-│   Claude Code CLI    │   │     Gemini CLI        │
-└──────────┬───────────┘   └──────────┬────────────┘
-           │ ログ出力 (.jsonl)          │ ログ出力 (.json)
-           ↓                          ↓
-┌──────────────────────┐   ┌──────────────────────────┐
-│  ~/.claude/projects/ │   │  ~/.gemini/tmp/*/chats/  │
-│  └─ **/*.jsonl       │   │  └─ session-*.json        │
-└──────────┬───────────┘   └──────────┬───────────────┘
-           │                          │
-           └──────────┬───────────────┘
-                      │ chokidar監視 (HarnessAdapter経由)
-                      ↓
+┌──────────────────────┐   ┌──────────────────────┐   ┌──────────────────────┐
+│   Claude Code CLI    │   │        Codex         │   │     Gemini CLI        │
+└──────────┬───────────┘   └──────────┬───────────┘   └──────────┬────────────┘
+           │ ログ出力 (.jsonl)          │ ログ出力 (.jsonl)         │ ログ出力 (.json)
+           ↓                          ↓                          ↓
+┌──────────────────────┐   ┌──────────────────────┐   ┌──────────────────────────┐
+│  ~/.claude/projects/ │   │ ~/.codex/sessions/   │   │  ~/.gemini/tmp/*/chats/  │
+│  └─ **/*.jsonl       │   │ └─ **/*.jsonl         │   │  └─ session-*.json        │
+└──────────┬───────────┘   └──────────┬───────────┘   └──────────┬───────────────┘
+           │                          │                          │
+           └──────────────────────────┼──────────────────────────┘
+                                      │ chokidar監視 (HarnessAdapter経由)
+                                      ↓
 ┌─────────────────────────────────────────────────────┐
 │  Electron Main Process                              │
 │  ├─ logMonitor.ts (ファイル監視・mode分岐)            │
 │  ├─ adapters/ (HarnessAdapter)                      │
 │  │   ├─ claudeCodeAdapter.ts (JSONL・差分読み取り)   │
+│  │   ├─ codexAdapter.ts (JSONL・差分読み取り)        │
 │  │   └─ geminiCliAdapter.ts (JSON・ID重複排除)       │
 │  ├─ activeSessionMonitor.ts (セッションフィルタ)      │
 │  ├─ parsers/claudeCodeParser.ts (JSONL解析)         │
+│  ├─ parsers/codexParser.ts (JSONL解析)              │
 │  ├─ parsers/geminiCliParser.ts (JSON解析)           │
 │  ├─ textFilter.ts (Markdown除去)                    │
 │  ├─ ruleBasedEmotionClassifier.ts (感情判定)        │
@@ -171,6 +174,7 @@
 | アダプター             | ファイルパス                    | 形式                  |
 | ---------------------- | ------------------------------- | --------------------- |
 | `claudeCodeAdapter.ts` | `~/.claude/projects/**/*.jsonl` | JSONL（差分読み取り） |
+| `codexAdapter.ts`      | `~/.codex/sessions/**/*.jsonl`  | JSONL（差分読み取り） |
 | `geminiCliAdapter.ts`  | `~/.gemini/tmp/*/chats/*.json`  | JSON（ID重複排除）    |
 
 データフロー（共通部分）:
@@ -202,6 +206,15 @@
 - `message.type === "message"` のみ処理
 - `content[].type === "text"` のみ抽出（thinking, tool_useは除外）
 - `<local-command-stdout>` タグで囲まれた Skill 出力も読み上げ対象
+
+**electron/parsers/codexParser.ts**（Codex 専用）
+
+解析ルール:
+
+- `type === "response_item"` の行のみ処理
+- `payload.type === "message"` かつ `payload.role === "assistant"` のみ処理
+- `payload.content[].type === "output_text"` / `"text"` のみ抽出
+- `session_meta`, userメッセージ, function_call, tool出力は読み上げ対象外
 
 **electron/parsers/geminiCliParser.ts**（Gemini CLI 専用）
 
@@ -510,7 +523,8 @@ Electronとの統合（electron/main.ts）:
 
 **electron/activeSessionMonitor.ts**
 
-Claude Codeの並列実行時に特定セッションのみを発話対象にフィルタリングする機能。
+Claude Code / Codex / Gemini CLI の並列実行時に特定セッションのみを発話対象にフィルタリングする機能。
+ただし、セッション固定をCLIから操作する公式プラグインは現在Claude Code専用。
 
 仕組み:
 
@@ -523,6 +537,8 @@ Claude Codeの並列実行時に特定セッションのみを発話対象にフ
 
 - ファイルパスのベースネーム（拡張子除去）がセッションIDと一致 → 通過
 - 親ディレクトリ名がセッションIDと一致 → 通過
+- Codexは `rollout-...-<sessionId>.jsonl` の末尾セッションID一致でも通過
+- Gemini CLIはJSON内の `sessionId` が一致する場合に通過
 - フィルタ外のファイルは `skipFileChanges()` でファイル位置のみ進めてスキップ（フィルタ解除後に過去の発話が再生されるのを防ぐ）
 
 操作方法:
@@ -671,6 +687,7 @@ cc-mascot/
 
 - デバウンス100ms（過剰な処理防止）
 - Claude Code: depth=1、差分読み取り（全体読み込み回避）
+- Codex: depth=4、差分読み取り（`sessions/YYYY/MM/DD/*.jsonl` に対応）
 - Gemini CLI: depth=2、メッセージID重複排除（追記ではなく全体書き換え形式のため）
 
 ### VRM読み込み
@@ -689,7 +706,7 @@ cc-mascot/
 実装変更時の確認項目:
 
 - [ ] エンジンが自動起動するか
-- [ ] ログ監視が動作するか（Claude Code応答で喋るか）
+- [ ] ログ監視が動作するか（Claude Code / Codex / Gemini CLI応答で喋るか）
 - [ ] 感情判定が正しく動作するか
 - [ ] リップシンクが音声に同期するか
 - [ ] まばたきが自然か
@@ -706,6 +723,8 @@ cc-mascot/
 - [ ] active-sessionファイルにUUIDを書き込むと、そのセッションのログのみ発話されるか
 - [ ] active-sessionファイルを削除すると全セッションの発話に戻るか
 - [ ] フィルタ中に他セッションの発話がキューに溜まらず握りつぶされるか
+- [ ] Codexの `rollout-...-<sessionId>.jsonl` がセッションフィルタで判定されるか
+- [ ] Gemini CLIの `sessionId` がセッションフィルタで判定されるか
 - [ ] 設定画面にフィルタ状態が表示されるか
 - [ ] 設定画面の解除ボタンでフィルタが解除されるか
 - [ ] 「全設定リセット」でフィルタが解除されるか
