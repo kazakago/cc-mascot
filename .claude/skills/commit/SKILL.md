@@ -1,9 +1,8 @@
 ---
 name: commit
 description: 変更を意味のある単位でコミットします。
-argument-hint: [-b <base-branch>]
+argument-hint: "[-b <base-branch>]"
 model: sonnet
-context: fork
 ---
 
 # コミット作成

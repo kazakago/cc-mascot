@@ -1,9 +1,8 @@
 ---
 name: create-pr
 description: 現在のコミットからPRを作成します。
-argument-hint: [-b <base-branch>] [-d (draft)] [-p (prompt付与)]
+argument-hint: "[-b <base-branch>] [-d (draft)] [-p (prompt付与)]"
 model: sonnet
-context: fork
 ---
 
 # PRを作成
