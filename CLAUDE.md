@@ -37,12 +37,6 @@
 - Codex: `~/.codex/sessions/**/*.jsonl`（JSONL形式、差分読み取り）
 - Gemini CLI: `~/.gemini/tmp/*/chats/*.json`（JSON形式、メッセージID重複排除）
 
-**ネイティブヘルパー（macOS / Windows）:**
-
-- macOS: Swift CLI バイナリ (CoreAudio API)
-- Windows: C++ バイナリ (WASAPI)
-- マイク使用状態の検出
-
 **データ永続化:**
 
 - IndexedDB (VRMファイル)
@@ -144,7 +138,6 @@
 - エンジン選択（AivisSpeech/VOICEVOX/Custom）
 - スピーカー選択
 - 音量調整
-- マイク使用中ミュート設定
 - 起動時アップデート確認の有効/無効
 - キャラクターサイズ調整
 - VRMファイル選択
@@ -421,10 +414,6 @@ IPC通信:
 - `get/set-character-size`: レンダラー↔メイン（キャラクターサイズ・永続化のみ）
 - `reset-character-size`: レンダラー→メイン（サイズリセット）
 - `get-engine-type` / `set-engine-settings` / `reset-engine-settings`: レンダラー↔メイン（エンジン設定）
-- `get/set-mute-on-mic-active`: レンダラー↔メイン（ミュート設定・永続化＋ヘルパー制御）
-- `get-mic-active`: レンダラー→メイン（現在のマイク使用状態）
-- `mic-active-changed`: メイン→レンダラー（マイク使用状態変化）
-- `get-mic-monitor-available`: レンダラー→メイン（機能利用可否）
 - `get/set-auto-update-check`: レンダラー↔メイン（起動時アップデート確認・永続化のみ）
 - `get/set-enable-idle-animations`: レンダラー↔メイン（待機アニメーション設定・永続化のみ）
 - `get/set-enable-speech-animations`: レンダラー↔メイン（発話アニメーション設定・永続化のみ）
@@ -440,65 +429,7 @@ IPC通信:
 - `open-devtools`: レンダラー→メイン（DevToolsを開く）
 - `devtools-state-changed`: メイン→レンダラー（DevTools状態変化通知）
 
-### 8. マイク使用中ミュート（macOS / Windows）
-
-**helpers/mic-monitor.swift**（macOS）
-
-macOSのCoreAudio HAL APIを使用してマイクの使用状態をリアルタイム監視するSwift CLIツール。
-
-仕組み:
-
-- `kAudioDevicePropertyDeviceIsRunningSomewhere` リスナーで全入力デバイスを監視
-- デバイスの追加/削除（ホットプラグ）にも対応
-- 状態変化時のみ stdout に JSON 行を出力: `{"micActive":true}` / `{"micActive":false}`
-- `RunLoop.main.run()` で常駐
-
-**helpers/mic-monitor.cpp**（Windows）
-
-WindowsのWASAPI（Windows Audio Session API）を使用してマイクの使用状態を監視するC++ CLIツール。
-
-仕組み:
-
-- 2秒ごとのポーリング式で全入力デバイスを監視
-- 状態変化時のみ stdout に JSON 行を出力: `{"micActive":true}` / `{"micActive":false}`
-
-ビルド方法:
-
-```bash
-# macOS / Windows で動作。プラットフォームに応じて自動でコンパイル
-npm run build:mic-monitor
-# macOS → resources/mic-monitor
-# Windows → resources/mic-monitor.exe
-```
-
-ビルドスクリプト: `scripts/build-mic-monitor.mjs`
-
-- macOS: `swiftc -O -framework CoreAudio` でリリースビルド → `resources/mic-monitor`
-- Windows: MSVC (`cl.exe`) でリリースビルド → `resources/mic-monitor.exe`
-- Linux等その他OS: スキップ（バイナリ不要）
-
-Electronとの統合（electron/main.ts）:
-
-- `muteOnMicActive` 設定が有効な場合のみヘルパーを起動（プライバシー配慮）
-- `child_process.spawn()` で起動、stdout を行単位でパース
-- アプリ終了時に SIGTERM で停止
-- バイナリが見つからない場合（Linux等）は機能を無効化
-- 設定画面の `getMicMonitorAvailable` IPC で UI 表示を制御
-
-パッケージング:
-
-- `package.json` の `extraResources` でアプリバンドルに含める
-- macOS: `resources/mic-monitor` → `process.resourcesPath/mic-monitor`
-- Windows: `resources/mic-monitor.exe` → `process.resourcesPath/mic-monitor.exe`
-- 開発時: `resources/` 配下を直接参照
-
-レンダラー側:
-
-- `useSpeech` hook に `isMicMuted` prop を追加
-- ミュート時は `gainNode.gain.value = 0`（発話処理・リップシンク・アニメーションは継続）
-- `volumeScale` と `isMicMuted` の両方をリアルタイム監視
-
-### 9. 自動更新
+### 8. 自動更新
 
 **electron/autoUpdater.ts**
 
@@ -627,7 +558,6 @@ claude --plugin-dir ./plugin
 | `voicevoxEnginePath`     | string  | undefined  | カスタムエンジンパス                    |
 | `characterSize`          | number  | 800        | キャラクターサイズ（400〜1200）         |
 | `characterPosition`      | object  | undefined  | キャラクター位置 { x, y }               |
-| `muteOnMicActive`        | boolean | false      | マイク使用中にミュートするか            |
 | `enableIdleAnimations`   | boolean | true       | 待機アニメーションの有効/無効           |
 | `enableSpeechAnimations` | boolean | true       | 発話アニメーションの有効/無効           |
 | `includeCoolAnimations`  | boolean | true       | クール系モーションを候補に含めるか      |
@@ -673,9 +603,8 @@ cc-mascot/
 │   ├── parsers/       # ハーネスごとのログパーサー
 │   ├── filters/       # テキストフィルタリング
 │   └── services/      # 感情分類器など共通サービス
-├── helpers/           # ネイティブヘルパーソース（マイク監視 Swift/C++）
-├── scripts/           # ビルドスクリプト（ネイティブヘルパー・コード署名）
-├── resources/         # パッケージングリソース（アイコン・コンパイル済みバイナリ）
+├── scripts/           # ビルドスクリプト（コード署名など）
+├── resources/         # パッケージングリソース（アイコンなど）
 ├── src/               # Electronレンダラープロセス（React + Three.js + VRM）
 ├── public/            # 静的アセット（VRMモデル・VRMAアニメーション）
 ├── plugin/            # Claude Codeプラグイン（セッションフィルタリング）
@@ -739,16 +668,6 @@ cc-mascot/
 - [ ] プラグイン: `/cc-mascot:speak-this` でセッション固定されるか
 - [ ] プラグイン: `/cc-mascot:speak-all` でフィルタ解除されるか
 
-### マイクミュート関連（macOS / Windows）
-
-- [ ] `npm run build:mic-monitor` でネイティブバイナリがコンパイルされるか
-- [ ] 設定画面に「マイク使用中はミュートにする」チェックボックスが表示されるか
-- [ ] チェックを入れるとmic-monitorヘルパーが起動するか（mainプロセスログで確認）
-- [ ] 他アプリがマイク使用中に発話音声がミュートになるか（リップシンクは継続）
-- [ ] マイク使用終了でミュートが解除されるか
-- [ ] チェックを外すとmic-monitorヘルパーが停止するか
-- [ ] 設定がアプリ再起動後も保持されるか
-
 ### MCPサーバー関連（開発モード時のみ）
 
 - [ ] リモートデバッグポート9222が有効化されているか
@@ -783,11 +702,6 @@ cc-mascot/
 # 依存関係インストール
 npm install
 
-# ネイティブヘルパービルド（初回必須）
-# macOS: Swift + CoreAudio（要Xcode Command Line Tools）
-# Windows: C++ + MSVC（要Visual Studio Build Tools）
-npm run build:mic-monitor
-
 # 開発モード起動（HMR有効、MCPサーバー接続可能）
 npm run dev
 
@@ -810,7 +724,6 @@ npm run test:coverage
 npm run build
 
 # パッケージング（dmg/exe/AppImage）
-# ※ネイティブヘルパーのビルドも自動実行される
 npm run package
 ```
 
@@ -820,7 +733,6 @@ npm run package
 
 ```bash
 npm install
-npm run build:mic-monitor  # 初回必須
 ```
 
 ### アニメーションアセットのセットアップ
@@ -843,24 +755,6 @@ Gitサブモジュールとして `public/animations/proprietary/` に直接配�
 例: `happy/v_sign__cute.vrma` はかわいい系、`happy/thankful.vrma` はナチュラル扱い。
 
 > **注意:** プライベートリポジトリへのアクセス権がない場合は公開アニメーションのみ動作します。
-
-### macOS固有の要件
-
-マイク監視機能を使用する場合、Xcode Command Line Toolsが必要：
-
-```bash
-xcode-select --install
-```
-
-### Windows固有の要件
-
-マイク監視機能を使用する場合、Visual Studio Build Tools with C++が必要：
-
-```powershell
-winget install --id Microsoft.VisualStudio.2022.BuildTools --override "--passive --wait --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
-```
-
-**注意:** インストール後、新しいターミナルで `npm run build:mic-monitor` を実行してください。
 
 ## 主要依存関係
 

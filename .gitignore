@@ -26,10 +26,5 @@ public/licenses.json
 *.sln
 *.sw?
 
-# Native helpers (built per-platform)
-resources/mic-monitor
-resources/mic-monitor.exe
-mic-monitor.obj
-
 # Claude
 .claude/plans

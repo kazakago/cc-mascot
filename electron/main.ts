@@ -38,8 +38,6 @@ let logMonitor: { close: () => void } | null = null;
 let activeSessionMonitor: { close: () => void } | null = null;
 let activeSessionId: string | null = null;
 let voicevoxProcess: ChildProcess | null = null;
-let micMonitorProcess: ChildProcess | null = null;
-let micActive = false;
 let tray: Tray | null = null;
 let isCharacterVisible = true;
 
@@ -63,83 +61,6 @@ function startLogMonitor(): void {
   const adapters = [createClaudeCodeAdapter(), createCodexAdapter(), createGeminiCliAdapter()];
   const monitors = adapters.map((adapter) => createLogMonitor(broadcast, adapter, () => activeSessionId));
   logMonitor = { close: () => monitors.forEach((m) => m.close()) };
-}
-
-// Get mic-monitor binary path
-function getMicMonitorPath(): string | undefined {
-  if (process.platform !== "darwin" && process.platform !== "win32") return undefined;
-
-  const binaryName = process.platform === "win32" ? "mic-monitor.exe" : "mic-monitor";
-  const devPath = path.join(__dirname, "../resources", binaryName);
-  if (app.isPackaged) {
-    const prodPath = path.join(process.resourcesPath, binaryName);
-    return fs.existsSync(prodPath) ? prodPath : undefined;
-  }
-  return fs.existsSync(devPath) ? devPath : undefined;
-}
-
-// Start mic-monitor helper process
-function startMicMonitor(): void {
-  if (micMonitorProcess) return;
-
-  const monitorPath = getMicMonitorPath();
-  if (!monitorPath) {
-    console.log("[MicMonitor] Binary not found, feature disabled");
-    return;
-  }
-
-  try {
-    console.log(`[MicMonitor] Starting: ${monitorPath}`);
-    micMonitorProcess = spawn(monitorPath);
-
-    let buffer = "";
-    micMonitorProcess.stdout?.on("data", (data) => {
-      buffer += data.toString();
-      const lines = buffer.split("\n");
-      buffer = lines.pop() || "";
-
-      for (const line of lines) {
-        if (!line.trim()) continue;
-        try {
-          const parsed = JSON.parse(line) as { micActive: boolean };
-          micActive = parsed.micActive;
-          console.log(`[MicMonitor] Mic active: ${micActive}`);
-          if (mainWindow && !mainWindow.isDestroyed()) {
-            mainWindow.webContents.send("mic-active-changed", micActive);
-          }
-        } catch {
-          console.warn("[MicMonitor] Failed to parse:", line);
-        }
-      }
-    });
-
-    micMonitorProcess.stderr?.on("data", (data) => {
-      console.error(`[MicMonitor] ${data.toString().trim()}`);
-    });
-
-    micMonitorProcess.on("error", (error) => {
-      console.error("[MicMonitor] Failed to start:", error);
-      micMonitorProcess = null;
-    });
-
-    micMonitorProcess.on("exit", (code) => {
-      console.log(`[MicMonitor] Exited with code ${code}`);
-      micMonitorProcess = null;
-    });
-  } catch (error) {
-    console.error("[MicMonitor] Error starting:", error);
-    micMonitorProcess = null;
-  }
-}
-
-// Stop mic-monitor helper process
-function stopMicMonitor(): void {
-  if (micMonitorProcess) {
-    console.log("[MicMonitor] Stopping...");
-    micMonitorProcess.kill("SIGTERM");
-    micMonitorProcess = null;
-    micActive = false;
-  }
 }
 
 // Get icon path for Windows and Linux (Mac uses .icns from package.json)
@@ -857,7 +778,6 @@ ipcMain.handle("reset-all-settings", async () => {
   store.delete("voicevoxEnginePath");
   store.delete("characterSize");
   store.delete("characterPosition");
-  store.delete("muteOnMicActive");
   store.delete("enableIdleAnimations");
   store.delete("enableSpeechAnimations");
   store.delete("includeCoolAnimations");
@@ -865,7 +785,6 @@ ipcMain.handle("reset-all-settings", async () => {
   store.delete("speakerId");
   store.delete("volumeScale");
   store.delete("autoUpdateCheck");
-  stopMicMonitor();
   clearActiveSessionFile();
 
   await stopVoicevoxEngine();
@@ -884,31 +803,6 @@ ipcMain.handle("open-devtools", () => {
   }
 });
 
-// Get current mic active state (for initial state query from renderer)
-ipcMain.handle("get-mic-active", () => {
-  return micActive;
-});
-
-// Mic monitor settings
-ipcMain.handle("get-mute-on-mic-active", () => {
-  const value = store.get("muteOnMicActive");
-  return value === undefined ? false : (value as boolean);
-});
-
-ipcMain.handle("set-mute-on-mic-active", (_event, value: boolean) => {
-  store.set("muteOnMicActive", value);
-  if (value) {
-    startMicMonitor();
-  } else {
-    stopMicMonitor();
-    // Notify renderer that mic is no longer active
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send("mic-active-changed", false);
-    }
-  }
-  return true;
-});
-
 ipcMain.handle("get-default-engine-path", (_event, engineType: Exclude<EngineType, "custom">) => {
   let enginePaths: Record<Exclude<EngineType, "custom">, string>;
   if (process.platform === "win32") {
@@ -919,10 +813,6 @@ ipcMain.handle("get-default-engine-path", (_event, engineType: Exclude<EngineTyp
     enginePaths = LINUX_ENGINE_PATHS;
   }
   return enginePaths[engineType];
-});
-
-ipcMain.handle("get-mic-monitor-available", () => {
-  return getMicMonitorPath() !== undefined;
 });
 
 // Speaker settings
@@ -1071,11 +961,6 @@ app.whenReady().then(async () => {
 
   await startVoicevoxEngine();
 
-  // Start mic monitor if enabled (default: false)
-  if (store.get("muteOnMicActive") === true) {
-    startMicMonitor();
-  }
-
   createWindow();
   const autoUpdateCheck = (store.get("autoUpdateCheck") as boolean | undefined) ?? true;
   initAutoUpdater(mainWindow!, autoUpdateCheck);
@@ -1121,7 +1006,6 @@ app.on("before-quit", async (event) => {
     tray.destroy();
     tray = null;
   }
-  stopMicMonitor();
   await stopVoicevoxEngine();
 
   app.quit();

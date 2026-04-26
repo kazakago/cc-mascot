@@ -26,11 +26,7 @@ declare global {
       resetCharacterPosition: () => Promise<boolean>;
       getScreenSize: () => Promise<{ width: number; height: number }>;
       resetAllSettings: () => Promise<boolean>;
-      getMicActive: () => Promise<boolean>;
-      getMuteOnMicActive: () => Promise<boolean>;
-      setMuteOnMicActive: (value: boolean) => Promise<boolean>;
       getDefaultEnginePath: (engineType: "aivis" | "voicevox") => Promise<string>;
-      getMicMonitorAvailable: () => Promise<boolean>;
       getSpeakerId: () => Promise<number>;
       setSpeakerId: (id: number) => Promise<boolean>;
       getVolumeScale: () => Promise<number>;
@@ -43,7 +39,6 @@ declare global {
       setIncludeCoolAnimations: (value: boolean) => Promise<boolean>;
       getIncludeCuteAnimations: () => Promise<boolean>;
       setIncludeCuteAnimations: (value: boolean) => Promise<boolean>;
-      onMicActiveChanged: (callback: (active: boolean) => void) => () => void;
       onDevToolsStateChanged: (callback: (isOpen: boolean) => void) => () => void;
       openDevTools: () => Promise<void>;
       onToggleSettingsPanel: (callback: () => void) => () => void;

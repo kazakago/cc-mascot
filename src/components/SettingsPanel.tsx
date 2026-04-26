@@ -28,8 +28,6 @@ interface SettingsPanelProps {
   onIncludeCoolAnimationsChange: (value: boolean) => void;
   includeCuteAnimations: boolean;
   onIncludeCuteAnimationsChange: (value: boolean) => void;
-  muteOnMicActive: boolean;
-  onMuteOnMicActiveChange: (value: boolean) => void;
   onResetCharacterPosition: () => void;
   onResetAllSettings: () => void;
   onClose: () => void;
@@ -52,8 +50,6 @@ export default function SettingsPanel({
   onIncludeCoolAnimationsChange,
   includeCuteAnimations,
   onIncludeCuteAnimationsChange,
-  muteOnMicActive,
-  onMuteOnMicActiveChange,
   onResetCharacterPosition,
   onResetAllSettings,
   onClose,
@@ -68,7 +64,6 @@ export default function SettingsPanel({
   const [loadingSpeakers, setLoadingSpeakers] = useState(false);
   const [isPlayingTest, setIsPlayingTest] = useState(false);
   const [testAudioError, setTestAudioError] = useState("");
-  const [micMonitorAvailable, setMicMonitorAvailable] = useState(false);
   const [autoUpdateCheck, setAutoUpdateCheck] = useState(true);
   const [activeSession, setActiveSession] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -127,11 +122,6 @@ export default function SettingsPanel({
           const path = await window.electron.getDefaultEnginePath(effectiveEngineType);
           setDefaultEnginePath(path);
         }
-      }
-
-      if (window.electron?.getMicMonitorAvailable) {
-        const available = await window.electron.getMicMonitorAvailable();
-        setMicMonitorAvailable(available);
       }
 
       if (window.electron?.getAutoUpdateCheck) {
@@ -615,26 +605,12 @@ export default function SettingsPanel({
             </div>
           </section>
 
-          {/* Advanced Settings Section */}
+          {/* Other Settings Section */}
           <section className="rounded-2xl bg-slate-50/60 p-6 shadow-sm">
             <h2 className="m-0 mb-4 text-lg font-semibold text-slate-800 flex items-center gap-2">
-              <span>⚙️</span> 高度な設定
+              <span>⚙️</span> その他の設定
             </h2>
             <div className="space-y-4">
-              {micMonitorAvailable && (
-                <div className="flex flex-col gap-3">
-                  <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-800">
-                    <input
-                      type="checkbox"
-                      checked={muteOnMicActive}
-                      onChange={(e) => onMuteOnMicActiveChange(e.target.checked)}
-                      className="w-4 h-4 m-0 cursor-pointer accent-primary"
-                    />
-                    <span className="font-normal">マイク使用中はミュートにする</span>
-                  </label>
-                  <p className="text-sm text-slate-400 m-0">マイク使用中は、キャラクターの発話音声をミュートにします</p>
-                </div>
-              )}
               <div className="flex flex-col gap-3">
                 <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-800">
                   <input

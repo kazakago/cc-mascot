@@ -132,9 +132,8 @@ https://github.com/kazakago/cc-mascot/releases
 - **待機アニメーションを使用する**: 待機中にたまにリアクションを取ります。
 - **発話アニメーションを使用する**: 発話時に感情に合わせたリアクションを取ります。
 
-### 高度な設定
+### その他の設定
 
-- **マイク使用中はミュートにする**: 別のアプリがOSのマイクを使用している最中は、キャラクターの発話音声をミュートにします。スピーカー利用時のマイク使用中に意図せずキャラの声が入り込んでしまうことを防ぎます。
 - **起動時にアップデートを確認する**: インターネット通信を行い、新しいバージョンがあるかチェックします。
 
 ## セッションフィルタリング（Claude Code専用プラグイン）
@@ -195,15 +194,8 @@ git clone https://github.com/kazakago/cc-mascot.git
 cd cc-mascot
 npm install
 npm run build
-npm run build:mic-monitor
 npm run dev
 ```
-
-`npm run build:mic-monitor` でネイティブヘルパー（マイク監視）をビルドします。  
-プラットフォームごとに以下の前提条件があります。
-
-- **macOS**: Xcode Command Line Tools（`xcode-select --install`）
-- **Windows**: Visual Studio Build Tools with C++（[インストール手順](https://visualstudio.microsoft.com/ja/visual-cpp-build-tools/)）
 
 > [!NOTE]
 > 配布しているバイナリに含まれるアニメーションファイル（`.vrma`）の一部はこのリポジトリには含まれていません。  
