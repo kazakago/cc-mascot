@@ -2,15 +2,14 @@
   "name": "cc-mascot",
   "private": true,
   "version": "1.0.0",
-  "description": "Claude Codeからの返答をVRMキャラクターが喋ってくれるデスクトップマスコット",
+  "description": "AIコーディングエージェントからの返答をVRMキャラクターが喋ってくれるデスクトップマスコット",
   "author": "kazakago",
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite --mode electron",
     "build": "npm run generate-licenses && tsc -b && vite build --mode electron",
-    "build:mic-monitor": "node scripts/build-mic-monitor.mjs",
-    "package": "npm run build:mic-monitor && npm run build && electron-builder --publish never",
+    "package": "npm run build && electron-builder --publish never",
     "generate-licenses": "license-checker-rseidelsohn --json --production --customPath license-format.json > public/licenses.json",
     "lint": "eslint .",
     "format": "prettier --write .",
@@ -104,16 +103,7 @@
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
       "entitlements": "build/entitlements.mac.plist",
-      "entitlementsInherit": "build/entitlements.mac.plist",
-      "extraResources": [
-        {
-          "from": "resources/mic-monitor",
-          "to": "mic-monitor",
-          "filter": [
-            "**/*"
-          ]
-        }
-      ]
+      "entitlementsInherit": "build/entitlements.mac.plist"
     },
     "win": {
       "icon": "resources/icons/icon.ico",
@@ -121,15 +111,6 @@
       "target": [
         "nsis",
         "zip"
-      ],
-      "extraResources": [
-        {
-          "from": "resources/mic-monitor.exe",
-          "to": "mic-monitor.exe",
-          "filter": [
-            "**/*"
-          ]
-        }
       ]
     },
     "linux": {

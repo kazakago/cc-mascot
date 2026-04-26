@@ -72,8 +72,6 @@ function App() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [devToolsOpen, setDevToolsOpen] = useState(false);
   const [headPosition, setHeadPosition] = useState<{ x: number; y: number } | null>(null);
-  const [muteOnMicActive, setMuteOnMicActive] = useState(true);
-  const [micActive, setMicActive] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [enableIdleAnimations, setEnableIdleAnimations] = useState(true);
   const [enableSpeechAnimations, setEnableSpeechAnimations] = useState(true);
@@ -216,21 +214,6 @@ function App() {
     window.electron?.getVolumeScale?.().then(setVolumeScale);
   }, []);
 
-  // Load muteOnMicActive setting, initial mic state, and listen for changes
-  useEffect(() => {
-    window.electron?.getMuteOnMicActive?.().then(setMuteOnMicActive);
-    window.electron?.getMicActive?.().then(setMicActive);
-
-    const cleanupMic = window.electron?.onMicActiveChanged?.((active) => {
-      console.log(`[App] Mic active: ${active}`);
-      setMicActive(active);
-    });
-
-    return () => {
-      cleanupMic?.();
-    };
-  }, []);
-
   // Load motion settings from Electron Store
   useEffect(() => {
     window.electron?.getEnableIdleAnimations?.().then((value) => {
@@ -349,7 +332,6 @@ function App() {
     speakerId,
     baseUrl: VOICEVOX_BASE_URL,
     volumeScale,
-    isMicMuted: micActive && muteOnMicActive,
   });
 
   // Debug: Log when speakerId changes
@@ -444,11 +426,6 @@ function App() {
     await window.electron?.setIncludeCuteAnimations?.(value);
   }, []);
 
-  const handleMuteOnMicActiveChange = useCallback(async (value: boolean) => {
-    setMuteOnMicActive(value);
-    await window.electron?.setMuteOnMicActive?.(value);
-  }, []);
-
   const handleResetCharacterPosition = useCallback(async () => {
     await window.electron?.resetCharacterPosition?.();
     const screenSize = await window.electron?.getScreenSize?.();
@@ -479,7 +456,6 @@ function App() {
     setVolumeScale(1.0);
     setContainerSize(800);
     containerSizeRef.current = 800;
-    setMuteOnMicActive(false);
     setEnableIdleAnimations(true);
     enableIdleAnimationsRef.current = true;
     setEnableSpeechAnimations(true);
@@ -761,8 +737,6 @@ function App() {
           onIncludeCoolAnimationsChange={handleIncludeCoolAnimationsChange}
           includeCuteAnimations={includeCuteAnimations}
           onIncludeCuteAnimationsChange={handleIncludeCuteAnimationsChange}
-          muteOnMicActive={muteOnMicActive}
-          onMuteOnMicActiveChange={handleMuteOnMicActiveChange}
           onResetCharacterPosition={handleResetCharacterPosition}
           onResetAllSettings={handleResetAllSettings}
           onClose={() => setShowSettings(false)}

@@ -58,20 +58,8 @@ contextBridge.exposeInMainWorld("electron", {
   resetAllSettings: (): Promise<boolean> => {
     return ipcRenderer.invoke("reset-all-settings");
   },
-  getMicActive: (): Promise<boolean> => {
-    return ipcRenderer.invoke("get-mic-active");
-  },
-  getMuteOnMicActive: (): Promise<boolean> => {
-    return ipcRenderer.invoke("get-mute-on-mic-active");
-  },
-  setMuteOnMicActive: (value: boolean): Promise<boolean> => {
-    return ipcRenderer.invoke("set-mute-on-mic-active", value);
-  },
   getDefaultEnginePath: (engineType: "aivis" | "voicevox"): Promise<string> => {
     return ipcRenderer.invoke("get-default-engine-path", engineType);
-  },
-  getMicMonitorAvailable: (): Promise<boolean> => {
-    return ipcRenderer.invoke("get-mic-monitor-available");
   },
   getSpeakerId: (): Promise<number> => {
     return ipcRenderer.invoke("get-speaker-id");
@@ -108,15 +96,6 @@ contextBridge.exposeInMainWorld("electron", {
   },
   setIncludeCuteAnimations: (value: boolean): Promise<boolean> => {
     return ipcRenderer.invoke("set-include-cute-animations", value);
-  },
-  onMicActiveChanged: (callback: (active: boolean) => void) => {
-    const listener = (_event: unknown, active: boolean) => {
-      callback(active);
-    };
-    ipcRenderer.on("mic-active-changed", listener);
-    return () => {
-      ipcRenderer.removeListener("mic-active-changed", listener);
-    };
   },
   onDevToolsStateChanged: (callback: (isOpen: boolean) => void) => {
     const listener = (_event: unknown, isOpen: boolean) => {
