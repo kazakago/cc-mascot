@@ -97,6 +97,18 @@ contextBridge.exposeInMainWorld("electron", {
   setEnableSpeechAnimations: (value: boolean): Promise<boolean> => {
     return ipcRenderer.invoke("set-enable-speech-animations", value);
   },
+  getIncludeCoolAnimations: (): Promise<boolean> => {
+    return ipcRenderer.invoke("get-include-cool-animations");
+  },
+  setIncludeCoolAnimations: (value: boolean): Promise<boolean> => {
+    return ipcRenderer.invoke("set-include-cool-animations", value);
+  },
+  getIncludeCuteAnimations: (): Promise<boolean> => {
+    return ipcRenderer.invoke("get-include-cute-animations");
+  },
+  setIncludeCuteAnimations: (value: boolean): Promise<boolean> => {
+    return ipcRenderer.invoke("set-include-cute-animations", value);
+  },
   onMicActiveChanged: (callback: (active: boolean) => void) => {
     const listener = (_event: unknown, active: boolean) => {
       callback(active);

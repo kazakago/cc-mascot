@@ -24,6 +24,10 @@ interface SettingsPanelProps {
   onEnableIdleAnimationsChange: (value: boolean) => void;
   enableSpeechAnimations: boolean;
   onEnableSpeechAnimationsChange: (value: boolean) => void;
+  includeCoolAnimations: boolean;
+  onIncludeCoolAnimationsChange: (value: boolean) => void;
+  includeCuteAnimations: boolean;
+  onIncludeCuteAnimationsChange: (value: boolean) => void;
   muteOnMicActive: boolean;
   onMuteOnMicActiveChange: (value: boolean) => void;
   onResetCharacterPosition: () => void;
@@ -44,6 +48,10 @@ export default function SettingsPanel({
   onEnableIdleAnimationsChange,
   enableSpeechAnimations,
   onEnableSpeechAnimationsChange,
+  includeCoolAnimations,
+  onIncludeCoolAnimationsChange,
+  includeCuteAnimations,
+  onIncludeCuteAnimationsChange,
   muteOnMicActive,
   onMuteOnMicActiveChange,
   onResetCharacterPosition,
@@ -581,6 +589,28 @@ export default function SettingsPanel({
                   <span className="font-normal">発話モーションを有効にする</span>
                 </label>
                 <p className="text-sm text-slate-400 m-0">発話時に感情に合わせたリアクションを取ります</p>
+              </div>
+              <div className="flex flex-col gap-3 border-t border-slate-200 pt-4">
+                <p className="text-sm font-medium text-slate-600 m-0">モーションの雰囲気</p>
+                <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-800">
+                  <input
+                    type="checkbox"
+                    checked={includeCoolAnimations}
+                    onChange={(e) => onIncludeCoolAnimationsChange(e.target.checked)}
+                    className="w-4 h-4 m-0 cursor-pointer accent-primary"
+                  />
+                  <span className="font-normal">クール系モーションを含める</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer text-sm text-slate-800">
+                  <input
+                    type="checkbox"
+                    checked={includeCuteAnimations}
+                    onChange={(e) => onIncludeCuteAnimationsChange(e.target.checked)}
+                    className="w-4 h-4 m-0 cursor-pointer accent-primary"
+                  />
+                  <span className="font-normal">かわいい系モーションを含める</span>
+                </label>
+                <p className="text-sm text-slate-400 m-0">ナチュラルなモーションは常に含まれます</p>
               </div>
             </div>
           </section>

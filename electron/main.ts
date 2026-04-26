@@ -860,6 +860,8 @@ ipcMain.handle("reset-all-settings", async () => {
   store.delete("muteOnMicActive");
   store.delete("enableIdleAnimations");
   store.delete("enableSpeechAnimations");
+  store.delete("includeCoolAnimations");
+  store.delete("includeCuteAnimations");
   store.delete("speakerId");
   store.delete("volumeScale");
   store.delete("autoUpdateCheck");
@@ -961,6 +963,26 @@ ipcMain.handle("get-enable-speech-animations", () => {
 
 ipcMain.handle("set-enable-speech-animations", (_event, value: boolean) => {
   store.set("enableSpeechAnimations", value);
+  return true;
+});
+
+ipcMain.handle("get-include-cool-animations", () => {
+  const value = store.get("includeCoolAnimations");
+  return value === undefined ? true : (value as boolean);
+});
+
+ipcMain.handle("set-include-cool-animations", (_event, value: boolean) => {
+  store.set("includeCoolAnimations", value);
+  return true;
+});
+
+ipcMain.handle("get-include-cute-animations", () => {
+  const value = store.get("includeCuteAnimations");
+  return value === undefined ? true : (value as boolean);
+});
+
+ipcMain.handle("set-include-cute-animations", (_event, value: boolean) => {
+  store.set("includeCuteAnimations", value);
   return true;
 });
 
