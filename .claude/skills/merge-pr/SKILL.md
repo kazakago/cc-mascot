@@ -1,9 +1,8 @@
 ---
 name: merge-pr
 description: PRをマージして、マージ先のブランチへをチェックアウトします。
-argument-hint: [-b <target-branch>]
+argument-hint: "[-b <target-branch>]"
 model: sonnet
-context: fork
 ---
 
 ## 1. 引数のパース

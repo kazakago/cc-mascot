@@ -1,9 +1,8 @@
 ---
 name: export-prompt
 description: 会話のユーザー入力のみをエクスポートします。引数なしでクリップボード、filepathを指定するとファイルに出力
-argument-hint: [filepath]
+argument-hint: "[filepath]"
 model: haiku
-context: fork
 ---
 
 # ユーザー入力のエクスポート

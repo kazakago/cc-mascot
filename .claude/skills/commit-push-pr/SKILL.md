@@ -1,9 +1,8 @@
 ---
 name: commit-push-pr
 description: 変更を意味のある単位でコミットし、PRを作成します。
-argument-hint: [-b <base-branch>] [-d (draft)] [-p (prompt付与)]
+argument-hint: "[-b <base-branch>] [-d (draft)] [-p (prompt付与)]"
 model: sonnet
-context: fork
 ---
 
 # コミット・プッシュ・PR作成
