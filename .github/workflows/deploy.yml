@@ -19,20 +19,14 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ inputs.ref }}
-
-      - name: Setup SSH for private submodule
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.CC_MASCOT_PRIVATE_DEPLOY_KEY }}
-
-      - name: Initialize private submodule
-        run: git submodule update --init
+          ssh-key: ${{ secrets.CC_MASCOT_PRIVATE_DEPLOY_KEY }}
+          submodules: true
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "24"
           cache: "npm"
@@ -58,7 +52,7 @@ jobs:
           APPLE_API_ISSUER: ${{ vars.APPLE_API_ISSUER }}
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-macos
           path: |
@@ -73,20 +67,14 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ inputs.ref }}
-
-      - name: Setup SSH for private submodule
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.CC_MASCOT_PRIVATE_DEPLOY_KEY }}
-
-      - name: Initialize private submodule
-        run: git submodule update --init
+          ssh-key: ${{ secrets.CC_MASCOT_PRIVATE_DEPLOY_KEY }}
+          submodules: true
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "24"
           cache: "npm"
@@ -98,7 +86,7 @@ jobs:
         run: npm run package
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: release-windows
           path: |
