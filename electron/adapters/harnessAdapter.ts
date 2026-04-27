@@ -37,6 +37,12 @@ export interface HarnessAdapter {
   parseLine(line: string, logFilePath?: string): SpeakMessage[];
 
   /**
+   * 監視開始時に既存ファイルからアダプター固有の状態を復元する
+   * @param filePath - 初期化対象のログファイルパス
+   */
+  initializeFile?(filePath: string): void;
+
+  /**
    * セッションIDに基づいてファイルを処理すべきか判定する
    * @param filePath - 判定対象のファイルパス
    * @param activeSessionId - 現在アクティブなセッションID

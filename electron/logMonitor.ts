@@ -113,6 +113,7 @@ export function createLogMonitor(
   watcher.on("add", (filePath: string) => {
     // ファイル位置を現在の末尾に初期化（既存ログの再生を防ぐ）
     initializeFilePosition(filePath);
+    adapter.initializeFile?.(filePath);
   });
 
   watcher.on("change", (filePath: string) => {
