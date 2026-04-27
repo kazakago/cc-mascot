@@ -30,6 +30,26 @@ export function createGeminiCliAdapter(): HarnessAdapter {
   // ファイルパス → 処理済みメッセージIDのセット（追記型でも更新があるためIDで重複排除が必要）
   const processedIds = new Map<string, Set<string>>();
 
+  function getProcessedIds(filePath: string): Set<string> {
+    let ids = processedIds.get(filePath);
+    if (!ids) {
+      ids = new Set();
+      processedIds.set(filePath, ids);
+    }
+    return ids;
+  }
+
+  function markProcessedId(line: string, filePath: string): void {
+    try {
+      const data = JSON.parse(line);
+      if (!data.id) return;
+      if (parseGeminiLogLine(line).length === 0) return;
+      getProcessedIds(filePath).add(data.id);
+    } catch {
+      // ignore
+    }
+  }
+
   return {
     getWatchPaths() {
       return [geminiTmpDir];
@@ -48,22 +68,32 @@ export function createGeminiCliAdapter(): HarnessAdapter {
       };
     },
 
+    initializeFile(filePath: string): void {
+      try {
+        const content = fs.readFileSync(filePath, "utf8");
+        for (const line of content.split("\n")) {
+          if (!line.trim()) continue;
+          markProcessedId(line, filePath);
+        }
+      } catch {
+        // ignore
+      }
+    },
+
     parseLine(line: string, logFilePath?: string): SpeakMessage[] {
       try {
         const data = JSON.parse(line);
         const id = data.id;
+        const processedForFile = logFilePath ? getProcessedIds(logFilePath) : undefined;
 
         // メッセージではない行（メタデータなど）や、既に処理済みのIDはスキップ
-        if (!id || (logFilePath && processedIds.get(logFilePath)?.has(id))) {
+        if (!id || processedForFile?.has(id)) {
           return [];
         }
 
         const parsed = parseGeminiLogLine(line);
-        if (parsed.length > 0 && logFilePath) {
-          if (!processedIds.has(logFilePath)) {
-            processedIds.set(logFilePath, new Set());
-          }
-          processedIds.get(logFilePath)!.add(id);
+        if (parsed.length > 0 && processedForFile) {
+          processedForFile.add(id);
         }
 
         return parsed;

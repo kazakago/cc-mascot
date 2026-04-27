@@ -74,6 +74,43 @@ describe("createGeminiCliAdapter (JSONL)", () => {
     expect(second.map((m) => m.text)).toEqual(["本番の回答です。"]);
   });
 
+  it("既存ログから処理済みIDを復元する", () => {
+    const adapter = createGeminiCliAdapter();
+    const filePath = "/tmp/session.jsonl";
+    const initialLine = JSON.stringify({ id: "gemini-1", type: "gemini", content: "回答です。" });
+    const updatedLine = JSON.stringify({
+      id: "gemini-1",
+      type: "gemini",
+      content: "回答です。",
+      toolCalls: [{ name: "activate_skill", args: { name: "merge-pr" } }],
+    });
+
+    (fsMod.readFileSync as any).mockReturnValue(
+      [
+        JSON.stringify({ sessionId: "session-123" }),
+        JSON.stringify({ id: "user-1", type: "user", content: [{ text: "hi" }] }),
+        initialLine,
+      ].join("\n"),
+    );
+
+    adapter.initializeFile?.(filePath);
+
+    expect(adapter.parseLine(updatedLine, filePath)).toEqual([]);
+  });
+
+  it("既存ログ内の空メッセージではIDを消費しない", () => {
+    const adapter = createGeminiCliAdapter();
+    const filePath = "/tmp/session.jsonl";
+    const lineEmpty = JSON.stringify({ id: "gemini-1", type: "gemini", content: "", thoughts: [{}] });
+    const lineFull = JSON.stringify({ id: "gemini-1", type: "gemini", content: "本番の回答です。" });
+
+    (fsMod.readFileSync as any).mockReturnValue(lineEmpty);
+
+    adapter.initializeFile?.(filePath);
+
+    expect(adapter.parseLine(lineFull, filePath).map((m) => m.text)).toEqual(["本番の回答です。"]);
+  });
+
   it("セッションIDでフィルタ判定する", () => {
     const adapter = createGeminiCliAdapter();
     const filePath = "/tmp/session.jsonl";
