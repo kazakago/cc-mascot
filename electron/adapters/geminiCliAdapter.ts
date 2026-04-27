@@ -1,41 +1,46 @@
 /**
  * Gemini CLI ハーネスアダプター
- * ~/.gemini/tmp/<project_name>/chats/*.json を監視し、Gemini CLI の JSON ログ形式を解析する
+ * ~/.gemini/tmp/<project_name>/chats/*.jsonl を監視し、Gemini CLI の JSONL ログ形式を解析する
  *
- * ログパス: ~/.gemini/tmp/<project_name>/chats/session-YYYY-MM-DDTHH-mm-<short_id>.json
- * ファイル全体が更新のたびに書き換えられる形式のため、メッセージIDで重複排除する
+ * ログパス: ~/.gemini/tmp/<project_name>/chats/session-YYYY-MM-DDTHH-mm-<short_id>.jsonl
  *
  * GEMINI_CLI_HOME 環境変数が設定されている場合、$GEMINI_CLI_HOME/.gemini/tmp を使用する
  * （未設定時は ~/.gemini/tmp）
  */
 
+import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
-import type { JsonHarnessAdapter, SpeakMessage } from "./harnessAdapter";
-import { parseGeminiMessage, parseGeminiSessionFile } from "../parsers/geminiCliParser";
+import type { HarnessAdapter, SpeakMessage } from "./harnessAdapter";
+import { parseGeminiLogLine } from "../parsers/geminiCliParser";
 
-export function createGeminiCliAdapter(): JsonHarnessAdapter {
+function getGeminiTmpDir(): string {
   const geminiBase = process.env.GEMINI_CLI_HOME
     ? path.join(process.env.GEMINI_CLI_HOME, ".gemini")
     : path.join(os.homedir(), ".gemini");
-  const geminiTmpDir = path.join(geminiBase, "tmp");
+  return path.join(geminiBase, "tmp");
+}
 
-  // ファイルパス → 処理済みメッセージIDのセット
+/**
+ * Gemini CLI用のアダプター（JSONL形式）
+ */
+export function createGeminiCliAdapter(): HarnessAdapter {
+  const geminiTmpDir = getGeminiTmpDir();
+
+  // ファイルパス → 処理済みメッセージIDのセット（追記型でも更新があるためIDで重複排除が必要）
   const processedIds = new Map<string, Set<string>>();
 
   return {
-    mode: "json",
-
     getWatchPaths() {
       return [geminiTmpDir];
     },
 
     getWatchOptions() {
       return {
-        // <project_name>/chats/*.json の構造なので depth=2
+        // <project_name>/chats/*.jsonl の構造なので depth=2
         depth: 2,
         ignored: (filePath: string, stats?: { isFile(): boolean }) =>
-          stats?.isFile() === true && !filePath.endsWith(".json"),
+          stats?.isFile() === true && !filePath.endsWith(".jsonl"),
         awaitWriteFinish: {
           stabilityThreshold: 100,
           pollInterval: 50,
@@ -43,36 +48,48 @@ export function createGeminiCliAdapter(): JsonHarnessAdapter {
       };
     },
 
-    parseFile(filePath: string): SpeakMessage[] {
-      const result = parseGeminiSessionFile(filePath);
-      if (!result) return [];
+    parseLine(line: string, logFilePath?: string): SpeakMessage[] {
+      try {
+        const data = JSON.parse(line);
+        const id = data.id;
 
-      if (!processedIds.has(filePath)) {
-        processedIds.set(filePath, new Set());
+        // メッセージではない行（メタデータなど）や、既に処理済みのIDはスキップ
+        if (!id || (logFilePath && processedIds.get(logFilePath)?.has(id))) {
+          return [];
+        }
+
+        const parsed = parseGeminiLogLine(line);
+        if (parsed.length > 0 && logFilePath) {
+          if (!processedIds.has(logFilePath)) {
+            processedIds.set(logFilePath, new Set());
+          }
+          processedIds.get(logFilePath)!.add(id);
+        }
+
+        return parsed;
+      } catch {
+        return [];
       }
-      const seen = processedIds.get(filePath)!;
-
-      const newMessages: SpeakMessage[] = [];
-
-      for (const message of result.messages) {
-        const id = message.id;
-        if (!id || seen.has(id)) continue;
-        seen.add(id);
-
-        const parsed = parseGeminiMessage(message);
-        newMessages.push(...parsed);
-      }
-
-      return newMessages;
     },
 
     shouldProcessFile(filePath: string, activeSessionId: string): boolean {
-      // ファイルを読み込んでセッションIDと照合する
-      // 読み込みコストを避けるため、processedIds に登録済みであればキャッシュから判定
-      // （parseFile を一度でも呼ぶと内部状態が構築される）
-      const result = parseGeminiSessionFile(filePath);
-      if (!result?.sessionId) return false;
-      return result.sessionId === activeSessionId;
+      try {
+        // ファイルの最初の数行から sessionId を探す（通常は1行目にある）
+        const content = fs.readFileSync(filePath, "utf8");
+        const lines = content.split("\n");
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          const data = JSON.parse(line);
+          if (data.sessionId) {
+            return data.sessionId === activeSessionId;
+          }
+          // メッセージ行が先に来た場合は諦める
+          break;
+        }
+      } catch {
+        // ignore
+      }
+      return false;
     },
   };
 }

@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import * as fsMod from "fs";
 import * as readlineMod from "readline";
 import * as chokidarMod from "chokidar";
-import type { JsonlHarnessAdapter, JsonHarnessAdapter } from "./adapters/harnessAdapter";
+import type { HarnessAdapter } from "./adapters/harnessAdapter";
 
 // モックを設定
 vi.mock("fs", () => ({
@@ -36,9 +36,8 @@ vi.mock("./services/ruleBasedEmotionClassifier", () => ({
 import { createLogMonitor } from "./logMonitor";
 
 /** テスト用 JSONL アダプターを作成する */
-function createMockJsonlAdapter(overrides: Partial<JsonlHarnessAdapter> = {}): JsonlHarnessAdapter {
+function createMockJsonlAdapter(overrides: Partial<HarnessAdapter> = {}): HarnessAdapter {
   return {
-    mode: "jsonl",
     getWatchPaths: () => ["/mock/watch/path"],
     getWatchOptions: () => ({
       ignored: (filePath: string, stats?: { isFile(): boolean }) =>
@@ -47,23 +46,6 @@ function createMockJsonlAdapter(overrides: Partial<JsonlHarnessAdapter> = {}): J
       depth: 1,
     }),
     parseLine: vi.fn().mockReturnValue([]),
-    shouldProcessFile: vi.fn().mockReturnValue(true),
-    ...overrides,
-  };
-}
-
-/** テスト用 JSON アダプターを作成する */
-function createMockJsonAdapter(overrides: Partial<JsonHarnessAdapter> = {}): JsonHarnessAdapter {
-  return {
-    mode: "json",
-    getWatchPaths: () => ["/mock/watch/path"],
-    getWatchOptions: () => ({
-      ignored: (filePath: string, stats?: { isFile(): boolean }) =>
-        stats?.isFile() === true && !filePath.endsWith(".json"),
-      awaitWriteFinish: { stabilityThreshold: 100, pollInterval: 50 },
-      depth: 2,
-    }),
-    parseFile: vi.fn().mockReturnValue([]),
     shouldProcessFile: vi.fn().mockReturnValue(true),
     ...overrides,
   };
@@ -728,93 +710,6 @@ describe("logMonitor", () => {
 
       // 600-500=100バイト分のみ読み取られる
       expect(fsMod.createReadStream).toHaveBeenCalledWith(filePath, expect.objectContaining({ start: 500, end: 599 }));
-    });
-  });
-
-  describe("JSON モード（parseFile）", () => {
-    it("addイベントでparseFileを呼び出して既存メッセージIDを登録する", () => {
-      const mockWatcher = {
-        on: vi.fn((event, callback) => {
-          if (event === "add") callback("/test/session.json");
-        }),
-        close: vi.fn(),
-      };
-      (chokidarMod.watch as any).mockReturnValue(mockWatcher as any);
-
-      const adapter = createMockJsonAdapter();
-      createLogMonitor(mockBroadcast, adapter);
-
-      expect(adapter.parseFile).toHaveBeenCalledWith("/test/session.json");
-      // addイベントではbroadcastしない
-      expect(mockBroadcast).not.toHaveBeenCalled();
-    });
-
-    it("changeイベントでparseFileの結果をブロードキャストする", async () => {
-      vi.spyOn(console, "log").mockImplementation(() => {});
-      const { cleanTextForSpeech } = await import("./filters/textFilter");
-      (cleanTextForSpeech as any).mockReturnValue("Geminiの応答テキスト。");
-
-      let addCallback: ((filePath: string) => void) | null = null;
-      let changeCallback: ((filePath: string) => void) | null = null;
-      const mockWatcher = {
-        on: vi.fn((event: string, callback: (arg?: any) => void) => {
-          if (event === "add") addCallback = callback as (filePath: string) => void;
-          if (event === "change") changeCallback = callback as (filePath: string) => void;
-        }),
-        close: vi.fn(),
-      };
-      (chokidarMod.watch as any).mockReturnValue(mockWatcher as any);
-
-      const adapter = createMockJsonAdapter({
-        parseFile: vi.fn().mockReturnValue([{ type: "speak", text: "Geminiの応答テキスト。", emotion: "neutral" }]),
-      });
-
-      createLogMonitor(mockBroadcast, adapter);
-      addCallback!("/test/session.json");
-
-      changeCallback!("/test/session.json");
-
-      await Promise.resolve();
-      await Promise.resolve();
-      await Promise.resolve();
-
-      expect(adapter.parseFile).toHaveBeenCalledWith("/test/session.json");
-      expect(mockBroadcast).toHaveBeenCalledWith(
-        JSON.stringify({ type: "speak", text: "Geminiの応答テキスト。", emotion: "neutral" }),
-      );
-    });
-
-    it("アクティブセッションIDが不一致の場合はparseFileを呼ばない", async () => {
-      let addCallback: ((filePath: string) => void) | null = null;
-      let changeCallback: ((filePath: string) => void) | null = null;
-      const mockWatcher = {
-        on: vi.fn((event: string, callback: (arg?: any) => void) => {
-          if (event === "add") addCallback = callback as (filePath: string) => void;
-          if (event === "change") changeCallback = callback as (filePath: string) => void;
-        }),
-        close: vi.fn(),
-      };
-      (chokidarMod.watch as any).mockReturnValue(mockWatcher as any);
-
-      const adapter = createMockJsonAdapter({
-        shouldProcessFile: vi.fn().mockReturnValue(false),
-      });
-
-      createLogMonitor(mockBroadcast, adapter, () => "some-session-id");
-      addCallback!("/test/session.json");
-
-      // parseFile は add 時に1回呼ばれているはず
-      const callCountAfterAdd = (adapter.parseFile as any).mock.calls.length;
-
-      changeCallback!("/test/session.json");
-
-      await Promise.resolve();
-      await Promise.resolve();
-      await Promise.resolve();
-
-      // change では parseFile を呼ばない
-      expect((adapter.parseFile as any).mock.calls.length).toBe(callCountAfterAdd);
-      expect(mockBroadcast).not.toHaveBeenCalled();
     });
   });
 });

@@ -35,7 +35,7 @@
 - chokidar (ログファイル監視)
 - Claude Code: `~/.claude/projects/**/*.jsonl`（JSONL形式、差分読み取り）
 - Codex: `~/.codex/sessions/**/*.jsonl`（JSONL形式、差分読み取り）
-- Gemini CLI: `~/.gemini/tmp/*/chats/*.json`（JSON形式、メッセージID重複排除）
+- Gemini CLI: `~/.gemini/tmp/*/chats/*.jsonl`（JSONL形式、差分読み取り）
 
 **データ永続化:**
 
@@ -55,11 +55,11 @@
 ┌──────────────────────┐   ┌──────────────────────┐   ┌──────────────────────┐
 │   Claude Code CLI    │   │        Codex         │   │     Gemini CLI        │
 └──────────┬───────────┘   └──────────┬───────────┘   └──────────┬────────────┘
-           │ ログ出力 (.jsonl)          │ ログ出力 (.jsonl)         │ ログ出力 (.json)
+           │ ログ出力 (.jsonl)          │ ログ出力 (.jsonl)         │ ログ出力 (.jsonl)
            ↓                          ↓                          ↓
 ┌──────────────────────┐   ┌──────────────────────┐   ┌──────────────────────────┐
 │  ~/.claude/projects/ │   │ ~/.codex/sessions/   │   │  ~/.gemini/tmp/*/chats/  │
-│  └─ **/*.jsonl       │   │ └─ **/*.jsonl         │   │  └─ session-*.json        │
+│  └─ **/*.jsonl       │   │ └─ **/*.jsonl         │   │  └─ session-*.jsonl       │
 └──────────┬───────────┘   └──────────┬───────────┘   └──────────┬───────────────┘
            │                          │                          │
            └──────────────────────────┼──────────────────────────┘
@@ -67,15 +67,15 @@
                                       ↓
 ┌─────────────────────────────────────────────────────┐
 │  Electron Main Process                              │
-│  ├─ logMonitor.ts (ファイル監視・mode分岐)            │
+│  ├─ logMonitor.ts (ファイル監視)                      │
 │  ├─ adapters/ (HarnessAdapter)                      │
 │  │   ├─ claudeCodeAdapter.ts (JSONL・差分読み取り)   │
 │  │   ├─ codexAdapter.ts (JSONL・差分読み取り)        │
-│  │   └─ geminiCliAdapter.ts (JSON・ID重複排除)       │
+│  │   └─ geminiCliAdapter.ts (JSONL・差分読み取り)    │
 │  ├─ activeSessionMonitor.ts (セッションフィルタ)      │
 │  ├─ parsers/claudeCodeParser.ts (JSONL解析)         │
 │  ├─ parsers/codexParser.ts (JSONL解析)              │
-│  ├─ parsers/geminiCliParser.ts (JSON解析)           │
+│  ├─ parsers/geminiCliParser.ts (JSONL解析)          │
 │  ├─ textFilter.ts (Markdown除去)                    │
 │  ├─ ruleBasedEmotionClassifier.ts (感情判定)        │
 │  └─ IPC送信 ('speak' イベント)                       │
@@ -153,14 +153,15 @@
 設計方針:
 
 - `HarnessAdapter` インターフェース経由で複数ハーネスのログを並列監視
-- アダプターが `mode: "jsonl" | "json"` を宣言し、logMonitor が処理方式を切り替える
+- 全てのアダプターが JSONL 形式（追記型）であることを前提とし、差分読み取り（ファイル位置ベース）でログを処理する
 - デバウンス処理（100ms）で過剰な処理を防ぐ
 - インスタンスごとに独立した状態（複数モニター並列動作をサポート）
 
 **HarnessAdapter インターフェース** (`electron/adapters/harnessAdapter.ts`):
 
-- `JsonlHarnessAdapter` (mode: "jsonl"): 差分読み取り（ファイル位置ベース）、`parseLine()` を使用
-- `JsonHarnessAdapter` (mode: "json"): ファイル全体読み取り、`parseFile()` でメッセージIDによる重複排除
+- 追記型ログの解析に特化した単一のインターフェース
+- `parseLine()`: ログの1行を解析してメッセージを抽出
+- `shouldProcessFile()`: セッションIDによるフィルタリング判定
 
 **各アダプターの監視対象:**
 
@@ -168,17 +169,18 @@
 | ---------------------- | ------------------------------- | --------------------- |
 | `claudeCodeAdapter.ts` | `~/.claude/projects/**/*.jsonl` | JSONL（差分読み取り） |
 | `codexAdapter.ts`      | `~/.codex/sessions/**/*.jsonl`  | JSONL（差分読み取り） |
-| `geminiCliAdapter.ts`  | `~/.gemini/tmp/*/chats/*.json`  | JSON（ID重複排除）    |
+| `geminiCliAdapter.ts`  | `~/.gemini/tmp/*/chats/*.jsonl` | JSONL（差分読み取り） |
 
-データフロー（共通部分）:
+データフロー:
 
 ```
 ファイル変更検出 (chokidar)
   ↓
 セッションフィルタ判定 (adapter.shouldProcessFile)
   ↓
-[mode: "jsonl"] 差分読み取り → adapter.parseLine(line)
-[mode: "json"]  全体読み取り → adapter.parseFile(filePath)
+差分読み取り (readline)
+  ↓
+1行パース (adapter.parseLine)
   ↓
 テキストフィルタリング (textFilter.cleanTextForSpeech)
   ↓
@@ -215,6 +217,7 @@
 
 - `type === "gemini"` の行のみ処理
 - `content` フィールドは文字列型（将来の配列形式にも対応）
+- メッセージIDによる重複排除を行い、思考プロセス（`thoughts`）のみの空メッセージによる発話ブロックを回避
 
 **electron/services/ruleBasedEmotionClassifier.ts**
 
@@ -475,7 +478,7 @@ Claude Code / Codex / Gemini CLI の並列実行時に特定セッションの�
 - ファイルパスのベースネーム（拡張子除去）がセッションIDと一致 → 通過
 - 親ディレクトリ名がセッションIDと一致 → 通過
 - Codexは `rollout-...-<sessionId>.jsonl` の末尾セッションID一致でも通過
-- Gemini CLIはJSON内の `sessionId` が一致する場合に通過
+- Gemini CLIはJSONL内の `sessionId` が一致する場合に通過
 - フィルタ外のファイルは `skipFileChanges()` でファイル位置のみ進めてスキップ（フィルタ解除後に過去の発話が再生されるのを防ぐ）
 
 操作方法:
@@ -623,9 +626,7 @@ cc-mascot/
 ### ファイル監視
 
 - デバウンス100ms（過剰な処理防止）
-- Claude Code: depth=1、差分読み取り（全体読み込み回避）
-- Codex: depth=4、差分読み取り（`sessions/YYYY/MM/DD/*.jsonl` に対応）
-- Gemini CLI: depth=2、メッセージID重複排除（追記ではなく全体書き換え形式のため）
+- 追記型ログ（JSONL）を差分読み取りすることで、ファイル全体の再読み込みを回避
 
 ### VRM読み込み
 

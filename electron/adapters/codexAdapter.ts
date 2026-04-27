@@ -6,10 +6,10 @@
 import * as os from "os";
 import * as path from "path";
 import * as fs from "fs";
-import type { JsonlHarnessAdapter, SpeakMessage } from "./harnessAdapter";
+import type { HarnessAdapter, SpeakMessage } from "./harnessAdapter";
 import { parseCodexLog } from "../parsers/codexParser";
 
-export function createCodexAdapter(): JsonlHarnessAdapter {
+export function createCodexAdapter(): HarnessAdapter {
   const codexHome = process.env.CODEX_HOME || path.join(os.homedir(), ".codex");
   const codexSessionsDir = path.join(codexHome, "sessions");
   const subagentLogFiles = new Map<string, boolean>();
@@ -37,8 +37,6 @@ export function createCodexAdapter(): JsonlHarnessAdapter {
   }
 
   return {
-    mode: "jsonl",
-
     getWatchPaths() {
       return [codexSessionsDir];
     },
