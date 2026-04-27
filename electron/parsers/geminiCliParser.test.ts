@@ -1,12 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { describe, it, expect, vi } from "vitest";
-import * as fsMod from "fs";
+import { describe, it, expect } from "vitest";
 
-vi.mock("fs", () => ({
-  readFileSync: vi.fn(),
-}));
-
-import { parseGeminiMessage, parseGeminiSessionFile } from "./geminiCliParser";
+import { parseGeminiLogLine, parseGeminiMessage } from "./geminiCliParser";
 
 describe("parseGeminiMessage", () => {
   describe("アシスタント応答の抽出", () => {
@@ -78,52 +73,54 @@ describe("parseGeminiMessage", () => {
   });
 });
 
-describe("parseGeminiSessionFile", () => {
-  it("正常なセッションJSONからsessionIdとmessagesを取得する", () => {
-    (fsMod.readFileSync as any).mockReturnValue(
-      JSON.stringify({
-        sessionId: "ses_abc123",
-        messages: [
-          { id: "m1", type: "user", content: [{ text: "質問" }] },
-          { id: "m2", type: "gemini", content: "回答テキスト" },
-        ],
-      }),
-    );
-
-    const result = parseGeminiSessionFile("/fake/path/session.json");
-
-    expect(result).not.toBeNull();
-    expect(result?.sessionId).toBe("ses_abc123");
-    expect(result?.messages).toHaveLength(2);
-  });
-
-  it("ファイル読み込みエラーの場合は null を返す", () => {
-    (fsMod.readFileSync as any).mockImplementation(() => {
-      throw new Error("File not found");
+describe("parseGeminiLogLine", () => {
+  it("JSONLのgemini行からテキストを抽出する", () => {
+    const line = JSON.stringify({
+      id: "msg2",
+      timestamp: "2026-04-26T23:40:11.674Z",
+      type: "gemini",
+      content: "回答テキスト",
+      thoughts: [{ subject: "Thinking" }],
     });
 
-    const result = parseGeminiSessionFile("/nonexistent/path.json");
-    expect(result).toBeNull();
+    const result = parseGeminiLogLine(line);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      type: "speak",
+      text: "回答テキスト",
+    });
   });
 
-  it("不正な JSON の場合は null を返す", () => {
-    (fsMod.readFileSync as any).mockReturnValue("not-json");
+  it("sessionIdを含むメタデータ行は無視する", () => {
+    const line = JSON.stringify({
+      sessionId: "ses_abc123",
+      projectHash: "project-hash",
+      kind: "main",
+    });
 
-    const result = parseGeminiSessionFile("/fake/path.json");
-    expect(result).toBeNull();
+    expect(parseGeminiLogLine(line)).toEqual([]);
   });
 
-  it("messagesフィールドがない場合は空配列を返す", () => {
-    (fsMod.readFileSync as any).mockReturnValue(JSON.stringify({ sessionId: "ses_xyz" }));
+  it("$set更新行は無視する", () => {
+    const line = JSON.stringify({
+      $set: { lastUpdated: "2026-04-26T23:40:11.674Z" },
+    });
 
-    const result = parseGeminiSessionFile("/fake/path.json");
-    expect(result?.messages).toEqual([]);
+    expect(parseGeminiLogLine(line)).toEqual([]);
   });
 
-  it("sessionIdフィールドがない場合は null を返す", () => {
-    (fsMod.readFileSync as any).mockReturnValue(JSON.stringify({ messages: [] }));
+  it("user行は無視する", () => {
+    const line = JSON.stringify({
+      id: "msg1",
+      type: "user",
+      content: [{ text: "質問" }],
+    });
 
-    const result = parseGeminiSessionFile("/fake/path.json");
-    expect(result?.sessionId).toBeNull();
+    expect(parseGeminiLogLine(line)).toEqual([]);
+  });
+
+  it("不正なJSONは空配列を返す", () => {
+    expect(parseGeminiLogLine("not-json")).toEqual([]);
   });
 });

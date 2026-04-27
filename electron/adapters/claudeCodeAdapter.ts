@@ -13,8 +13,6 @@ export function createClaudeCodeAdapter(): HarnessAdapter {
   const claudeProjectsDir = path.join(claudeConfigDir, "projects");
 
   return {
-    mode: "jsonl" as const,
-
     getWatchPaths() {
       return [claudeProjectsDir];
     },

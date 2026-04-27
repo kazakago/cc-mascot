@@ -8,7 +8,7 @@ vi.mock("fs", () => ({
 
 import { createGeminiCliAdapter } from "./geminiCliAdapter";
 
-describe("createGeminiCliAdapter", () => {
+describe("createGeminiCliAdapter (JSONL)", () => {
   const originalGeminiCliHome = process.env.GEMINI_CLI_HOME;
 
   beforeEach(() => {
@@ -35,86 +35,56 @@ describe("createGeminiCliAdapter", () => {
     });
   });
 
-  it("json以外のファイルを除外する", () => {
+  it("jsonl以外のファイルを除外する", () => {
     const adapter = createGeminiCliAdapter();
     const ignored = adapter.getWatchOptions().ignored as (filePath: string, stats?: { isFile(): boolean }) => boolean;
 
-    expect(ignored("/tmp/session.json", { isFile: () => true })).toBe(false);
-    expect(ignored("/tmp/session.jsonl", { isFile: () => true })).toBe(true);
+    expect(ignored("/tmp/session.jsonl", { isFile: () => true })).toBe(false);
+    expect(ignored("/tmp/session.json", { isFile: () => true })).toBe(true);
     expect(ignored("/tmp/chats", { isFile: () => false })).toBe(false);
   });
 
-  it("parseFileで未処理のGeminiメッセージだけを返す", () => {
+  it("parseLineで未処理のGeminiメッセージだけを返す", () => {
     const adapter = createGeminiCliAdapter();
-    const filePath = "/tmp/.gemini/tmp/project/chats/session.json";
+    const filePath = "/tmp/session.jsonl";
 
-    (fsMod.readFileSync as any).mockReturnValue(
-      JSON.stringify({
-        sessionId: "session-123",
-        messages: [
-          { id: "user-1", type: "user", content: [{ text: "質問" }] },
-          { id: "gemini-1", type: "gemini", content: "最初の回答です。" },
-          { id: "gemini-2", type: "gemini", content: "次の回答です。" },
-        ],
-      }),
-    );
+    const line1 = JSON.stringify({ id: "gemini-1", type: "gemini", content: "最初の回答です。" });
+    const line2 = JSON.stringify({ id: "gemini-2", type: "gemini", content: "次の回答です。" });
 
-    const first = adapter.parseFile(filePath);
-    const second = adapter.parseFile(filePath);
+    const first = adapter.parseLine(line1, filePath);
+    const second = adapter.parseLine(line1, filePath); // 同じID
+    const third = adapter.parseLine(line2, filePath);
 
-    expect(first.map((message) => message.text)).toEqual(["最初の回答です。", "次の回答です。"]);
+    expect(first.map((m) => m.text)).toEqual(["最初の回答です。"]);
     expect(second).toEqual([]);
+    expect(third.map((m) => m.text)).toEqual(["次の回答です。"]);
   });
 
-  it("同じメッセージIDでも別ファイルなら処理対象にする", () => {
+  it("空メッセージではIDを消費しない", () => {
     const adapter = createGeminiCliAdapter();
+    const filePath = "/tmp/session.jsonl";
 
-    (fsMod.readFileSync as any).mockReturnValue(
-      JSON.stringify({
-        sessionId: "session-123",
-        messages: [{ id: "gemini-1", type: "gemini", content: "回答です。" }],
-      }),
-    );
+    const lineEmpty = JSON.stringify({ id: "gemini-1", type: "gemini", content: "", thoughts: [{}] });
+    const lineFull = JSON.stringify({ id: "gemini-1", type: "gemini", content: "本番の回答です。" });
 
-    expect(adapter.parseFile("/tmp/project-a/chats/session.json")).toHaveLength(1);
-    expect(adapter.parseFile("/tmp/project-b/chats/session.json")).toHaveLength(1);
-  });
+    const first = adapter.parseLine(lineEmpty, filePath);
+    const second = adapter.parseLine(lineFull, filePath); // 同じIDだが、前回が空だったので処理されるべき
 
-  it("IDがないメッセージはスキップする", () => {
-    const adapter = createGeminiCliAdapter();
-
-    (fsMod.readFileSync as any).mockReturnValue(
-      JSON.stringify({
-        sessionId: "session-123",
-        messages: [{ type: "gemini", content: "IDなしの回答です。" }],
-      }),
-    );
-
-    expect(adapter.parseFile("/tmp/session.json")).toEqual([]);
+    expect(first).toEqual([]);
+    expect(second.map((m) => m.text)).toEqual(["本番の回答です。"]);
   });
 
   it("セッションIDでフィルタ判定する", () => {
     const adapter = createGeminiCliAdapter();
+    const filePath = "/tmp/session.jsonl";
 
     (fsMod.readFileSync as any).mockReturnValue(
-      JSON.stringify({
-        sessionId: "session-123",
-        messages: [],
-      }),
+      JSON.stringify({ sessionId: "session-123" }) +
+        "\n" +
+        JSON.stringify({ id: "user-1", type: "user", content: [{ text: "hi" }] }),
     );
 
-    expect(adapter.shouldProcessFile("/tmp/session.json", "session-123")).toBe(true);
-    expect(adapter.shouldProcessFile("/tmp/session.json", "other-session")).toBe(false);
-  });
-
-  it("セッションファイルを読めない場合は空配列とfalseを返す", () => {
-    const adapter = createGeminiCliAdapter();
-
-    (fsMod.readFileSync as any).mockImplementation(() => {
-      throw new Error("File not found");
-    });
-
-    expect(adapter.parseFile("/tmp/missing.json")).toEqual([]);
-    expect(adapter.shouldProcessFile("/tmp/missing.json", "session-123")).toBe(false);
+    expect(adapter.shouldProcessFile(filePath, "session-123")).toBe(true);
+    expect(adapter.shouldProcessFile(filePath, "other-session")).toBe(false);
   });
 });

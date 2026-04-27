@@ -1,24 +1,13 @@
 /**
- * Gemini CLI JSONログパーサー
+ * Gemini CLI JSONLログパーサー
  * Gemini CLIのセッションログを解析し、アシスタントメッセージを抽出する
  *
- * 実際のログフォーマット（~/.gemini/tmp/<project_name>/chats/session-*.json）:
- * {
- *   "sessionId": "...",
- *   "projectHash": "...",
- *   "startTime": "...",
- *   "lastUpdated": "...",
- *   "messages": [
- *     {"id": "...", "type": "user", "content": [{"text": "..."}]},
- *     {"id": "...", "type": "gemini", "content": "応答テキスト文字列", ...},
- *     ...
- *   ]
- * }
- *
- * 注意: type === "gemini" の content は文字列（string）であり、配列ではない
+ * 実際のログフォーマット（~/.gemini/tmp/<project_name>/chats/session-*.jsonl）:
+ * {"sessionId": "...", "startTime": "...", ...}
+ * {"id": "...", "type": "user", "content": [{"text": "..."}]}
+ * {"id": "...", "type": "gemini", "content": "応答テキスト文字列", "thoughts": [...], ...}
  */
 
-import * as fs from "fs";
 import { RuleBasedEmotionClassifier } from "../services/ruleBasedEmotionClassifier";
 import type { SpeakMessage } from "../adapters/harnessAdapter";
 
@@ -28,11 +17,8 @@ interface GeminiMessage {
   id?: string;
   type: string;
   content?: string | Array<{ text?: string }>;
-}
-
-interface GeminiSessionFile {
-  sessionId?: string;
-  messages?: GeminiMessage[];
+  thoughts?: unknown[];
+  toolCalls?: unknown[];
 }
 
 /**
@@ -50,7 +36,7 @@ export function parseGeminiMessage(message: GeminiMessage): SpeakMessage[] {
     // type === "gemini" の場合、content は文字列
     text = content.trim();
   } else if (Array.isArray(content)) {
-    // 将来的な形式変更（JSONL移行後）に備えて配列にも対応
+    // 将来的な形式変更に備えて配列にも対応
     text = content
       .map((item) => item.text ?? "")
       .join("")
@@ -64,21 +50,17 @@ export function parseGeminiMessage(message: GeminiMessage): SpeakMessage[] {
 }
 
 /**
- * Gemini CLIのセッションJSONファイルを解析してセッションIDとメッセージを取得する
- * @param filePath - セッションJSONファイルのパス
- * @returns { sessionId, messages } またはパース失敗時は null
+ * Gemini CLIのJSONLログ行を解析してアシスタントメッセージを抽出する
+ * @param line - JSONLログファイルの1行
+ * @returns SpeakMessage의 配列
  */
-export function parseGeminiSessionFile(
-  filePath: string,
-): { sessionId: string | null; messages: GeminiMessage[] } | null {
+export function parseGeminiLogLine(line: string): SpeakMessage[] {
   try {
-    const raw = fs.readFileSync(filePath, "utf8");
-    const data: GeminiSessionFile = JSON.parse(raw);
-    return {
-      sessionId: data.sessionId ?? null,
-      messages: Array.isArray(data.messages) ? data.messages : [],
-    };
+    const data: GeminiMessage = JSON.parse(line);
+    // メタデータ行などは無視
+    if (!data.id || data.type !== "gemini") return [];
+    return parseGeminiMessage(data);
   } catch {
-    return null;
+    return [];
   }
 }

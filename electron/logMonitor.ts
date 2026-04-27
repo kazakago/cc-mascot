@@ -1,7 +1,7 @@
 import * as chokidar from "chokidar";
 import * as fs from "fs";
 import * as readline from "readline";
-import type { HarnessAdapter, JsonlHarnessAdapter, SpeakMessage } from "./adapters/harnessAdapter";
+import type { HarnessAdapter, SpeakMessage } from "./adapters/harnessAdapter";
 import { cleanTextForSpeech, splitIntoSentences } from "./filters/textFilter";
 import { RuleBasedEmotionClassifier } from "./services/ruleBasedEmotionClassifier";
 
@@ -16,8 +16,8 @@ type BroadcastFn = (message: string) => void;
  * Create a log monitor that watches harness session logs via the given adapter.
  * Each call creates an independent monitor with its own file-position and debounce state.
  *
- * - mode: "jsonl" → 差分読み取り（ファイル位置ベース）、parseLine を使用
- * - mode: "json"  → ファイル全体読み取り、parseFile を使用（メッセージIDで重複排除）
+ * 全てのアダプターが JSONL 形式（追記型）であることを前提とし、
+ * 差分読み取り（ファイル位置ベース）でログを処理する。
  *
  * @param broadcast - Callback function to send messages to the renderer process
  * @param adapter - Harness adapter that provides watch paths, options, and log parsing
@@ -29,11 +29,9 @@ export function createLogMonitor(
   adapter: HarnessAdapter,
   getActiveSessionId?: () => string | null,
 ) {
-  // JSONL モード用: ファイル位置・デバウンス状態（インスタンスごとに独立）
+  // ファイル位置・デバウンス状態（インスタンスごとに独立）
   const filePositions = new Map<string, number>();
   const lastProcessed = new Map<string, number>();
-
-  // --- JSONL モード用ヘルパー ---
 
   function initializeFilePosition(filePath: string) {
     try {
@@ -53,7 +51,7 @@ export function createLogMonitor(
     }
   }
 
-  async function processJsonlFile(filePath: string) {
+  async function processFile(filePath: string) {
     const now = Date.now();
     const lastTime = lastProcessed.get(filePath) || 0;
     if (now - lastTime < DEBOUNCE_MS) return;
@@ -74,31 +72,11 @@ export function createLogMonitor(
       const newContent = await readNewLines(filePath, startPosition, currentSize);
       filePositions.set(filePath, currentSize);
 
-      const jsonlAdapter = adapter as JsonlHarnessAdapter;
       for (const line of newContent) {
-        const messages = jsonlAdapter.parseLine(line, filePath);
+        const messages = adapter.parseLine(line, filePath);
         for (const message of messages) {
           broadcastMessages(message);
         }
-      }
-    } catch (err) {
-      console.error(`[LogMonitor] Error processing ${filePath}:`, err);
-    }
-  }
-
-  // --- JSON モード用ヘルパー ---
-
-  async function processJsonFile(filePath: string) {
-    const now = Date.now();
-    const lastTime = lastProcessed.get(filePath) || 0;
-    if (now - lastTime < DEBOUNCE_MS) return;
-    lastProcessed.set(filePath, now);
-
-    try {
-      if (adapter.mode !== "json") return;
-      const messages = adapter.parseFile(filePath);
-      for (const message of messages) {
-        broadcastMessages(message);
       }
     } catch (err) {
       console.error(`[LogMonitor] Error processing ${filePath}:`, err);
@@ -133,33 +111,20 @@ export function createLogMonitor(
   const watcher = chokidar.watch(adapter.getWatchPaths(), adapter.getWatchOptions());
 
   watcher.on("add", (filePath: string) => {
-    if (adapter.mode === "jsonl") {
-      // JSONL: ファイル位置を現在の末尾に初期化（既存ログの再生を防ぐ）
-      initializeFilePosition(filePath);
-    } else {
-      // JSON: 初回 parseFile で既存メッセージIDを登録（再生を防ぐ）
-      adapter.parseFile(filePath);
-    }
+    // ファイル位置を現在の末尾に初期化（既存ログの再生を防ぐ）
+    initializeFilePosition(filePath);
   });
 
   watcher.on("change", (filePath: string) => {
     const activeSessionId = getActiveSessionId?.() ?? null;
     if (activeSessionId && !adapter.shouldProcessFile(filePath, activeSessionId)) {
-      if (adapter.mode === "jsonl") {
-        // JSONL: フィルタ解除後に過去ログが再生されないよう位置を進める
-        skipFileChanges(filePath);
-      }
-      // JSON: parseFile を呼ばないだけでよい（IDは未登録のまま残るが、
-      //        現状 Gemini CLI にはセッション固定の手段がないため許容）
+      // フィルタ解除後に過去ログが再生されないよう位置を進める
+      skipFileChanges(filePath);
       return;
     }
 
     console.log(`[LogMonitor] File changes detected: ${filePath}`);
-    if (adapter.mode === "jsonl") {
-      processJsonlFile(filePath);
-    } else {
-      processJsonFile(filePath);
-    }
+    processFile(filePath);
   });
 
   watcher.on("error", (error: unknown) => {
