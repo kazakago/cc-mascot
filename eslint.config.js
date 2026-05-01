@@ -31,11 +31,7 @@ export default defineConfig([
   },
   {
     files: ["electron/**/*.ts", "vite.config.ts"],
-    extends: [
-      js.configs.recommended,
-      tseslint.configs.recommended,
-      eslintConfigPrettier,
-    ],
+    extends: [js.configs.recommended, tseslint.configs.recommended, eslintConfigPrettier],
     plugins: {
       prettier: eslintPluginPrettier,
     },
