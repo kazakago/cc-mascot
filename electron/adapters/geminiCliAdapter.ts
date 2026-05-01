@@ -39,11 +39,30 @@ export function createGeminiCliAdapter(): HarnessAdapter {
     return ids;
   }
 
+  function hasSpeakableGeminiContent(data: { type?: string; content?: unknown }): boolean {
+    if (data.type !== "gemini") return false;
+
+    const content = data.content;
+    if (typeof content === "string") {
+      return content.trim().length > 0;
+    }
+
+    if (Array.isArray(content)) {
+      return content.some((item) => {
+        if (!item || typeof item !== "object") return false;
+        const text = (item as { text?: unknown }).text;
+        return typeof text === "string" && text.trim().length > 0;
+      });
+    }
+
+    return false;
+  }
+
   function markProcessedId(line: string, filePath: string): void {
     try {
       const data = JSON.parse(line);
       if (!data.id) return;
-      if (parseGeminiLogLine(line).length === 0) return;
+      if (!hasSpeakableGeminiContent(data)) return;
       getProcessedIds(filePath).add(data.id);
     } catch {
       // ignore
