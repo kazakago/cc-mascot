@@ -4,6 +4,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "jsdom",
+    environmentMatchGlobs: [["electron/**/*.test.ts", "node"]],
     include: ["**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "**/*.spec.tsx"],
     coverage: {
       reporter: ["text", "json", "html"],
