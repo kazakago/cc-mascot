@@ -11,7 +11,7 @@ export default defineConfig({
         entry: "electron/main.ts",
         vite: {
           build: {
-            rollupOptions: {
+            rolldownOptions: {
               external: ["chokidar", "fsevents", "electron-updater"],
             },
           },
@@ -38,7 +38,7 @@ export default defineConfig({
   },
   base: "./",
   build: {
-    rollupOptions: {
+    rolldownOptions: {
       input: {
         index: path.resolve(__dirname, "index.html"),
       },
