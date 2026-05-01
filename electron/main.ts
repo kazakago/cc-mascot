@@ -510,7 +510,7 @@ const createLicenseWindow = () => {
       repository?: string;
       publisher?: string;
     }
-  > = {};
+  >;
 
   try {
     const fileContent = fs.readFileSync(licensesPath, "utf-8");

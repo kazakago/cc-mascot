@@ -347,7 +347,9 @@ describe("useVRMAnimation", () => {
     });
 
     it("VRMが後から設定されてもエラーにならない", () => {
-      const { rerender } = renderHook(({ vrm }) => useVRMAnimation(vrm, "/test.vrma"), { initialProps: { vrm: null } });
+      const { rerender } = renderHook(({ vrm }) => useVRMAnimation(vrm, "/test.vrma"), {
+        initialProps: { vrm: null as VRM | null },
+      });
 
       // VRMを設定
       rerender({ vrm: mockVRM });

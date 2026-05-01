@@ -2,13 +2,26 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
-    globals: true,
-    environment: "jsdom",
-    include: ["**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "**/*.spec.tsx"],
     coverage: {
       reporter: ["text", "json", "html"],
       exclude: ["node_modules/", "dist/", "dist-electron/", "**/*.config.ts", "**/*.d.ts"],
     },
-    setupFiles: ["./vitest.setup.ts"],
+    projects: [
+      {
+        test: {
+          name: "src",
+          environment: "jsdom",
+          include: ["src/**/*.test.ts", "src/**/*.test.tsx", "src/**/*.spec.ts", "src/**/*.spec.tsx"],
+          setupFiles: ["./vitest.setup.ts"],
+        },
+      },
+      {
+        test: {
+          name: "electron",
+          environment: "node",
+          include: ["electron/**/*.test.ts", "electron/**/*.spec.ts"],
+        },
+      },
+    ],
   },
 });
