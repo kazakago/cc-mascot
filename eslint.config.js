@@ -25,7 +25,7 @@ export default defineConfig([
       "prettier/prettier": "warn",
     },
     languageOptions: {
-      ecmaVersion: 2024,
+      ecmaVersion: 2025,
       globals: globals.browser,
     },
   },
@@ -39,7 +39,7 @@ export default defineConfig([
       "prettier/prettier": "warn",
     },
     languageOptions: {
-      ecmaVersion: 2024,
+      ecmaVersion: 2025,
       globals: globals.node,
     },
   },
