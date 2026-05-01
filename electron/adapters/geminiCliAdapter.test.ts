@@ -10,6 +10,7 @@ import { createGeminiCliAdapter } from "./geminiCliAdapter";
 
 describe("createGeminiCliAdapter (JSONL)", () => {
   const originalGeminiCliHome = process.env.GEMINI_CLI_HOME;
+  const originalNodeEnv = process.env.NODE_ENV;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -21,6 +22,8 @@ describe("createGeminiCliAdapter (JSONL)", () => {
     } else {
       process.env.GEMINI_CLI_HOME = originalGeminiCliHome;
     }
+
+    process.env.NODE_ENV = originalNodeEnv;
   });
 
   it("GEMINI_CLI_HOME配下の.gemini/tmpを監視する", () => {
@@ -96,6 +99,27 @@ describe("createGeminiCliAdapter (JSONL)", () => {
     adapter.initializeFile?.(filePath);
 
     expect(adapter.parseLine(updatedLine, filePath)).toEqual([]);
+  });
+
+  it("既存ログのID復元時は感情判定を実行しない", () => {
+    process.env.NODE_ENV = "development";
+    const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    const adapter = createGeminiCliAdapter();
+    const filePath = "/tmp/session.jsonl";
+
+    (fsMod.readFileSync as any).mockReturnValue(
+      [
+        JSON.stringify({ sessionId: "session-123" }),
+        JSON.stringify({ id: "gemini-1", type: "gemini", content: "嬉しいです！" }),
+      ].join("\n"),
+    );
+
+    adapter.initializeFile?.(filePath);
+
+    expect(consoleSpy).not.toHaveBeenCalledWith(expect.stringContaining("[EmotionClassifier]"));
+    expect(
+      adapter.parseLine(JSON.stringify({ id: "gemini-1", type: "gemini", content: "嬉しいです！" }), filePath),
+    ).toEqual([]);
   });
 
   it("既存ログ内の空メッセージではIDを消費しない", () => {
