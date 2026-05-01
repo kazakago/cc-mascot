@@ -10,7 +10,7 @@ import { defineConfig, globalIgnores } from "eslint/config";
 export default defineConfig([
   globalIgnores(["dist", "dist-electron", "coverage"]),
   {
-    files: ["**/*.{ts,tsx}"],
+    files: ["src/**/*.{ts,tsx}"],
     extends: [
       js.configs.recommended,
       tseslint.configs.recommended,
@@ -25,8 +25,26 @@ export default defineConfig([
       "prettier/prettier": "warn",
     },
     languageOptions: {
-      ecmaVersion: 2020,
+      ecmaVersion: 2024,
       globals: globals.browser,
+    },
+  },
+  {
+    files: ["electron/**/*.ts", "vite.config.ts"],
+    extends: [
+      js.configs.recommended,
+      tseslint.configs.recommended,
+      eslintConfigPrettier,
+    ],
+    plugins: {
+      prettier: eslintPluginPrettier,
+    },
+    rules: {
+      "prettier/prettier": "warn",
+    },
+    languageOptions: {
+      ecmaVersion: 2024,
+      globals: globals.node,
     },
   },
 ]);
