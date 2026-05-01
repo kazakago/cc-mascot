@@ -4,7 +4,7 @@
  * ログ監視・解析ロジックを抽象化する
  */
 
-import type { WatchOptions } from "chokidar";
+import type { ChokidarOptions } from "chokidar";
 
 /** 読み上げメッセージ */
 export interface SpeakMessage {
@@ -27,7 +27,7 @@ export interface HarnessAdapter {
   /**
    * chokidar に渡すウォッチオプション
    */
-  getWatchOptions(): WatchOptions;
+  getWatchOptions(): ChokidarOptions;
 
   /**
    * ログの1行を解析してSpeakMessageの配列に変換する

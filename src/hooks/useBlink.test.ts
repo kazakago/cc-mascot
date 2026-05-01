@@ -269,7 +269,7 @@ describe("useBlink", () => {
 
     it("VRM が null になるとまばたきが停止する", () => {
       const { rerender } = renderHook(({ vrm }) => useBlink(vrm, { minInterval: 100, maxInterval: 100 }), {
-        initialProps: { vrm: mockVRM },
+        initialProps: { vrm: mockVRM as VRM | null },
       });
 
       // VRMをnullに変更
@@ -286,7 +286,7 @@ describe("useBlink", () => {
 
     it("VRM が設定されるとまばたきが開始される", () => {
       const { rerender } = renderHook(({ vrm }) => useBlink(vrm, { minInterval: 100, maxInterval: 100 }), {
-        initialProps: { vrm: null },
+        initialProps: { vrm: null as VRM | null },
       });
 
       // 最初はまばたきしない

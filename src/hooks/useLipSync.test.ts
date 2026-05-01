@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi, type Mock } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useLipSync } from "./useLipSync";
 
@@ -23,11 +23,11 @@ class MockAnalyserNode {
 }
 
 describe("useLipSync", () => {
-  let mockOnMouthValueChange: ReturnType<typeof vi.fn>;
+  let mockOnMouthValueChange: Mock<(value: number) => void>;
   let mockAnalyser: MockAnalyserNode;
 
   beforeEach(() => {
-    mockOnMouthValueChange = vi.fn();
+    mockOnMouthValueChange = vi.fn<(value: number) => void>();
     mockAnalyser = new MockAnalyserNode();
 
     // requestAnimationFrame と cancelAnimationFrame のモック

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, vi, afterEach, type Mock } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { useSpeech } from "./useSpeech";
 import * as voicevoxModule from "../services/voicevox";
@@ -77,8 +77,8 @@ class MockAudioContext {
 
 describe("useSpeech", () => {
   let mockAudioContext: MockAudioContext;
-  let mockOnStart: ReturnType<typeof vi.fn>;
-  let mockOnEnd: ReturnType<typeof vi.fn>;
+  let mockOnStart: Mock<(analyser: AnalyserNode, emotion: Emotion) => void>;
+  let mockOnEnd: Mock<() => void>;
   let originalAudioContext: typeof AudioContext;
 
   beforeEach(() => {
@@ -92,8 +92,8 @@ describe("useSpeech", () => {
     } as unknown as typeof AudioContext;
 
     // コールバックのモック
-    mockOnStart = vi.fn();
-    mockOnEnd = vi.fn();
+    mockOnStart = vi.fn<(analyser: AnalyserNode, emotion: Emotion) => void>();
+    mockOnEnd = vi.fn<() => void>();
 
     // voicevox.speak のモック
     vi.spyOn(voicevoxModule, "speak").mockResolvedValue(new ArrayBuffer(1024));

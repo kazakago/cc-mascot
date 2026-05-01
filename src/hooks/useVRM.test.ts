@@ -47,7 +47,10 @@ vi.mock("three", () => ({
   },
   Box3: vi.fn(function () {
     return {
-      setFromObject: vi.fn(function () {
+      setFromObject: vi.fn(function (this: {
+        min: { x: number; y: number; z: number };
+        max: { x: number; y: number; z: number };
+      }) {
         this.min = { x: -0.3, y: 0, z: -0.3 };
         this.max = { x: 0.3, y: 1.6, z: 0.3 };
         return this;
