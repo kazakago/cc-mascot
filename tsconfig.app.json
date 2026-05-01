@@ -25,5 +25,5 @@
     "types": ["vite/client"],
     "jsx": "react-jsx"
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx"]
+  "include": ["vitest.setup.ts", "src/**/*.ts", "src/**/*.tsx"]
 }

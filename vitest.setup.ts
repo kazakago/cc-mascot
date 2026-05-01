@@ -31,11 +31,11 @@ class LocalStorageMock {
   }
 }
 
-global.localStorage = new LocalStorageMock() as Storage;
+globalThis.localStorage = new LocalStorageMock() as Storage;
 
 // 各テスト前にlocalStorageをクリア
 beforeEach(() => {
-  global.localStorage.clear();
+  globalThis.localStorage.clear();
 });
 
 afterEach(() => {
