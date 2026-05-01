@@ -10,7 +10,6 @@ export default defineConfig({
       {
         test: {
           name: "src",
-          globals: true,
           environment: "jsdom",
           include: ["src/**/*.test.ts", "src/**/*.test.tsx", "src/**/*.spec.ts", "src/**/*.spec.tsx"],
           setupFiles: ["./vitest.setup.ts"],
@@ -19,7 +18,6 @@ export default defineConfig({
       {
         test: {
           name: "electron",
-          globals: true,
           environment: "node",
           include: ["electron/**/*.test.ts", "electron/**/*.spec.ts"],
         },

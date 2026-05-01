@@ -1,5 +1,6 @@
 import "fake-indexeddb/auto";
-import { beforeEach } from "vitest";
+import { afterEach, beforeEach } from "vitest";
+import { cleanup } from "@testing-library/react";
 
 // localStorageのモック
 class LocalStorageMock {
@@ -35,4 +36,8 @@ global.localStorage = new LocalStorageMock() as Storage;
 // 各テスト前にlocalStorageをクリア
 beforeEach(() => {
   global.localStorage.clear();
+});
+
+afterEach(() => {
+  cleanup();
 });
