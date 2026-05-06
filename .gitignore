@@ -28,3 +28,4 @@ public/licenses.json
 
 # Claude
 .claude/plans
+.claude/worktrees/
