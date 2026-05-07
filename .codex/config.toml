@@ -1,0 +1,7 @@
+[mcp_servers.electron]
+args = ["-y", "electron-mcp-server"]
+command = "npx"
+
+[mcp_servers.electron.env]
+SCREENSHOT_ENCRYPTION_KEY = "e1414e178896247edce2eac531330081a4273b1809750a39712365f47e9f6974"
+SECURITY_LEVEL = "development"
