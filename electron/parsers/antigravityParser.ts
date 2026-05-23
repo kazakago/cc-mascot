@@ -1,6 +1,6 @@
 /**
  * Antigravity JSONLログパーサー
- * Antigravity (CLI & 2.0) のセッションログ（transcript.jsonl）を解析し、アシスタントメッセージを抽出する
+ * Antigravity のセッションログ（transcript.jsonl）を解析し、アシスタントメッセージを抽出する
  */
 
 import { RuleBasedEmotionClassifier } from "../services/ruleBasedEmotionClassifier";
