@@ -38,6 +38,7 @@ https://github.com/user-attachments/assets/f2742eac-1df3-436a-b79c-f7221e677474
 - [Claude Code](https://claude.com/product/claude-code)
 - [Codex](https://openai.com/codex/)
 - [Gemini CLI](https://geminicli.com/)
+- [Antigravity](https://github.com/google-gemini/antigravity)
 
 ## セットアップ
 
@@ -162,9 +163,9 @@ CC Mascotの設定画面からもフィルタの状態確認・解除が可能�
 ### 全体的な仕組み
 
 ```
-Claude Code                  Codex                         Gemini CLI
-    ↓ JSONLログ出力              ↓ JSONLログ出力                 ↓ JSONLログ出力
-~/.claude/projects/**/*.jsonl  ~/.codex/sessions/**/*.jsonl  ~/.gemini/tmp/*/chats/*.jsonl
+Claude Code                  Codex                         Gemini CLI                     Antigravity
+    ↓ JSONLログ出力              ↓ JSONLログ出力                 ↓ JSONLログ出力                 ↓ JSONLログ出力
+~/.claude/projects/**/*.jsonl  ~/.codex/sessions/**/*.jsonl  ~/.gemini/tmp/*/chats/*.jsonl  ~/.gemini/antigravity(/-cli)/brain/**/transcript.jsonl
     ↓ chokidar監視（HarnessAdapter経由で各形式に対応）
 Electron Main Process
     ↓ ログパース & 感情判定
@@ -176,7 +177,7 @@ Web Audio API
     ↓ リップシンク解析
 VRMキャラクター
     ↓
-発話 & 口の動き & 感情表現
+    発話 & 口の動き & 感情表現
 ```
 
 ### 開発環境のセットアップ

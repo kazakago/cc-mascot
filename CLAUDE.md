@@ -6,7 +6,7 @@
 
 このアプリケーションは、AIコーディングエージェントの発言をリアルタイムで音声化し、3DのVRMキャラクターでビジュアル化するためのElectronアプリケーションです。
 
-対応AIコーディングエージェント: **Claude Code** / **Codex** / **Gemini CLI**
+対応AIコーディングエージェント: **Claude Code** / **Codex** / **Gemini CLI** / **Antigravity**
 
 ### コンセプト
 
@@ -36,6 +36,7 @@
 - Claude Code: `~/.claude/projects/**/*.jsonl`（JSONL形式、差分読み取り）
 - Codex: `~/.codex/sessions/**/*.jsonl`（JSONL形式、差分読み取り）
 - Gemini CLI: `~/.gemini/tmp/*/chats/*.jsonl`（JSONL形式、差分読み取り）
+- Antigravity: `~/.gemini/antigravity/brain/**/*.jsonl` および `~/.gemini/antigravity-cli/brain/**/*.jsonl`（JSONL形式、差分読み取り）
 
 **データ永続化:**
 
@@ -52,30 +53,32 @@
 ### システム構成図
 
 ```
-┌──────────────────────┐   ┌──────────────────────┐   ┌──────────────────────┐
-│   Claude Code CLI    │   │        Codex         │   │     Gemini CLI        │
-└──────────┬───────────┘   └──────────┬───────────┘   └──────────┬────────────┘
-           │ ログ出力 (.jsonl)          │ ログ出力 (.jsonl)         │ ログ出力 (.jsonl)
-           ↓                          ↓                          ↓
-┌──────────────────────┐   ┌──────────────────────┐   ┌──────────────────────────┐
-│  ~/.claude/projects/ │   │ ~/.codex/sessions/   │   │  ~/.gemini/tmp/*/chats/  │
-│  └─ **/*.jsonl       │   │ └─ **/*.jsonl         │   │  └─ session-*.jsonl       │
-└──────────┬───────────┘   └──────────┬───────────┘   └──────────┬───────────────┘
-           │                          │                          │
-           └──────────────────────────┼──────────────────────────┘
-                                      │ chokidar監視 (HarnessAdapter経由)
-                                      ↓
+┌──────────────┐   ┌──────────────┐   ┌──────────────┐   ┌──────────────┐
+│ Claude Code  │   │    Codex     │   │  Gemini CLI  │   │ Antigravity  │
+└──────┬───────┘   └──────┬───────┘   └──────┬───────┘   └──────┬───────┘
+       │ .jsonl           │ .jsonl           │ .jsonl           │ .jsonl
+       ↓                  ↓                  ↓                  ↓
+┌──────────────┐   ┌──────────────┐   ┌──────────────┐   ┌──────────────┐
+│ ~/.claude/   │   │  ~/.codex/   │   │  ~/.gemini/  │   │  ~/.gemini/  │
+│ projects/    │   │  sessions/   │   │  tmp/...     │   │  antigravity/│
+└──────┬───────┘   └──────┬───────┘   └──────┬───────┘   └──────┬───────┘
+       │                  │                  │                  │
+       └──────────────────┴─────────┬────────┴──────────────────┘
+                                    │ chokidar監視 (HarnessAdapter経由)
+                                    ↓
 ┌─────────────────────────────────────────────────────┐
 │  Electron Main Process                              │
 │  ├─ logMonitor.ts (ファイル監視)                      │
 │  ├─ adapters/ (HarnessAdapter)                      │
 │  │   ├─ claudeCodeAdapter.ts (JSONL・差分読み取り)   │
 │  │   ├─ codexAdapter.ts (JSONL・差分読み取り)        │
-│  │   └─ geminiCliAdapter.ts (JSONL・差分読み取り)    │
+│  │   ├─ geminiCliAdapter.ts (JSONL・差分読み取り)    │
+│  │   └─ antigravityAdapter.ts (JSONL・差分読み取り)  │
 │  ├─ activeSessionMonitor.ts (セッションフィルタ)      │
 │  ├─ parsers/claudeCodeParser.ts (JSONL解析)         │
 │  ├─ parsers/codexParser.ts (JSONL解析)              │
 │  ├─ parsers/geminiCliParser.ts (JSONL解析)          │
+│  ├─ parsers/antigravityParser.ts (JSONL解析)        │
 │  ├─ textFilter.ts (Markdown除去)                    │
 │  ├─ ruleBasedEmotionClassifier.ts (感情判定)        │
 │  └─ IPC送信 ('speak' イベント)                       │
@@ -170,6 +173,7 @@
 | `claudeCodeAdapter.ts` | `~/.claude/projects/**/*.jsonl` | JSONL（差分読み取り） |
 | `codexAdapter.ts`      | `~/.codex/sessions/**/*.jsonl`  | JSONL（差分読み取り） |
 | `geminiCliAdapter.ts`  | `~/.gemini/tmp/*/chats/*.jsonl` | JSONL（差分読み取り） |
+| `antigravityAdapter.ts`| `~/.gemini/antigravity/brain/**/*.jsonl` および `~/.gemini/antigravity-cli/brain/**/*.jsonl` | JSONL（差分読み取り） |
 
 データフロー:
 
@@ -218,6 +222,14 @@
 - `type === "gemini"` の行のみ処理
 - `content` フィールドは文字列型（将来の配列形式にも対応）
 - メッセージIDによる重複排除を行い、思考プロセス（`thoughts`）のみの空メッセージによる発話ブロックを回避
+
+**electron/parsers/antigravityParser.ts**（Antigravity 専用）
+
+解析ルール:
+
+- `source === "MODEL"` かつ `type === "PLANNER_RESPONSE"` かつ `status === "DONE"` のみ処理
+- `content` が存在し、`tool_calls` が存在しない、または空配列である場合のみテキストを抽出
+- 親エージェントが起動したサブエージェントは `ignoredSessionIds`（動的ブラックリスト）に登録して除外（`INVOKE_SUBAGENT` 検出時）
 
 **electron/services/ruleBasedEmotionClassifier.ts**
 
