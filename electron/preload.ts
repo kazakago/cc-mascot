@@ -155,4 +155,10 @@ contextBridge.exposeInMainWorld("electron", {
       ipcRenderer.removeListener("active-session-changed", listener);
     };
   },
+  showAboutDialog: (): Promise<void> => {
+    return ipcRenderer.invoke("show-about");
+  },
+  quitApp: (): Promise<void> => {
+    return ipcRenderer.invoke("quit-app");
+  },
 });
