@@ -333,6 +333,22 @@ export default function SettingsPanel({
               </svg>
             </button>
           </div>
+          <div className="flex items-center gap-2 mt-3">
+            <button
+              type="button"
+              onClick={() => window.electron?.showAboutDialog?.()}
+              className="flex-1 py-1.5 rounded-lg text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer border border-slate-200/50 text-center"
+            >
+              バージョン情報
+            </button>
+            <button
+              type="button"
+              onClick={() => window.electron?.quitApp?.()}
+              className="flex-1 py-1.5 rounded-lg text-xs font-medium bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 transition-colors cursor-pointer text-center"
+            >
+              終了
+            </button>
+          </div>
         </div>
 
         <div className="p-6 space-y-5">

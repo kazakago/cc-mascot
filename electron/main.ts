@@ -107,6 +107,27 @@ const getTrayIconPath = (): string => {
   return path.join(iconsDir, ext);
 };
 
+const showAboutDialog = async () => {
+  const { response } = await dialog.showMessageBox(mainWindow!, {
+    type: "info",
+    title: "CC Mascot",
+    message: `CC Mascot v${app.getVersion()}`,
+    detail: [
+      `Electron: v${process.versions.electron}`,
+      `Chrome: v${process.versions.chrome}`,
+      `Node.js: v${process.versions.node}`,
+    ].join("\n"),
+    buttons: ["閉じる", "アップデートを確認", "Webサイト", "ライセンス情報"],
+  });
+  if (response === 1) {
+    checkForUpdatesManually();
+  } else if (response === 2) {
+    shell.openExternal("https://kazakago.github.io/cc-mascot/");
+  } else if (response === 3) {
+    createLicenseWindow();
+  }
+};
+
 // Update tray context menu (called when visibility state changes)
 const updateTrayMenu = () => {
   if (!tray) return;
@@ -134,24 +155,7 @@ const updateTrayMenu = () => {
     {
       label: "バージョン情報",
       click: async () => {
-        const { response } = await dialog.showMessageBox(mainWindow!, {
-          type: "info",
-          title: "CC Mascot",
-          message: `CC Mascot v${app.getVersion()}`,
-          detail: [
-            `Electron: v${process.versions.electron}`,
-            `Chrome: v${process.versions.chrome}`,
-            `Node.js: v${process.versions.node}`,
-          ].join("\n"),
-          buttons: ["閉じる", "アップデートを確認", "Webサイト", "ライセンス情報"],
-        });
-        if (response === 1) {
-          checkForUpdatesManually();
-        } else if (response === 2) {
-          shell.openExternal("https://kazakago.github.io/cc-mascot/");
-        } else if (response === 3) {
-          createLicenseWindow();
-        }
+        await showAboutDialog();
       },
     },
     {
@@ -890,6 +894,14 @@ ipcMain.handle("get-auto-update-check", () => {
 ipcMain.handle("set-auto-update-check", (_event, value: boolean) => {
   store.set("autoUpdateCheck", value);
   return true;
+});
+
+ipcMain.handle("show-about", async () => {
+  await showAboutDialog();
+});
+
+ipcMain.handle("quit-app", () => {
+  app.quit();
 });
 
 const ANIMATION_CATEGORIES = ["idle", "happy", "angry", "sad", "relaxed", "surprised"] as const;
