@@ -163,10 +163,8 @@ CC Mascotの設定画面からもフィルタの状態確認・解除が可能�
 ### 全体的な仕組み
 
 ```
-Claude Code                  Codex                         Gemini CLI                     Antigravity
-    ↓ JSONLログ出力              ↓ JSONLログ出力                 ↓ JSONLログ出力                 ↓ JSONLログ出力
-~/.claude/projects/**/*.jsonl  ~/.codex/sessions/**/*.jsonl  ~/.gemini/tmp/*/chats/*.jsonl  ~/.gemini/antigravity(/-cli)/brain/**/transcript.jsonl
-    ↓ chokidar監視（HarnessAdapter経由で各形式に対応）
+AIコーディングエージェント
+    ↓ Jsonログ出力 & chokidar監視
 Electron Main Process
     ↓ ログパース & 感情判定
 Electron Renderer Process
@@ -177,7 +175,7 @@ Web Audio API
     ↓ リップシンク解析
 VRMキャラクター
     ↓
-    発話 & 口の動き & 感情表現
+発話 & 口の動き & 感情表現
 ```
 
 ### 開発環境のセットアップ

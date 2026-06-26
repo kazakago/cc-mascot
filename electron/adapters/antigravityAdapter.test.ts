@@ -91,14 +91,26 @@ describe("createAntigravityAdapter", () => {
     (fsMod.readFileSync as any).mockReturnValue(
       [
         JSON.stringify({ step_index: 1, source: "USER_EXPLICIT", type: "USER_INPUT", status: "DONE", content: "hi" }),
-        JSON.stringify({ step_index: 2, source: "MODEL", type: "PLANNER_RESPONSE", status: "DONE", content: "回答よ。" }),
+        JSON.stringify({
+          step_index: 2,
+          source: "MODEL",
+          type: "PLANNER_RESPONSE",
+          status: "DONE",
+          content: "回答よ。",
+        }),
       ].join("\n"),
     );
 
     adapter.initializeFile?.(filePath);
 
     // すでに initializeFile で復元された step_index 2 は parseLine で無視される
-    const line = JSON.stringify({ step_index: 2, source: "MODEL", type: "PLANNER_RESPONSE", status: "DONE", content: "回答よ。" });
+    const line = JSON.stringify({
+      step_index: 2,
+      source: "MODEL",
+      type: "PLANNER_RESPONSE",
+      status: "DONE",
+      content: "回答よ。",
+    });
     expect(adapter.parseLine(line, filePath)).toEqual([]);
   });
 
@@ -106,8 +118,16 @@ describe("createAntigravityAdapter", () => {
     const adapter = createAntigravityAdapter();
 
     // パス区切り文字による問題を避けるために path.join を使用
-    const matchedPath = path.join("/Users/kensuke/.gemini/antigravity-cli/brain", "session-123", ".system_generated/logs/transcript.jsonl");
-    const unmatchedPath = path.join("/Users/kensuke/.gemini/antigravity-cli/brain", "session-456", ".system_generated/logs/transcript.jsonl");
+    const matchedPath = path.join(
+      "/Users/kensuke/.gemini/antigravity-cli/brain",
+      "session-123",
+      ".system_generated/logs/transcript.jsonl",
+    );
+    const unmatchedPath = path.join(
+      "/Users/kensuke/.gemini/antigravity-cli/brain",
+      "session-456",
+      ".system_generated/logs/transcript.jsonl",
+    );
 
     expect(adapter.shouldProcessFile(matchedPath, "session-123")).toBe(true);
     expect(adapter.shouldProcessFile(unmatchedPath, "session-123")).toBe(false);
@@ -124,7 +144,8 @@ describe("createAntigravityAdapter", () => {
       source: "MODEL",
       type: "INVOKE_SUBAGENT",
       status: "DONE",
-      content: 'Created the following subagents:\n{\n  "conversationId": "sub-session-999",\n  "logAbsoluteUri": "..."\n}',
+      content:
+        'Created the following subagents:\n{\n  "conversationId": "sub-session-999",\n  "logAbsoluteUri": "..."\n}',
     });
     adapter.parseLine(invokeLine, mainLogPath);
 
@@ -154,7 +175,8 @@ describe("createAntigravityAdapter", () => {
       source: "MODEL",
       type: "INVOKE_SUBAGENT",
       status: "RUNNING",
-      content: 'Created the following subagents:\n{\n  "conversationId": "sub-session-888",\n  "logAbsoluteUri": "..."\n}',
+      content:
+        'Created the following subagents:\n{\n  "conversationId": "sub-session-888",\n  "logAbsoluteUri": "..."\n}',
     });
     adapter.parseLine(invokeLine, mainLogPath);
 
@@ -183,7 +205,8 @@ describe("createAntigravityAdapter", () => {
       source: "MODEL",
       type: "INVOKE_SUBAGENT",
       status: "DONE",
-      content: 'Created the following subagents:\n{\n  "conversationId": "sub-session-111",\n  "logAbsoluteUri": "..."\n}\n{\n  "conversationId": "sub-session-222",\n  "logAbsoluteUri": "..."\n}',
+      content:
+        'Created the following subagents:\n{\n  "conversationId": "sub-session-111",\n  "logAbsoluteUri": "..."\n}\n{\n  "conversationId": "sub-session-222",\n  "logAbsoluteUri": "..."\n}',
     });
     adapter.parseLine(invokeLine, mainLogPath);
 
