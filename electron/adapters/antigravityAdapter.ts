@@ -19,10 +19,7 @@ function getAntigravityBrainDirs(): string[] {
     ? path.join(process.env.ANTIGRAVITY_HOME, ".gemini")
     : path.join(os.homedir(), ".gemini");
 
-  return [
-    path.join(geminiBaseCli, "antigravity-cli", "brain"),
-    path.join(geminiBaseApp, "antigravity", "brain"),
-  ];
+  return [path.join(geminiBaseCli, "antigravity-cli", "brain"), path.join(geminiBaseApp, "antigravity", "brain")];
 }
 
 // ファイルパス → 処理済み step_index のセット
