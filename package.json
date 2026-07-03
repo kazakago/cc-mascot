@@ -47,7 +47,7 @@
     "@vitest/coverage-v8": "^4.0.17",
     "@vitest/ui": "^4.0.17",
     "autoprefixer": "^10.4.23",
-    "electron": "^42.0.0",
+    "electron": "^43.0.0",
     "electron-builder": "^26.4.0",
     "electron-mcp-server": "^1.5.0",
     "eslint": "^10.2.1",
