@@ -25,7 +25,3 @@ public/licenses.json
 *.njsproj
 *.sln
 *.sw?
-
-# Claude
-.claude/plans
-.claude/worktrees/

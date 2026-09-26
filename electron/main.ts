@@ -5,7 +5,6 @@ import { spawn, execSync, ChildProcess } from "child_process";
 import { createLogMonitor } from "./logMonitor";
 import { createClaudeCodeAdapter } from "./adapters/claudeCodeAdapter";
 import { createCodexAdapter } from "./adapters/codexAdapter";
-import { createGeminiCliAdapter } from "./adapters/geminiCliAdapter";
 import { createAntigravityAdapter } from "./adapters/antigravityAdapter";
 import { createActiveSessionMonitor, clearActiveSessionFile } from "./activeSessionMonitor";
 import { initAutoUpdater, checkForUpdatesManually } from "./autoUpdater";
@@ -59,12 +58,7 @@ function startLogMonitor(): void {
     }
   };
 
-  const adapters = [
-    createClaudeCodeAdapter(),
-    createCodexAdapter(),
-    createGeminiCliAdapter(),
-    createAntigravityAdapter(),
-  ];
+  const adapters = [createClaudeCodeAdapter(), createCodexAdapter(), createAntigravityAdapter()];
   const monitors = adapters.map((adapter) => createLogMonitor(broadcast, adapter, () => activeSessionId));
   logMonitor = { close: () => monitors.forEach((m) => m.close()) };
 }
