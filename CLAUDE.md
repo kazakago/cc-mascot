@@ -6,7 +6,7 @@
 
 このアプリケーションは、AIコーディングエージェントの発言をリアルタイムで音声化し、3DのVRMキャラクターでビジュアル化するためのElectronアプリケーションです。
 
-対応AIコーディングエージェント: **Claude Code** / **Codex** / **Gemini CLI** / **Antigravity**
+対応AIコーディングエージェント: **Claude Code** / **Codex** / **Antigravity**
 
 ### コンセプト
 

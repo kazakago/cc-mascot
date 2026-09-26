@@ -1,6 +1,6 @@
 /**
  * ハーネスアダプターインターフェース
- * Claude Code、Codex、Gemini CLI など各種AIコーディングハーネスの
+ * Claude Code、Codex、Antigravity など各種AIコーディングハーネスの
  * ログ監視・解析ロジックを抽象化する
  */
 

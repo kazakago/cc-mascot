@@ -37,7 +37,6 @@ https://github.com/user-attachments/assets/f2742eac-1df3-436a-b79c-f7221e677474
 
 - [Claude Code](https://claude.com/product/claude-code)
 - [Codex](https://openai.com/codex/)
-- [Gemini CLI](https://geminicli.com/)
 - [Antigravity](https://antigravity.google/)
 
 ## セットアップ
