@@ -1,0 +1,5 @@
+{
+  "name": "electron-mcp-server",
+  "displayName": "Electron MCP server",
+  "description": "Electron MCP server integration."
+}
