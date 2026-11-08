@@ -1,0 +1,63 @@
+name: Bump
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_bump:
+        description: "バージョンのインクリメント方法を選択"
+        required: true
+        type: choice
+        options:
+          - major
+          - minor
+          - patch
+        default: "patch"
+  workflow_call:
+    inputs:
+      version_bump:
+        description: "バージョンのインクリメント方法 (major / minor / patch)"
+        required: true
+        type: string
+    outputs:
+      version:
+        description: "更新後のバージョンタグ (例: v1.3.0)"
+        value: ${{ jobs.bump-version.outputs.version }}
+
+permissions:
+  contents: write
+
+jobs:
+  bump-version:
+    name: Bump version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "26"
+
+      - name: Configure Git
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: Bump version
+        id: version
+        run: |
+          npm version ${{ inputs.version_bump }}
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=v${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Bumped version to: v${VERSION}"
+
+      - name: Push commit and tag
+        run: |
+          git push origin HEAD
+          git push origin "${{ steps.version.outputs.version }}"

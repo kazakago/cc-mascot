@@ -17,69 +17,17 @@ permissions:
   contents: write
 
 jobs:
-  bump-version:
-    name: Bump version
-    runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.version.outputs.version }}
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: "26"
-
-      - name: Configure Git
-        run: |
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-
-      - name: Bump version
-        id: version
-        run: |
-          npm version ${{ inputs.version_bump }}
-          VERSION=$(node -p "require('./package.json').version")
-          echo "version=v${VERSION}" >> "$GITHUB_OUTPUT"
-          echo "Bumped version to: v${VERSION}"
-
-      - name: Push commit and tag
-        run: |
-          git push origin HEAD
-          git push origin "${{ steps.version.outputs.version }}"
-
-  deploy:
-    name: Deploy
-    needs: bump-version
-    uses: ./.github/workflows/deploy.yml
+  bump:
+    name: Bump
+    uses: ./.github/workflows/bump.yml
     with:
-      ref: ${{ needs.bump-version.outputs.version }}
+      version_bump: ${{ inputs.version_bump }}
     secrets: inherit
 
-  create-release:
-    name: Create release
-    needs:
-      - bump-version
-      - deploy
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Download all artifacts
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          path: artifacts
-          pattern: release-*
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4
-        with:
-          tag_name: ${{ needs.bump-version.outputs.version }}
-          generate_release_notes: true
-          files: artifacts/**/*
+  publish:
+    name: Publish
+    needs: bump
+    uses: ./.github/workflows/publish.yml
+    with:
+      tag: ${{ needs.bump.outputs.version }}
+    secrets: inherit
