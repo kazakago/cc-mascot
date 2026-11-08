@@ -47,10 +47,26 @@ export function createAntigravityAdapter(): HarnessAdapter {
 
     getWatchOptions() {
       return {
-        // brain/<conversation-id>/.system_generated/logs/transcript.jsonl の構造なので depth=4
-        depth: 4,
-        ignored: (filePath: string, stats?: { isFile(): boolean }) =>
-          stats?.isFile() === true && !filePath.endsWith("transcript.jsonl"),
+        // brain/<conversation-id>/.system_generated/logs/transcript.jsonl の構造なので depth=3
+        depth: 3,
+        ignored: (filePath: string, stats?: { isFile(): boolean; isDirectory?: () => boolean }) => {
+          if (stats?.isFile() === true) {
+            return !filePath.endsWith("transcript.jsonl");
+          }
+          if (stats?.isDirectory?.() === true) {
+            for (const brainDir of brainDirs) {
+              const rel = path.relative(brainDir, filePath);
+              if (!rel || rel.startsWith("..") || path.isAbsolute(rel)) continue;
+              const parts = rel.split(path.sep);
+              // depth 2: brain/<conversation-id>/<dir> は .system_generated のみ監視
+              if (parts.length === 2 && parts[1] !== ".system_generated") return true;
+              // depth 3: brain/<conversation-id>/.system_generated/<dir> は logs のみ監視
+              if (parts.length === 3 && parts[2] !== "logs") return true;
+              if (parts.length > 3) return true;
+            }
+          }
+          return false;
+        },
         awaitWriteFinish: {
           stabilityThreshold: 100,
           pollInterval: 50,

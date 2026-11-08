@@ -42,18 +42,50 @@ describe("createAntigravityAdapter", () => {
       "/tmp/custom-app/.gemini/antigravity/brain",
     ]);
     expect(adapter.getWatchOptions()).toMatchObject({
-      depth: 4,
+      depth: 3,
       awaitWriteFinish: { stabilityThreshold: 100, pollInterval: 50 },
     });
   });
 
-  it("transcript.jsonl以外のファイルを除外する", () => {
+  it("transcript.jsonl以外のファイルおよび不要なサブディレクトリを除外する", () => {
+    process.env.ANTIGRAVITY_HOME = "/tmp/custom-app";
     const adapter = createAntigravityAdapter();
-    const ignored = adapter.getWatchOptions().ignored as (filePath: string, stats?: { isFile(): boolean }) => boolean;
+    const ignored = adapter.getWatchOptions().ignored as (
+      filePath: string,
+      stats?: { isFile(): boolean; isDirectory?: () => boolean },
+    ) => boolean;
 
     expect(ignored("/tmp/brain/ses/logs/transcript.jsonl", { isFile: () => true })).toBe(false);
     expect(ignored("/tmp/brain/ses/logs/transcript.json", { isFile: () => true })).toBe(true);
     expect(ignored("/tmp/brain/ses/logs", { isFile: () => false })).toBe(false);
+
+    const brainDir = "/tmp/custom-app/.gemini/antigravity/brain";
+    // 監視対象のディレクトリパス
+    expect(ignored(path.join(brainDir, "ses"), { isFile: () => false, isDirectory: () => true })).toBe(false);
+    expect(
+      ignored(path.join(brainDir, "ses", ".system_generated"), { isFile: () => false, isDirectory: () => true }),
+    ).toBe(false);
+    expect(
+      ignored(path.join(brainDir, "ses", ".system_generated", "logs"), {
+        isFile: () => false,
+        isDirectory: () => true,
+      }),
+    ).toBe(false);
+
+    // 監視対象外のサブディレクトリ（scratch, steps, messages など）
+    expect(ignored(path.join(brainDir, "ses", "scratch"), { isFile: () => false, isDirectory: () => true })).toBe(true);
+    expect(
+      ignored(path.join(brainDir, "ses", ".system_generated", "steps"), {
+        isFile: () => false,
+        isDirectory: () => true,
+      }),
+    ).toBe(true);
+    expect(
+      ignored(path.join(brainDir, "ses", ".system_generated", "messages"), {
+        isFile: () => false,
+        isDirectory: () => true,
+      }),
+    ).toBe(true);
   });
 
   it("parseLineで未処理の step_index だけを返す", () => {
