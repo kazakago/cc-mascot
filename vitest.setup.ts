@@ -31,7 +31,11 @@ class LocalStorageMock {
   }
 }
 
-globalThis.localStorage = new LocalStorageMock() as Storage;
+Object.defineProperty(globalThis, "localStorage", {
+  value: new LocalStorageMock(),
+  writable: true,
+  configurable: true,
+});
 
 // 各テスト前にlocalStorageをクリア
 beforeEach(() => {
